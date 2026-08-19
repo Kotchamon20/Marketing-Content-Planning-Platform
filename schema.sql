@@ -210,3 +210,35 @@ ALTER TABLE line_groups ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "Allow public all access on line_groups" ON line_groups;
 CREATE POLICY "Allow public all access on line_groups" ON line_groups FOR ALL USING (true);
 
+-- Public access policies for all multi-tenant tables
+DROP POLICY IF EXISTS "Allow public all access on teams" ON teams;
+CREATE POLICY "Allow public all access on teams" ON teams FOR ALL USING (true);
+
+DROP POLICY IF EXISTS "Allow public all access on users" ON users;
+CREATE POLICY "Allow public all access on users" ON users FOR ALL USING (true);
+
+DROP POLICY IF EXISTS "Allow public all access on products" ON products;
+CREATE POLICY "Allow public all access on products" ON products FOR ALL USING (true);
+
+DROP POLICY IF EXISTS "Allow public all access on marketing_plans" ON marketing_plans;
+CREATE POLICY "Allow public all access on marketing_plans" ON marketing_plans FOR ALL USING (true);
+
+DROP POLICY IF EXISTS "Allow public all access on campaign_ideas" ON campaign_ideas;
+CREATE POLICY "Allow public all access on campaign_ideas" ON campaign_ideas FOR ALL USING (true);
+
+DROP POLICY IF EXISTS "Allow public all access on campaigns" ON campaigns;
+CREATE POLICY "Allow public all access on campaigns" ON campaigns FOR ALL USING (true);
+
+DROP POLICY IF EXISTS "Allow public all access on content_items" ON content_items;
+CREATE POLICY "Allow public all access on content_items" ON content_items FOR ALL USING (true);
+
+DROP POLICY IF EXISTS "Allow public all access on idea_vault" ON idea_vault;
+CREATE POLICY "Allow public all access on idea_vault" ON idea_vault FOR ALL USING (true);
+
+DROP POLICY IF EXISTS "Allow public all access on notification_rules" ON notification_rules;
+CREATE POLICY "Allow public all access on notification_rules" ON notification_rules FOR ALL USING (true);
+
+DROP POLICY IF EXISTS "Allow public all access on notification_logs" ON notification_logs;
+CREATE POLICY "Allow public all access on notification_logs" ON notification_logs FOR ALL USING (true);
+
+

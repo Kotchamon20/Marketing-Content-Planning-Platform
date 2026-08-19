@@ -35,16 +35,55 @@ export default function App() {
   const [activeTab, setActiveTab] = useState('dashboard');
   const [schemaModalOpen, setSchemaModalOpen] = useState(false);
 
-  // Module Data States
-  const [products, setProducts] = useState(INITIAL_PRODUCTS);
-  const [marketingPlans, setMarketingPlans] = useState(INITIAL_MARKETING_PLANS);
-  const [campaignIdeas, setCampaignIdeas] = useState(INITIAL_CAMPAIGN_IDEAS);
-  const [campaigns, setCampaigns] = useState(INITIAL_CAMPAIGNS);
-  const [contentItems, setContentItems] = useState(INITIAL_CONTENT_ITEMS);
-  const [contentGroups, setContentGroups] = useState(INITIAL_CONTENT_GROUPS);
-  const [ideaVault, setIdeaVault] = useState(INITIAL_IDEA_VAULT);
+  // Module Data States with localStorage persistence (Auto-save for Local & Production)
+  const [products, setProducts] = useState(() => {
+    const saved = localStorage.getItem('nitan_products');
+    return saved ? JSON.parse(saved) : INITIAL_PRODUCTS;
+  });
+
+  const [marketingPlans, setMarketingPlans] = useState(() => {
+    const saved = localStorage.getItem('nitan_marketingPlans');
+    return saved ? JSON.parse(saved) : INITIAL_MARKETING_PLANS;
+  });
+
+  const [campaignIdeas, setCampaignIdeas] = useState(() => {
+    const saved = localStorage.getItem('nitan_campaignIdeas');
+    return saved ? JSON.parse(saved) : INITIAL_CAMPAIGN_IDEAS;
+  });
+
+  const [campaigns, setCampaigns] = useState(() => {
+    const saved = localStorage.getItem('nitan_campaigns');
+    return saved ? JSON.parse(saved) : INITIAL_CAMPAIGNS;
+  });
+
+  const [contentItems, setContentItems] = useState(() => {
+    const saved = localStorage.getItem('nitan_contentItems');
+    return saved ? JSON.parse(saved) : INITIAL_CONTENT_ITEMS;
+  });
+
+  const [contentGroups, setContentGroups] = useState(() => {
+    const saved = localStorage.getItem('nitan_contentGroups');
+    return saved ? JSON.parse(saved) : INITIAL_CONTENT_GROUPS;
+  });
+
+  const [ideaVault, setIdeaVault] = useState(() => {
+    const saved = localStorage.getItem('nitan_ideaVault');
+    return saved ? JSON.parse(saved) : INITIAL_IDEA_VAULT;
+  });
+
   const [notificationRules, setNotificationRules] = useState(INITIAL_NOTIFICATION_RULES);
   const [notificationLogs, setNotificationLogs] = useState(INITIAL_NOTIFICATION_LOGS);
+
+  // Auto-Sync to localStorage on changes
+  React.useEffect(() => {
+    localStorage.setItem('nitan_products', JSON.stringify(products));
+    localStorage.setItem('nitan_marketingPlans', JSON.stringify(marketingPlans));
+    localStorage.setItem('nitan_campaignIdeas', JSON.stringify(campaignIdeas));
+    localStorage.setItem('nitan_campaigns', JSON.stringify(campaigns));
+    localStorage.setItem('nitan_contentItems', JSON.stringify(contentItems));
+    localStorage.setItem('nitan_contentGroups', JSON.stringify(contentGroups));
+    localStorage.setItem('nitan_ideaVault', JSON.stringify(ideaVault));
+  }, [products, marketingPlans, campaignIdeas, campaigns, contentItems, contentGroups, ideaVault]);
 
   // Filtered by Tenant (team_id)
   const currentTeamContent = contentItems.filter(c => c.team_id === activeTeamId);

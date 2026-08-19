@@ -42,14 +42,29 @@ export default function TodoListModule({
   // View Mode State for Tasks: 'card' (default) | 'list'
   const [viewMode, setViewMode] = useState('card');
 
-  // 1. Tasks State
-  const [tasks, setTasks] = useState([]);
+  // 1. Tasks State with localStorage Persistence
+  const [tasks, setTasks] = useState(() => {
+    const saved = localStorage.getItem('nitan_todo_tasks');
+    return saved ? JSON.parse(saved) : [];
+  });
 
-  // 2. Follow-Up Watchlist State (Cleared Mockup Data)
-  const [followupItems, setFollowupItems] = useState([]);
+  // 2. Follow-Up Watchlist State
+  const [followupItems, setFollowupItems] = useState(() => {
+    const saved = localStorage.getItem('nitan_todo_followup');
+    return saved ? JSON.parse(saved) : [];
+  });
 
-  // 3. File Submission Tracker State (Cleared Mockup Data)
-  const [fileTrackers, setFileTrackers] = useState([]);
+  // 3. File Submission Tracker State
+  const [fileTrackers, setFileTrackers] = useState(() => {
+    const saved = localStorage.getItem('nitan_todo_files');
+    return saved ? JSON.parse(saved) : [];
+  });
+
+  React.useEffect(() => {
+    localStorage.setItem('nitan_todo_tasks', JSON.stringify(tasks));
+    localStorage.setItem('nitan_todo_followup', JSON.stringify(followupItems));
+    localStorage.setItem('nitan_todo_files', JSON.stringify(fileTrackers));
+  }, [tasks, followupItems, fileTrackers]);
 
   // Filters State
   const [selectedStatus, setSelectedStatus] = useState('all');

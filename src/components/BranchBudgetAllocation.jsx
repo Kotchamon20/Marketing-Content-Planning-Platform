@@ -98,8 +98,15 @@ export default function BranchBudgetAllocation() {
     branches: []
   });
 
-  // Monthly Budgets Data Map (Initialized empty for user real data)
-  const [monthlyBudgetsData, setMonthlyBudgetsData] = useState({});
+  // Monthly Budgets Data Map with localStorage Persistence
+  const [monthlyBudgetsData, setMonthlyBudgetsData] = useState(() => {
+    const saved = localStorage.getItem('nitan_monthly_budgets_data');
+    return saved ? JSON.parse(saved) : {};
+  });
+
+  React.useEffect(() => {
+    localStorage.setItem('nitan_monthly_budgets_data', JSON.stringify(monthlyBudgetsData));
+  }, [monthlyBudgetsData]);
 
   const currentMonthKey = `${selectedYear}-${selectedMonth}`;
 

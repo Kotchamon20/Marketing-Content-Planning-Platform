@@ -46,13 +46,22 @@ export default function PromotionPlanModule({
     { id: 'cat-4', name: 'Seasonal Promo', label: 'โปรโมชันตามเทศกาล (Seasonal)' }
   ]);
 
-  // Dynamic Related Products State (Cleared Mockup Data)
-  const [productsList, setProductsList] = useState([
-    { id: 'p-1', name: 'สินค้าทุกรายการ (All Products)' }
-  ]);
+  // Dynamic Related Products State with localStorage Persistence
+  const [productsList, setProductsList] = useState(() => {
+    const saved = localStorage.getItem('nitan_products_list');
+    return saved ? JSON.parse(saved) : [{ id: 'p-1', name: 'สินค้าทุกรายการ (All Products)' }];
+  });
 
-  // Clean Initial Promotion Plans Data State (Cleared Mockup Data)
-  const [promotionPlans, setPromotionPlans] = useState([]);
+  // Clean Initial Promotion Plans Data State
+  const [promotionPlans, setPromotionPlans] = useState(() => {
+    const saved = localStorage.getItem('nitan_promotion_plans');
+    return saved ? JSON.parse(saved) : [];
+  });
+
+  React.useEffect(() => {
+    localStorage.setItem('nitan_products_list', JSON.stringify(productsList));
+    localStorage.setItem('nitan_promotion_plans', JSON.stringify(promotionPlans));
+  }, [productsList, promotionPlans]);
 
   // Filters State
   const [selectedCategory, setSelectedCategory] = useState('all');

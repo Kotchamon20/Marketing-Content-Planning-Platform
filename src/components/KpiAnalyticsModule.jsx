@@ -58,8 +58,15 @@ export default function KpiAnalyticsModule({ campaigns = [], products = [] }) {
   const [editingCatId, setEditingCatId] = useState(null);
   const [editingCatName, setEditingCatName] = useState('');
 
-  // Initial KPI Items State (Cleared Mockup Data - Ready for User Real Entry)
-  const [kpiItems, setKpiItems] = useState([]);
+  // Initial KPI Items State with localStorage Persistence
+  const [kpiItems, setKpiItems] = useState(() => {
+    const saved = localStorage.getItem('nitan_kpi_items');
+    return saved ? JSON.parse(saved) : [];
+  });
+
+  React.useEffect(() => {
+    localStorage.setItem('nitan_kpi_items', JSON.stringify(kpiItems));
+  }, [kpiItems]);
 
   // New KPI Item Form State
   const [newKpiTitle, setNewKpiTitle] = useState('');
