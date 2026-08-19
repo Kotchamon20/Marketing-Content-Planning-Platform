@@ -25,7 +25,11 @@ import {
   TrendingUp,
   Settings,
   Save,
-  Check
+  Check,
+  FileText,
+  Copy,
+  Printer,
+  FileCode
 } from 'lucide-react';
 import LineFlexModal from './LineFlexModal';
 
@@ -42,7 +46,7 @@ export default function PromotionPlanModule({
     { id: 'cat-4', name: 'Seasonal Promo', label: 'โปรโมชันตามเทศกาล (Seasonal)' }
   ]);
 
-  // Initial Mock Promotion Plans Data
+  // Initial Mock Promotion Plans Data with Doc Content (Campaign Brief)
   const [promotionPlans, setPromotionPlans] = useState([
     {
       id: 'promo-1',
@@ -60,6 +64,35 @@ export default function PromotionPlanModule({
       projectedSales: 450000,
       channels: ['Facebook Ads', 'TikTok Shop', 'Shopee', 'หน้าร้านทุกสาขา'],
       description: 'แคมเปญกระตุ้นยอดขายครีมกันแดดรับช่วงซัมเมอร์ แจกเทสเตอร์ฟรีเมื่อซื้อครบ 800 บาท',
+      docContent: `=====================================================
+เอกสารบรีฟแผนโปรโมชัน (CAMPAIGN STRATEGY & PROMOTION DOC)
+รหัสแคมเปญ: PROMO-2026-08A
+ชื่อแคมเปญ: ซื้อ 1 แถม 1 Sunscreen Aqua Gel ฉลองเปิดตัวสูตรใหม่
+=====================================================
+
+1. วัตถุประสงค์เชิงกลยุทธ์ (Strategic Objectives)
+- กระตุ้นยอดขายครีมกันแดด Sunscreen Aqua Gel ให้เติบโต +150% ในเดือนสิงหาคม
+- สร้างการรับรู้สูตรปรับปรุงใหม่ (Upgraded SPF50+ PA++++ Non-Greasy Formula)
+- เพิ่มยอดสั่งซื้อเฉลี่ยต่อบิล (AOV) ผ่านข้อเสนอซื้อ 1 แถม 1
+
+2. กลุ่มเป้าหมายหลัก (Target Audience)
+- กลุ่มหญิงและชาย อายุ 22-45 ปี ที่ชื่นชอบกิจกรรมกลางแจ้งและใส่ใจสุขภาพผิว
+- ลูกค้าที่สอยสินค้าประเภทครีมกันแดดออนไลน์ (Shopee / TikTok Shop / Lazada)
+
+3. เงื่อนไขและข้อเสนอโปรโมชัน (Promotion Offer & Conditions)
+- เมื่อซื้อ Sunscreen Aqua Gel ขนาด 50ml 1 ชิ้น ราคาปกติ ฿590 รับฟรีอีก 1 ชิ้นทันที
+- พิเศษ! สั่งซื้อครบ ฿800 รับเพิ่ม Nitan Pouch Bag & Tester Mask 1 ชิ้น (จำกัด 500 สิทธิ์แรก)
+- โปรโมชันนี้ใช้ได้ทั้งหน้าร้านทุกสาขา และช่องทางออนไลน์
+
+4. สื่อและสคริปต์โฆษณา (Ad Copy & Creative Brief)
+- Hook 3 วินาทีแรก: "แดดเมืองไทยร้อนแรงขนาดนี้ กันแดดตัวเดิมเอาอยู่จริงเหรอ?"
+- Body Concept: โชว์ซูมเนื้อกันแดดแตกตัวเป็นน้ำ ซึมไว ไม่เหนียวเหนอะหนะ
+- Call to Action (CTA): "กดตระกร้าด่วน! ซื้อ 1 แถม 1 เฉพาะสัปดาห์นี้เท่านั้น"
+
+5. งบประมาณและการจัดสรรสื่อ (Budget Breakdown)
+- Facebook & Instagram Ads: ฿15,000 (43%)
+- TikTok Video Ads & Creator Commissions: ฿12,000 (34%)
+- ป้ายและสื่อ POSM หน้าร้านทุกสาขา: ฿8,000 (23%)`,
       checklist: [
         { task: 'จัดทำอาร์ตเวิร์คและคลิปวิดีโอ TikTok', completed: true },
         { task: 'เซ็ตอัปโฆษณา Facebook & TikTok Ads', completed: true },
@@ -83,6 +116,19 @@ export default function PromotionPlanModule({
       projectedSales: 300000,
       channels: ['Local FB Ads', 'Line OA สาขา', 'ป้ายหน้าร้าน'],
       description: 'โปรโมชันฉลองครบรอบสาขาเขาพระตำหนัก ดึงดูดนักท่องเที่ยวและลูกค้าประจำในพื้นที่พัทยา',
+      docContent: `=====================================================
+เอกสารบรีฟแผนโปรโมชันสาขา (BRANCH PROMOTION DOC)
+รหัสแคมเปญ: PROMO-2026-08B
+ชื่อแคมเปญ: Festival ลดกระหน่ำ 30% เฉพาะสาขาเขาพระตำหนัก พัทยา
+=====================================================
+
+1. วัตถุประสงค์สาขา (Branch Target)
+- ดึงดูดสัญจรนักท่องเที่ยวในพื้นที่พัทยา เขาพระตำหนัก เข้าสู่หน้าร้าน
+- เพิ่มยอดขายสาขาเขาพระตำหนักแตะ ฿300,000 ภายใน 10 วัน
+
+2. ข้อเสนอและของแถม (Offer Details)
+- ส่วนลด 30% ทันทีเมื่อเช็กอินและกดไลก์เพจร้าน NITAN เขาพระตำหนัก
+- คูปอง Line OA รับส่วนลดเพิ่ม ฿50 ในการซื้อครั้งถัดไป`,
       checklist: [
         { task: 'จัดทำคูปองส่วนลด Line OA พัทยา', completed: true },
         { task: 'ยิงโฆษณา รัศมี 10 กม. รอบสาขาเขาพระตำหนัก', completed: true },
@@ -105,31 +151,19 @@ export default function PromotionPlanModule({
       projectedSales: 380000,
       channels: ['Facebook Ads', 'Instagram', 'Shopee Official Store'],
       description: 'เน้นกลุ่มลูกค้าที่มีปัญหาฝ้า กระ จุดด่างดำจากการโดนแดดจัดช่วงวันหยุด',
+      docContent: `=====================================================
+เอกสารบรีฟแผนโปรโมชัน (CAMPAIGN DOC)
+รหัสแคมเปญ: PROMO-2026-09A
+ชื่อแคมเปญ: Melasma Clear Serum เซ็ตฟื้นฟูผิวฝ้าแดด ซื้อ 2 ชิ้นลด 40%
+=====================================================
+
+1. แนวทางการบรีฟ Influencer
+- ให้ Influencer เล่าถึงปัญหาฝ้าแดดหลังไปเที่ยวทะเล แล้วแนะนำเซรั่ม Melasma Clear
+- โชว์ Texture เซรั่มใส ซึมเร็ว และผลลัพธ์หลังใช้ต่อเนื่อง 14 วัน`,
       checklist: [
         { task: 'เตรียมบรีฟ Influencer สายสกินแคร์ 5 ท่าน', completed: true },
         { task: 'ออกแบบแพ็กเกจจิ้งเซ็ตคู่พร้อมกล่องของขวัญ', completed: false },
         { task: 'ตั้งราคาโปรโมชันบนระบบ POS และ Shopee', completed: false }
-      ]
-    },
-    {
-      id: 'promo-4',
-      code: 'PROMO-2026-09B',
-      title: 'Nitan Member Day: สะสมพอยต์ X3 และคูปองรับ Mask ฟรี',
-      category: 'Brand Campaign',
-      targetProductId: 'prod-3',
-      targetProductName: 'Collagen Brightening Mask',
-      targetBranch: 'ทุกสาขา',
-      status: 'planned',
-      discountOffer: 'Triple Points + Free Mask 1 แผ่น',
-      startDate: '2026-09-09',
-      endDate: '2026-09-12',
-      budget: 15000,
-      projectedSales: 220000,
-      channels: ['Line OA Broadcast', 'SMS Alert', 'หน้าร้าน'],
-      description: 'แคมเปญคืนกำไรสมาชิก Nitan Club กระตุ้นการกลับมาซื้อซ้ำของกลุ่ม VIP',
-      checklist: [
-        { task: 'บรอดแคสต์ข้อความผ่าน Line Official Account', completed: false },
-        { task: 'เตรียมสต็อกมาส์กแถมหน้าร้านและออนไลน์', completed: false }
       ]
     }
   ]);
@@ -144,6 +178,7 @@ export default function PromotionPlanModule({
   // Modals State
   const [showAddModal, setShowAddModal] = useState(false);
   const [showManageCategoriesModal, setShowManageCategoriesModal] = useState(false);
+  const [viewDocPlan, setViewDocPlan] = useState(null); // Doc Format Viewer Modal State
   const [editingPlan, setEditingPlan] = useState(null);
   const [lineModalItem, setLineModalItem] = useState(null);
 
@@ -165,7 +200,8 @@ export default function PromotionPlanModule({
     budget: 10000,
     projectedSales: 150000,
     description: '',
-    channelsStr: 'Facebook Ads, TikTok, หน้าร้าน'
+    channelsStr: 'Facebook Ads, TikTok, หน้าร้าน',
+    docContent: ''
   });
 
   // Category Management Handlers
@@ -217,7 +253,8 @@ export default function PromotionPlanModule({
       budget: 15000,
       projectedSales: 200000,
       description: '',
-      channelsStr: 'Facebook Ads, TikTok Shop, หน้าร้าน'
+      channelsStr: 'Facebook Ads, TikTok Shop, หน้าร้าน',
+      docContent: `=====================================================\nเอกสารบรีฟแผนโปรโมชัน (CAMPAIGN STRATEGY & PROMOTION DOC)\n=====================================================\n\n1. วัตถุประสงค์เชิงกลยุทธ์ (Strategic Objectives)\n- \n\n2. กลุ่มเป้าหมายหลัก (Target Audience)\n- \n\n3. เงื่อนไขและข้อเสนอโปรโมชัน (Offer Terms)\n- \n\n4. สื่อและสคริปต์โฆษณา (Creative & Script Brief)\n- `
     });
     setShowAddModal(true);
   };
@@ -237,7 +274,8 @@ export default function PromotionPlanModule({
       budget: plan.budget,
       projectedSales: plan.projectedSales,
       description: plan.description,
-      channelsStr: plan.channels.join(', ')
+      channelsStr: plan.channels.join(', '),
+      docContent: plan.docContent || ''
     });
     setShowAddModal(true);
   };
@@ -261,7 +299,8 @@ export default function PromotionPlanModule({
         budget: Number(formData.budget) || 0,
         projectedSales: Number(formData.projectedSales) || 0,
         description: formData.description,
-        channels: channelsList
+        channels: channelsList,
+        docContent: formData.docContent
       } : p));
     } else {
       const newPlan = {
@@ -280,6 +319,7 @@ export default function PromotionPlanModule({
         projectedSales: Number(formData.projectedSales) || 0,
         channels: channelsList,
         description: formData.description,
+        docContent: formData.docContent,
         checklist: [
           { task: 'จัดเตรียมอาร์ตเวิร์คโปรโมชัน', completed: true },
           { task: 'เซ็ตอัปส่วนลดในระบบPOS/ออนไลน์', completed: false }
@@ -336,13 +376,13 @@ export default function PromotionPlanModule({
           <div>
             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#FFEBF3] border border-[#E2D2EA] text-xs font-bold text-purple-950 mb-2">
               <Megaphone className="w-3.5 h-3.5 text-purple-700" />
-              <span>ระบบบริหารแผนการโปรโมท (Module: Promotion Plan & Execution)</span>
+              <span>ระบบบริหารแผนการโปรโมท (Module: Promotion Plan & Doc Brief System)</span>
             </div>
             <h2 className="text-xl font-bold text-purple-950 tracking-tight flex items-center gap-2">
               <span>แผนการโปรโมทสินค้า การตลาด และแคมเปญส่งเสริมการขาย</span>
             </h2>
             <p className="text-xs text-purple-800/80 font-medium mt-1">
-              วางแผนข้อเสนอโปรโมชัน (Discounts / Buy 1 Get 1) แยกตามสินค้า สาขาหน้าร้าน และติดตามผลลัพธ์
+              วางแผนข้อเสนอโปรโมชัน (Discounts / Buy 1 Get 1) พร้อมระบบรองรับเอกสาร Campaign Brief ในรูปแบบ Doc Format
             </p>
           </div>
 
@@ -679,10 +719,15 @@ export default function PromotionPlanModule({
               </div>
 
               {/* Card Footer Actions */}
-              <div className="pt-3 border-t border-purple-100 flex items-center justify-between text-xs">
-                <span className="text-[10px] text-purple-700 font-bold">
-                  ID: {plan.id}
-                </span>
+              <div className="pt-3 border-t border-purple-100 flex items-center justify-between text-xs flex-wrap gap-2">
+                {/* Doc Brief Format Button */}
+                <button
+                  onClick={() => setViewDocPlan(plan)}
+                  className="px-3 py-1.5 bg-[#E6F2FF] hover:bg-blue-100 text-purple-950 font-bold rounded-xl border border-[#E2D2EA] transition flex items-center gap-1.5 text-xs shadow-xs cursor-pointer"
+                >
+                  <FileText className="w-3.5 h-3.5 text-purple-700" />
+                  <span>ดูเอกสาร Doc แคมเปญ</span>
+                </button>
 
                 <button
                   onClick={() => setLineModalItem({
@@ -705,17 +750,17 @@ export default function PromotionPlanModule({
         })}
       </div>
 
-      {/* MODAL 1: Add or Edit Promotion Plan Modal */}
+      {/* MODAL 1: Add or Edit Promotion Plan Modal (with Doc Brief Support) */}
       {showAddModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-xs p-4 animate-in fade-in duration-150 overflow-y-auto">
-          <div className="glass-panel max-w-xl w-full p-6 space-y-4 border-[#E2D2EA] shadow-2xl bg-white/95 my-8">
+          <div className="glass-panel max-w-2xl w-full p-6 space-y-4 border-[#E2D2EA] shadow-2xl bg-white/95 my-8">
             <div className="flex items-center justify-between border-b border-purple-100 pb-3">
               <div className="flex items-center gap-2">
                 <div className="w-8 h-8 rounded-xl bg-[#FFEBF3] text-purple-800 flex items-center justify-center border border-[#E2D2EA]">
                   <Megaphone className="w-4 h-4" />
                 </div>
                 <h3 className="text-base font-bold text-purple-950">
-                  {editingPlan ? 'แก้ไขแผนการโปรโมท' : 'สร้างแผนการโปรโมทสินค้า/แคมเปญใหม่'}
+                  {editingPlan ? 'แก้ไขแผนการโปรโมท & เอกสาร Doc' : 'สร้างแผนการโปรโมทสินค้า/แคมเปญใหม่'}
                 </h3>
               </div>
               <button onClick={() => setShowAddModal(false)} className="text-purple-400 hover:text-purple-700 font-bold cursor-pointer">
@@ -802,7 +847,7 @@ export default function PromotionPlanModule({
                   placeholder="เช่น ซื้อ 1 แถม 1 หรือ ลด 30% ทุกบิล หรือ สะสมพอยต์ X3"
                   value={formData.discountOffer}
                   onChange={(e) => setFormData(prev => ({ ...prev, discountOffer: e.target.value }))}
-                  className="w-full px-3 py-2 bg-white border border-[#E2D2EA] rounded-xl text-purple-950 font-medium focus:outline-none shadow-xs"
+                  className="w-full px-3 py-2 bg-[#FFEBF3] border border-[#E2D2EA] rounded-xl text-purple-950 font-bold focus:outline-none shadow-xs"
                 />
               </div>
 
@@ -867,14 +912,21 @@ export default function PromotionPlanModule({
                 />
               </div>
 
-              <div>
-                <label className="block text-purple-950 font-bold mb-1">รายละเอียดเพิ่มเติม</label>
+              {/* Rich Document / Brief Format Section */}
+              <div className="pt-2">
+                <label className="block text-purple-950 font-bold mb-1 flex items-center justify-between">
+                  <span className="flex items-center gap-1.5">
+                    <FileText className="w-4 h-4 text-purple-700" />
+                    <span>เนื้อหาเอกสารแผนแคมเปญ (Doc Format / Campaign Brief):</span>
+                  </span>
+                  <span className="text-[10px] text-purple-700 font-medium">รองรับข้อความจัดรูปเล่มสไตล์ Google Doc / Notion</span>
+                </label>
                 <textarea
-                  rows={3}
-                  placeholder="ระบุวัตถุประสงค์ เงื่อนไข หรือรายละเอียดเพิ่มเติม..."
-                  value={formData.description}
-                  onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
-                  className="w-full px-3 py-2 bg-white border border-[#E2D2EA] rounded-xl text-purple-950 font-medium focus:outline-none shadow-xs"
+                  rows={8}
+                  placeholder="ใส่เอกสารบรีฟกลยุทธ์ สคริปต์ หรือข้อกำหนดการจัดโปรโมชันสไตล์ Word/Doc..."
+                  value={formData.docContent}
+                  onChange={(e) => setFormData(prev => ({ ...prev, docContent: e.target.value }))}
+                  className="w-full px-3 py-2.5 bg-[#FCFAF7] border border-[#E2D2EA] rounded-xl text-purple-950 font-mono text-xs leading-relaxed focus:outline-none shadow-inner"
                 />
               </div>
 
@@ -898,7 +950,7 @@ export default function PromotionPlanModule({
         </div>
       )}
 
-      {/* MODAL 2: Dynamic Category Manager Modal (Add, Edit, Delete Promo Categories) */}
+      {/* MODAL 2: Dynamic Category Manager Modal */}
       {showManageCategoriesModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-xs p-4 animate-in fade-in duration-150 overflow-y-auto">
           <div className="glass-panel max-w-lg w-full p-6 space-y-4 border-[#E2D2EA] shadow-2xl bg-white/95 my-8">
@@ -917,7 +969,7 @@ export default function PromotionPlanModule({
               </button>
             </div>
 
-            {/* Add New Category Input Form */}
+            {/* Add New Category Form */}
             <form onSubmit={handleAddCategory} className="flex gap-2">
               <input
                 type="text"
@@ -936,7 +988,7 @@ export default function PromotionPlanModule({
               </button>
             </form>
 
-            {/* Existing Categories List */}
+            {/* Categories List */}
             <div className="space-y-2 max-h-60 overflow-y-auto pt-2">
               <span className="text-xs font-bold text-purple-900 block">รายการประเภทแผนโปรโมทปัจจุบัน ({categories.length}):</span>
               
@@ -997,6 +1049,95 @@ export default function PromotionPlanModule({
                 เสร็จสิ้น
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL 3: Doc Format Full Campaign Brief Viewer Modal */}
+      {viewDocPlan && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-xs p-4 animate-in fade-in duration-200 overflow-y-auto">
+          <div className="glass-panel max-w-3xl w-full p-6 space-y-4 border-[#E2D2EA] shadow-2xl bg-white/95 my-8">
+            {/* Doc Header */}
+            <div className="flex items-center justify-between border-b border-purple-100 pb-3">
+              <div className="flex items-center gap-2">
+                <div className="w-9 h-9 rounded-2xl bg-gradient-to-tr from-purple-950 via-pink-900 to-purple-900 text-white flex items-center justify-center shadow-md">
+                  <FileText className="w-5 h-5 text-pink-300" />
+                </div>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-purple-950 text-white font-mono">{viewDocPlan.code}</span>
+                    <h3 className="text-base font-bold text-purple-950">เอกสารแผนแคมเปญโปรโมท (Campaign Doc Brief)</h3>
+                  </div>
+                  <p className="text-xs text-purple-800/80 font-medium">{viewDocPlan.title}</p>
+                </div>
+              </div>
+
+              <button onClick={() => setViewDocPlan(null)} className="w-8 h-8 rounded-full bg-purple-50 hover:bg-purple-100 text-purple-700 font-bold transition flex items-center justify-center cursor-pointer">
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            {/* Doc Metadata Badge Row */}
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs">
+              <div className="p-2.5 bg-purple-50 rounded-xl border border-purple-100">
+                <span className="text-purple-800 text-[10px] block">ประเภทแผน:</span>
+                <span className="font-bold text-purple-950">{viewDocPlan.category}</span>
+              </div>
+              <div className="p-2.5 bg-purple-50 rounded-xl border border-purple-100">
+                <span className="text-purple-800 text-[10px] block">สินค้าเป้าหมาย:</span>
+                <span className="font-bold text-purple-950">{viewDocPlan.targetProductName}</span>
+              </div>
+              <div className="p-2.5 bg-purple-50 rounded-xl border border-purple-100">
+                <span className="text-purple-800 text-[10px] block">งบจัดสรร:</span>
+                <span className="font-bold text-purple-950 font-mono">฿{viewDocPlan.budget.toLocaleString()}</span>
+              </div>
+              <div className="p-2.5 bg-purple-50 rounded-xl border border-purple-100">
+                <span className="text-purple-800 text-[10px] block">เป้าหมายยอดขาย:</span>
+                <span className="font-bold text-emerald-800 font-mono">฿{viewDocPlan.projectedSales.toLocaleString()}</span>
+              </div>
+            </div>
+
+            {/* Doc Document Body Container */}
+            <div className="p-5 rounded-2xl bg-[#FCFAF7] border border-purple-200/90 shadow-inner max-h-96 overflow-y-auto">
+              <pre className="font-mono text-xs text-purple-950 whitespace-pre-wrap leading-relaxed">
+                {viewDocPlan.docContent || `ไม่มีเนื้อหาเอกสารบรีฟในขณะนี้ (สามารถกดปุ่มแก้ไขเพื่อกรอกเนื้อหา Doc Brief ได้)`}
+              </pre>
+            </div>
+
+            {/* Doc Footer Action Controls */}
+            <div className="pt-3 border-t border-purple-100 flex items-center justify-between gap-2 text-xs">
+              <button
+                onClick={() => {
+                  navigator.clipboard.writeText(viewDocPlan.docContent || viewDocPlan.title);
+                  alert('คัดลอกข้อความเอกสาร Doc สำเร็จ!');
+                }}
+                className="px-3.5 py-2 bg-white hover:bg-purple-50 text-purple-950 border border-[#E2D2EA] font-bold rounded-xl transition flex items-center gap-1.5 cursor-pointer shadow-xs"
+              >
+                <Copy className="w-3.5 h-3.5 text-purple-700" />
+                <span>คัดลอกข้อความเอกสาร</span>
+              </button>
+
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => {
+                    handleOpenEditModal(viewDocPlan);
+                    setViewDocPlan(null);
+                  }}
+                  className="px-4 py-2 bg-[#FFEBF3] hover:bg-pink-200 text-purple-950 font-bold rounded-xl border border-[#E2D2EA] transition flex items-center gap-1.5 cursor-pointer shadow-xs"
+                >
+                  <Edit3 className="w-3.5 h-3.5 text-purple-700" />
+                  <span>แก้ไขเอกสาร Doc นี้</span>
+                </button>
+
+                <button
+                  onClick={() => setViewDocPlan(null)}
+                  className="px-5 py-2 bg-purple-950 text-white font-bold rounded-xl transition shadow-md cursor-pointer"
+                >
+                  ปิดเอกสาร
+                </button>
+              </div>
+            </div>
+
           </div>
         </div>
       )}
