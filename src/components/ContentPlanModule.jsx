@@ -399,11 +399,23 @@ export default function ContentPlanModule({
     const existingSubs = grpObj.subCategories || [];
     const exists = existingSubs.some(s => s.toLowerCase() === trimmedSub.toLowerCase());
     if (!exists) {
+      // สุ่มเลือกสีคงที่จากชื่อ SubCategory
+      let hash = 0;
+      for (let i = 0; i < trimmedSub.length; i++) {
+        hash = trimmedSub.charCodeAt(i) + ((hash << 5) - hash);
+      }
+      const index = Math.abs(hash) % SUB_CATEGORY_COLORS.length;
+      const autoColor = SUB_CATEGORY_COLORS[index].value;
+
       const updatedGroups = effectiveContentGroups.map(g => {
         if (g.name === groupName) {
           return {
             ...g,
-            subCategories: [...(g.subCategories || []), trimmedSub]
+            subCategories: [...(g.subCategories || []), trimmedSub],
+            subCategoryColors: {
+              ...(g.subCategoryColors || {}),
+              [trimmedSub]: autoColor
+            }
           };
         }
         return g;
@@ -1631,8 +1643,8 @@ export default function ContentPlanModule({
   // แสดง Badge สำหรับหมวดหมู่ย่อย (Sub-Category) — มินิมอลทรง Pill สไตล์ต้นแบบ
   const getSubCategoryBadge = (subCat) => {
     if (!subCat || !subCat.trim()) return null;
-    // หาสีจาก subCategoryColors ของทุก Group
-    let colorClass = DEFAULT_SUB_CAT_COLOR;
+    // 1. หาสีจาก subCategoryColors ของทุก Group
+    let colorClass = null;
     for (const grp of effectiveContentGroups) {
       const colors = grp.subCategoryColors || {};
       if (colors[subCat]) {
@@ -1640,6 +1652,17 @@ export default function ContentPlanModule({
         break;
       }
     }
+
+    // 2. ถ้าไม่พบสี ให้ใช้สุ่มสีคงที่ตามชื่อ SubCategory เพื่อให้ไม่ใช้สี Amber ทองทั้งหมด
+    if (!colorClass) {
+       let hash = 0;
+       for (let i = 0; i < subCat.length; i++) {
+         hash = subCat.charCodeAt(i) + ((hash << 5) - hash);
+       }
+       const index = Math.abs(hash) % SUB_CATEGORY_COLORS.length;
+       colorClass = SUB_CATEGORY_COLORS[index].value;
+    }
+
     return (
       <span className={`inline-block px-2.5 py-0.5 rounded-full text-[9px] font-bold border ${colorClass} max-w-full truncate shadow-2xs leading-tight`}>
         {subCat}
