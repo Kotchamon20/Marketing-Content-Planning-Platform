@@ -196,10 +196,16 @@ export default function BranchBudgetAllocation() {
     }
   ], []);
 
-  // Get current active branches for the selected month (Always includes 3 Nitan branches by default)
-  const currentBranches = (monthlyBudgetsData[currentMonthKey] && monthlyBudgetsData[currentMonthKey].length > 0)
-    ? monthlyBudgetsData[currentMonthKey]
-    : DEFAULT_NITAN_BRANCHES;
+  // Check if current month has budget data created by user
+  const hasMonthData = Boolean(monthlyBudgetsData[currentMonthKey] && monthlyBudgetsData[currentMonthKey].length > 0);
+  const currentBranches = hasMonthData ? monthlyBudgetsData[currentMonthKey] : [];
+
+  const handleInitializeMonthBudget = () => {
+    setMonthlyBudgetsData(prev => ({
+      ...prev,
+      [currentMonthKey]: DEFAULT_NITAN_BRANCHES
+    }));
+  };
 
   const updateCurrentBranches = (newBranchesOrFn) => {
     setMonthlyBudgetsData(prev => {
@@ -581,31 +587,33 @@ export default function BranchBudgetAllocation() {
       </div>
 
       {/* Dynamic Branch Cards Grid */}
-      {currentBranches.length === 0 ? (
-        <div className="glass-panel p-12 text-center border-[#E2D2EA] space-y-4 my-4">
-          <div className="w-14 h-14 rounded-2xl bg-[#FFEBF3] text-purple-800 flex items-center justify-center border border-[#E2D2EA] mx-auto shadow-xs">
-            <PieChart className="w-7 h-7" />
+      {!hasMonthData ? (
+        <div className="glass-panel p-12 text-center border-[#E2D2EA] bg-white/80 space-y-4 my-4 rounded-3xl shadow-xs">
+          <div className="w-14 h-14 rounded-3xl bg-[#FFEBF3] text-purple-950 flex items-center justify-center border border-[#E2D2EA] mx-auto shadow-xs">
+            <Calendar className="w-7 h-7 text-purple-700" />
           </div>
           <div className="space-y-1">
-            <h3 className="font-bold text-purple-950 text-base">ยังไม่มีข้อมูลจัดสรรงบประมาณประจำเดือนนี้</h3>
+            <h3 className="font-bold text-purple-950 text-base">
+              ยังไม่มีข้อมูลจัดสรรงบประมาณประจำเดือน {currentMonthObj.label} {Number(selectedYear) + 543}
+            </h3>
             <p className="text-xs text-purple-800/80 max-w-md mx-auto">
-              กดปุ่มด้านล่างเพื่อเริ่มเพิ่มสาขาและตั้งงบประมาณรายช่องทางสื่อ หรือสแกนรูปภาพตารางสเปรดชีตด้วย AI
+              คุณยังไม่ได้เพิ่มข้อมูลจัดสรรงบประมาณสำหรับเดือนนี้ คลิกปุ่มด้านล่างเพื่อเริ่มจัดสรรงบ (พร้อม 3 สาขาหลัก Nitan) หรือสแกนตารางสเปรดชีตด้วย AI
             </p>
           </div>
           <div className="flex flex-wrap items-center justify-center gap-3 pt-2">
             <button
-              onClick={() => setShowAddBranchModal(true)}
-              className="px-4 py-2.5 bg-gradient-to-r from-purple-950 via-pink-900 to-purple-900 text-white font-bold rounded-xl text-xs shadow-md hover:opacity-95 transition cursor-pointer flex items-center gap-2"
+              onClick={handleInitializeMonthBudget}
+              className="px-5 py-2.5 bg-gradient-to-r from-purple-950 via-pink-900 to-purple-900 text-white font-bold rounded-xl text-xs shadow-md hover:opacity-95 transition cursor-pointer flex items-center gap-2"
             >
               <Plus className="w-4 h-4 text-pink-300" />
-              <span>+ เพิ่มสาขาและจัดสรรงบ</span>
+              <span>+ เพิ่มข้อมูลจัดสรรงบประจำเดือนนี้ (3 สาขาหลัก Nitan)</span>
             </button>
             <button
               onClick={() => setShowImageScanModal(true)}
               className="px-4 py-2.5 bg-white text-purple-950 font-bold rounded-xl text-xs border border-[#E2D2EA] shadow-xs hover:bg-purple-50 transition cursor-pointer flex items-center gap-2"
             >
-              <Camera className="w-4 h-4 text-purple-700" />
-              <span>สแกนรูปตาราง Excel (Groq AI)</span>
+              <Bot className="w-4 h-4 text-purple-700" />
+              <span>สแกนตารางสเปรดชีตด้วย Groq AI</span>
             </button>
           </div>
         </div>
