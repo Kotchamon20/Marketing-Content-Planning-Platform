@@ -301,13 +301,13 @@ export default function TodoListModule({
           <div>
             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#FFEBF3] border border-[#E2D2EA] text-xs font-bold text-purple-950 mb-2">
               <ListTodo className="w-3.5 h-3.5 text-purple-700" />
-              <span>ระบบบริหารจัดการงาน To-Do, บันทึกการติดตาม & เช็กสถานะการส่งไฟล์งาน</span>
+              <span>ระบบบริหารจัดการงาน To-Do, บันทึกการติดตาม & ติดตามไฟล์งาน</span>
             </div>
             <h2 className="text-xl font-bold text-purple-950 tracking-tight flex items-center gap-2">
-              <span>รายการงานการตลาด • ติดตามงานค้าง • เช็กไฟล์งานส่งแล้ว/ยังไม่ส่ง</span>
+              <span>รายการงานการตลาด • ติดตามงานค้าง • ติดตามไฟล์งานสื่อโฆษณา</span>
             </h2>
             <p className="text-xs text-purple-800/80 font-medium mt-1">
-              ติดตามงานการบ้าน ติดตามงานกับทีมงาน และเช็กสถานะการส่งไฟล์งานสื่อโฆษณาได้ในจุดเดียว
+              ติดตามงานการบ้าน ติดตามงานกับทีมงาน และติดตามการส่งไฟล์งานได้ในจุดเดียว
             </p>
           </div>
 
@@ -431,7 +431,7 @@ export default function TodoListModule({
             }`}
           >
             <FolderCheck className="w-4 h-4 text-emerald-300" />
-            <span>3. ส่วนติดตามไฟล์งาน (เช็กว่าส่งยัง)</span>
+            <span>3. ส่วนติดตามไฟล์งาน</span>
             <span className="px-2 py-0.5 rounded-full text-[10px] bg-emerald-100 text-emerald-900 font-mono">{fileTrackers.length}</span>
           </button>
         </div>
