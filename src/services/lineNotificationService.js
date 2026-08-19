@@ -263,7 +263,7 @@ export async function sendLineFlexCardAlert(targetId, alertData, token = LINE_CH
             action: {
               type: 'uri',
               label: '🔗 เปิดระบบวางแผน Nitan',
-              uri: 'https://nitan-planning.vercel.app'
+              uri: 'https://marketing-content-planning-platform.vercel.app/'
             }
           }
         ]
