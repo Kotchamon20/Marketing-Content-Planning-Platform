@@ -283,7 +283,14 @@ export default function ContentPlanModule({
   const [availableSheets, setAvailableSheets] = useState([]);
   const [selectedSheetName, setSelectedSheetName] = useState('');
   const [isParsingWithAi, setIsParsingWithAi] = useState(false);
-  const [bulkTargetGroup, setBulkTargetGroup] = useState(''); // Mandatory Group for Bulk Import
+  const [bulkTargetGroup, setBulkTargetGroup] = useState(''); // Target Group for Bulk Import
+
+  // Auto-default bulkTargetGroup to the first available content group
+  React.useEffect(() => {
+    if (!bulkTargetGroup && contentGroups && contentGroups.length > 0) {
+      setBulkTargetGroup(contentGroups[0].name);
+    }
+  }, [contentGroups, bulkTargetGroup]);
 
   // Spreadsheet Data Grid State (Cell Selection, Range, Undo Stack)
   const [selectedGridCell, setSelectedGridCell] = useState(null); // { row: number, col: number }
@@ -3158,22 +3165,21 @@ export default function ContentPlanModule({
             {/* Content Body */}
             <div className="overflow-y-auto space-y-4 flex-1 pr-1 text-xs">
 
-              {/* STEP 1: Mandatory Content Group Selection Box */}
+              {/* STEP 1: Content Group Selection Box (Auto-selected default) */}
               <div className="p-3.5 rounded-2xl bg-gradient-to-r from-amber-50 via-orange-50 to-pink-50 border-2 border-amber-300/90 shadow-xs space-y-2">
                 <div className="flex items-center justify-between flex-wrap gap-2">
                   <label className="font-black text-amber-950 text-xs flex items-center gap-2">
                     <span className="w-5 h-5 rounded-full bg-amber-500 text-white text-[11px] flex items-center justify-center font-black shadow-2xs">1</span>
-                    <span>เลือกหมวดหมู่กลุ่มคอนเทนต์ที่ต้องการนำเข้า (Mandatory Content Group / Pillar):</span>
-                    <span className="text-rose-500 font-extrabold">*</span>
+                    <span>หมวดหมู่กลุ่มคอนเทนต์หลักสำหรับนำเข้า (Content Group / Pillar):</span>
                   </label>
                   <span className="text-[11px] font-bold text-amber-800 bg-amber-100/90 px-2.5 py-0.5 rounded-full border border-amber-200">
-                    *จำเป็นต้องเลือกก่อนนำเข้า
+                    *ระบบเลือกหมวดที่มีให้อัตโนมัติ สามารถสลับเปลี่ยนได้
                   </span>
                 </div>
 
                 <div className="flex items-center gap-3 flex-wrap pt-0.5">
                   <select
-                    value={bulkTargetGroup}
+                    value={bulkTargetGroup || contentGroups[0]?.name || ''}
                     onChange={(e) => {
                       const newGrp = e.target.value;
                       setBulkTargetGroup(newGrp);
@@ -3181,26 +3187,17 @@ export default function ContentPlanModule({
                         setParsedBulkItems(prev => prev.map(item => ({ ...item, group: newGrp })));
                       }
                     }}
-                    className={`w-full sm:w-auto min-w-[300px] bg-white border-2 text-xs font-black p-2.5 rounded-xl cursor-pointer shadow-xs focus:ring-2 focus:outline-none transition ${
-                      bulkTargetGroup ? 'border-amber-400 text-amber-950 focus:ring-amber-500' : 'border-rose-400 text-rose-900 bg-rose-50/30 animate-pulse'
-                    }`}
+                    className="w-full sm:w-auto min-w-[320px] bg-white border-2 border-amber-400 text-amber-950 text-xs font-black p-2.5 rounded-xl cursor-pointer shadow-xs focus:ring-2 focus:ring-amber-500 focus:outline-none transition"
                   >
-                    <option value="">-- ⚠️ กรุณาเลือกกลุ่มคอนเทนต์ก่อนทำรายการ --</option>
                     {contentGroups.map(g => (
                       <option key={g.id} value={g.name}>{g.name}</option>
                     ))}
                   </select>
 
-                  {bulkTargetGroup ? (
-                    <span className="text-xs font-black text-emerald-700 bg-emerald-100/90 px-3 py-2 rounded-xl border border-emerald-300 flex items-center gap-1.5 shrink-0 shadow-2xs">
-                      <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
-                      <span>จะบันทึกเข้านำเข้าในกลุ่ม: <strong>{bulkTargetGroup}</strong></span>
-                    </span>
-                  ) : (
-                    <span className="text-xs font-bold text-rose-700 bg-rose-100/80 px-3 py-2 rounded-xl border border-rose-300 shrink-0 flex items-center gap-1">
-                      <span>⚠️ กรุณาเลือกกลุ่มคอนเทนต์ด้านบนก่อนกดบันทึก</span>
-                    </span>
-                  )}
+                  <span className="text-xs font-black text-emerald-700 bg-emerald-100/90 px-3 py-2 rounded-xl border border-emerald-300 flex items-center gap-1.5 shrink-0 shadow-2xs">
+                    <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                    <span>นำเข้าบันทึกลงในหมวด: <strong className="underline text-emerald-950">{bulkTargetGroup || contentGroups[0]?.name}</strong></span>
+                  </span>
                 </div>
               </div>
 
@@ -3380,9 +3377,9 @@ export default function ContentPlanModule({
               <button
                 type="button"
                 onClick={handleConfirmBulkImport}
-                disabled={parsedBulkItems.length === 0 || !bulkTargetGroup}
+                disabled={parsedBulkItems.length === 0}
                 className={`px-5 py-2 rounded-xl text-xs font-extrabold transition flex items-center gap-2 cursor-pointer shadow-md ${
-                  parsedBulkItems.length === 0 || !bulkTargetGroup
+                  parsedBulkItems.length === 0
                     ? 'bg-slate-100 text-slate-400 cursor-not-allowed border border-slate-200'
                     : 'bg-gradient-to-r from-emerald-500 to-teal-600 hover:opacity-90 text-white border border-emerald-600'
                 }`}
