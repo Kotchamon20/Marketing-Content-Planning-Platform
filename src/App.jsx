@@ -6,6 +6,7 @@ import ContentPlanModule from './components/ContentPlanModule';
 import MarketingPlanModule from './components/MarketingPlanModule';
 import ProductPlanModule from './components/ProductPlanModule';
 import PromotionPlanModule from './components/PromotionPlanModule';
+import TodoListModule from './components/TodoListModule';
 import KpiAnalyticsModule from './components/KpiAnalyticsModule';
 import SchemaViewerModal from './components/SchemaViewerModal';
 
@@ -218,6 +219,13 @@ export default function App() {
             <PromotionPlanModule
               products={currentTeamProducts}
               campaigns={currentTeamCampaigns}
+              onTriggerNotification={handleTriggerNotification}
+            />
+          )}
+
+          {activeTab === 'todo-list' && (
+            <TodoListModule
+              users={users}
               onTriggerNotification={handleTriggerNotification}
             />
           )}
