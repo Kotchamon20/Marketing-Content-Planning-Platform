@@ -241,27 +241,52 @@ export async function fetchLineGroupsFromSupabase() {
   }
 }
 
-export async function upsertLineGroupToSupabase(groupId, groupName = 'Nitan Line Group') {
+// ------------------------------------------------------------------------------
+// 6. BRANCH BUDGETS ALLOCATION (branch_budgets table)
+// ------------------------------------------------------------------------------
+export async function fetchBranchBudgetsFromSupabase() {
   try {
-    const payload = {
-      group_id: groupId,
-      group_name: groupName,
-      is_active: true,
-      updated_at: new Date().toISOString()
-    };
-
     const { data, error } = await supabase
-      .from('line_groups')
-      .upsert([payload], { onConflict: 'group_id' })
-      .select();
+      .from('branch_budgets')
+      .select('*')
+      .order('updated_at', { ascending: false });
 
     if (error) {
-      console.warn('Supabase upsertLineGroup error:', error.message);
+      console.warn('Supabase fetchBranchBudgets warning:', error.message);
       return null;
     }
     return data;
   } catch (err) {
-    console.error('Supabase upsertLineGroup catch:', err);
+    console.error('Supabase fetchBranchBudgets error:', err);
+    return null;
+  }
+}
+
+export async function upsertBranchBudgetToSupabase(branch, monthYear = '2026-08') {
+  try {
+    const payload = {
+      branch_name: branch.name,
+      month_year: monthYear,
+      previous_sales: Number(branch.previousSales) || 0,
+      full_budget: Number(branch.manualFullBudget) || 0,
+      offline_promotions: branch.promotions || [],
+      channel_allocations: branch.channelAllocations || [],
+      google_search_breakdown: branch.googleSearchBreakdown || {},
+      updated_at: new Date().toISOString()
+    };
+
+    const { data, error } = await supabase
+      .from('branch_budgets')
+      .upsert([payload])
+      .select();
+
+    if (error) {
+      console.warn('Supabase upsertBranchBudget error:', error.message);
+      return null;
+    }
+    return data;
+  } catch (err) {
+    console.error('Supabase upsertBranchBudget catch:', err);
     return null;
   }
 }

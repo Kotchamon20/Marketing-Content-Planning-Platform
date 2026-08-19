@@ -193,6 +193,20 @@ CREATE TABLE IF NOT EXISTS line_groups (
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
+-- 13. BRANCH BUDGETS (Module 3 - Branch Allocation Cards & Google Breakdown)
+CREATE TABLE IF NOT EXISTS branch_budgets (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    branch_name VARCHAR(255) NOT NULL,
+    month_year VARCHAR(20) NOT NULL,
+    previous_sales DECIMAL(12, 2) DEFAULT 0.00,
+    mkt_percent DECIMAL(5, 2) DEFAULT 2.00,
+    full_budget DECIMAL(12, 2) DEFAULT 0.00,
+    offline_promotions JSONB DEFAULT '[]',
+    channel_allocations JSONB DEFAULT '[]',
+    google_search_breakdown JSONB DEFAULT '{}',
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
 -- DISABLE RLS TO ALLOW FULL DIRECT ANONYMOUS READ/WRITE ACCESS FROM LOCAL AND PRODUCTION
 ALTER TABLE teams DISABLE ROW LEVEL SECURITY;
 ALTER TABLE users DISABLE ROW LEVEL SECURITY;
@@ -205,10 +219,14 @@ ALTER TABLE idea_vault DISABLE ROW LEVEL SECURITY;
 ALTER TABLE notification_rules DISABLE ROW LEVEL SECURITY;
 ALTER TABLE notification_logs DISABLE ROW LEVEL SECURITY;
 ALTER TABLE line_groups DISABLE ROW LEVEL SECURITY;
+ALTER TABLE branch_budgets DISABLE ROW LEVEL SECURITY;
 
 -- SAFE PUBLIC ALL ACCESS POLICIES
 DROP POLICY IF EXISTS "Allow public all access on line_groups" ON line_groups;
 CREATE POLICY "Allow public all access on line_groups" ON line_groups FOR ALL USING (true);
+
+DROP POLICY IF EXISTS "Allow public all access on branch_budgets" ON branch_budgets;
+CREATE POLICY "Allow public all access on branch_budgets" ON branch_budgets FOR ALL USING (true);
 
 DROP POLICY IF EXISTS "Allow public all access on teams" ON teams;
 CREATE POLICY "Allow public all access on teams" ON teams FOR ALL USING (true);
