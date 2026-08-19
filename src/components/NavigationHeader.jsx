@@ -15,7 +15,8 @@ import {
   Compass,
   Package,
   MessageSquare,
-  BarChart3
+  BarChart3,
+  Calculator
 } from 'lucide-react';
 
 import LineGroupSettingsModal from './LineGroupSettingsModal';
@@ -43,16 +44,18 @@ export default function NavigationHeader({
   const tabs = [
     { id: 'dashboard', label: 'ภาพรวม Dashboard', icon: Sparkles },
     { id: 'content-plan', label: 'Module 1: Content Plan', icon: Calendar },
-    { id: 'marketing-plan', label: 'Module 2: Marketing Plan', icon: Compass },
-    { id: 'product-plan', label: 'Module 3: Product Plan', icon: Package },
-    { id: 'kpi-analytics', label: 'Module 4: KPI Analytics', icon: BarChart3 },
+    { id: 'branch-budget', label: 'Module 2: จัดสรรงบประมาณ MKT', icon: Calculator },
+    { id: 'marketing-plan', label: 'Module 3: Marketing Plan', icon: Compass },
+    { id: 'product-plan', label: 'Module 4: Product Plan', icon: Package },
+    { id: 'kpi-analytics', label: 'Module 5: KPI Analytics', icon: BarChart3 },
   ];
 
   return (
     <header className="sticky top-0 z-40 bg-white/90 backdrop-blur-xl border-b border-slate-200/80 transition-all shadow-sm shadow-slate-900/5">
       {/* Top Banner Bar */}
       <div className="w-full max-w-[1920px] mx-auto px-4 sm:px-6 lg:px-10 py-3.5">
-        <div className="flex items-center justify-between gap-4">          {/* Logo & Brand Info */}
+        <div className="flex items-center justify-between gap-4">
+          {/* Logo & Brand Info */}
           <div className="flex items-center gap-3">
             <img 
               src="/logo.jpg" 
@@ -154,8 +157,6 @@ export default function NavigationHeader({
       {/* Mobile Drawer Menu */}
       {mobileMenuOpen && (
         <div className="lg:hidden bg-white border-b border-slate-200 p-4 space-y-4 animate-in slide-in-from-top duration-200 shadow-xl">
-
-
           <div className="pt-2 border-t border-pink-100 space-y-1">
             {tabs.map((tab) => {
               const Icon = tab.icon;
@@ -167,7 +168,7 @@ export default function NavigationHeader({
                     onSelectTab(tab.id);
                     setMobileMenuOpen(false);
                   }}
-                  className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-bold ${isActive ? 'bg-gradient-to-r from-pink-500 to-rose-500 text-white shadow-md' : 'text-rose-800 hover:bg-pink-50'
+                  className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-bold ${isActive ? 'bg-gradient-to-r from-purple-950 to-pink-900 text-white shadow-md' : 'text-purple-900 hover:bg-purple-50'
                     }`}
                 >
                   <Icon className="w-5 h-5" />
@@ -187,17 +188,17 @@ export default function NavigationHeader({
         >
           <div
             onClick={(e) => e.stopPropagation()}
-            className="w-full max-w-md bg-white h-full border-l border-pink-200 p-6 overflow-y-auto flex flex-col justify-between shadow-2xl cursor-default animate-in slide-in-from-right duration-300"
+            className="w-full max-w-md bg-white h-full border-l border-purple-200 p-6 overflow-y-auto flex flex-col justify-between shadow-2xl cursor-default animate-in slide-in-from-right duration-300"
           >
             <div>
-              <div className="flex items-center justify-between pb-4 border-b border-pink-100">
+              <div className="flex items-center justify-between pb-4 border-b border-purple-100">
                 <div className="flex items-center gap-2">
-                  <Bell className="w-5 h-5 text-pink-600" />
-                  <h3 className="font-extrabold text-rose-950">LINE Alert Stream Logs</h3>
+                  <Bell className="w-5 h-5 text-purple-700" />
+                  <h3 className="font-extrabold text-purple-950">LINE Alert Stream Logs</h3>
                 </div>
                 <button
                   onClick={() => setNotificationDrawerOpen(false)}
-                  className="p-1 rounded-xl text-rose-400 hover:bg-pink-50 cursor-pointer"
+                  className="p-1 rounded-xl text-purple-400 hover:bg-purple-50 cursor-pointer"
                 >
                   <X className="w-5 h-5" />
                 </button>
@@ -205,56 +206,43 @@ export default function NavigationHeader({
 
               <div className="mt-4 space-y-3">
                 {notificationLogs.length === 0 ? (
-                  <p className="text-rose-400 text-sm text-center py-8">ไม่มีประวัติการส่งแจ้งเตือน</p>
+                  <div className="text-center py-10 text-purple-400 text-xs font-medium">
+                    ไม่มีประวัติการส่งแจ้งเตือนในระบบ
+                  </div>
                 ) : (
-                  notificationLogs.map(log => (
-                    <div
-                      key={log.id}
-                      className={`p-3.5 rounded-2xl border text-xs space-y-1.5 ${log.stage === 'overdue'
-                          ? 'bg-rose-50 border-rose-200 text-rose-900'
-                          : log.stage === 't_minus_2'
-                            ? 'bg-amber-50 border-amber-200 text-amber-900'
-                            : 'bg-pink-50/60 border-pink-200 text-rose-900'
-                        }`}
-                    >
-                      <div className="flex items-center justify-between font-bold">
-                        <span className="flex items-center gap-1.5">
-                          {log.stage === 'overdue' && <AlertTriangle className="w-3.5 h-3.5 text-rose-600" />}
-                          {log.stage === 't_minus_2' && <Bell className="w-3.5 h-3.5 text-amber-600" />}
-                          {log.stage === 't_minus_5' && <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />}
-                          ส่งถึง: {log.recipient_name}
-                        </span>
-                        <span className="text-[10px] text-rose-400">{log.sent_at}</span>
+                  notificationLogs.map((log) => (
+                    <div key={log.id} className="p-3 bg-[#FCFAF7] rounded-2xl border border-[#E2D2EA] space-y-1 text-xs">
+                      <div className="flex items-center justify-between text-purple-950 font-bold">
+                        <span>{log.channel_name || 'LINE Group'}</span>
+                        <span className="text-[10px] text-purple-700">{log.sent_at}</span>
                       </div>
-                      <p className="leading-relaxed">{log.message}</p>
-                      <div className="flex items-center justify-between text-[10px] text-rose-500 pt-1">
-                        <span>LINE Display: @{log.recipient_line}</span>
-                        <span className="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700 font-bold border border-emerald-200">
-                          Sent via LINE OA
-                        </span>
-                      </div>
+                      <p className="text-purple-800/80 font-medium">{log.message}</p>
                     </div>
                   ))
                 )}
               </div>
             </div>
 
-            <div className="pt-4 border-t border-pink-100 mt-6">
-              <button
-                onClick={() => {
-                  setNotificationDrawerOpen(false);
-                  onSelectTab('notification-engine');
-                }}
-                className="w-full py-2.5 bg-gradient-to-r from-pink-500 to-rose-500 hover:from-pink-600 hover:to-rose-600 text-white rounded-xl font-bold text-xs transition flex items-center justify-center gap-2 shadow-lg shadow-pink-500/20 cursor-pointer"
-              >
-                <MessageSquare className="w-4 h-4" />
-                <span>ไปที่ Notification Engine</span>
-              </button>
-            </div>
+            <button
+              onClick={() => {
+                setNotificationDrawerOpen(false);
+                setLineSettingsOpen(true);
+              }}
+              className="w-full py-3 bg-[#FFEBF3] hover:bg-pink-200 text-purple-950 font-bold rounded-2xl border border-[#E2D2EA] text-xs transition flex items-center justify-center gap-2 cursor-pointer mt-4"
+            >
+              <MessageSquare className="w-4 h-4 text-purple-700" />
+              <span>ตั้งค่า LINE Webhook & Group ID</span>
+            </button>
           </div>
         </div>,
         document.body
       )}
+
+      {/* LINE Group Settings Modal */}
+      {lineSettingsOpen && (
+        <LineGroupSettingsModal onClose={() => setLineSettingsOpen(false)} />
+      )}
+
     </header>
   );
 }
