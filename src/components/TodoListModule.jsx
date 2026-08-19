@@ -18,18 +18,12 @@ import {
   Building2,
   X,
   Flag,
+  ArrowUpRight,
   ListTodo,
   TrendingUp,
+  UserCheck,
   LayoutGrid,
-  List,
-  FileCheck,
-  BellRing,
-  ExternalLink,
-  Copy,
-  Check,
-  Paperclip,
-  FolderCheck,
-  FileText
+  List
 } from 'lucide-react';
 import LineFlexModal from './LineFlexModal';
 
@@ -37,41 +31,25 @@ export default function TodoListModule({
   users = [],
   onTriggerNotification
 }) {
-  // Main Section Sub-Tab State: 'tasks' | 'followup' | 'files'
-  const [activeSection, setActiveSection] = useState('tasks');
-
-  // View Mode State for Tasks: 'card' (default) | 'list'
-  const [viewMode, setViewMode] = useState('card');
-
-  // 1. Tasks State
+  // Cleared Tasks Data State (Ready for User Real Data Entry)
   const [tasks, setTasks] = useState([]);
 
-  // 2. Follow-Up Watchlist State (บันทึกงานที่ต้องติดตาม)
-  const [followupItems, setFollowupItems] = useState([]);
-
-  // 3. File Submission Tracker State (ติดตามไฟล์งานเพื่อเช็กว่าส่งยัง)
-  const [fileTrackers, setFileTrackers] = useState([]);
+  // View Mode State: 'card' (default) | 'list'
+  const [viewMode, setViewMode] = useState('card');
 
   // Filters State
-  const [selectedStatus, setSelectedStatus] = useState('all');
-  const [selectedPriority, setSelectedPriority] = useState('all');
-  const [selectedCategory, setSelectedCategory] = useState('all');
+  const [selectedStatus, setSelectedStatus] = useState('all'); // 'all' | 'pending' | 'in_progress' | 'completed'
+  const [selectedPriority, setSelectedPriority] = useState('all'); // 'all' | 'high' | 'medium' | 'low'
+  const [selectedCategory, setSelectedCategory] = useState('all'); // 'all' | 'Content Plan' | 'Marketing Plan' | 'Promotion Plan' | 'Product Campaign'
   const [searchQuery, setSearchQuery] = useState('');
 
   // Modals State
-  const [showAddTaskModal, setShowAddTaskModal] = useState(false);
-  const [showAddFollowupModal, setShowAddFollowupModal] = useState(false);
-  const [showAddFileModal, setShowAddFileModal] = useState(false);
-
+  const [showAddModal, setShowAddModal] = useState(false);
   const [editingTask, setEditingTask] = useState(null);
-  const [editingFollowup, setEditingFollowup] = useState(null);
-  const [editingFile, setEditingFile] = useState(null);
-
   const [lineModalItem, setLineModalItem] = useState(null);
-  const [copiedId, setCopiedId] = useState(null);
 
-  // Form States
-  const [taskFormData, setTaskFormData] = useState({
+  // Form Input State
+  const [formData, setFormData] = useState({
     title: '',
     category: 'Promotion Plan',
     priority: 'high',
@@ -81,27 +59,10 @@ export default function TodoListModule({
     description: ''
   });
 
-  const [followupFormData, setFollowupFormData] = useState({
-    title: '',
-    targetPerson: 'คุณส้ม (ทีมกราฟิก)',
-    nextFollowupDate: new Date().toISOString().split('T')[0],
-    status: 'following', // pending | following | confirmed | completed
-    notes: ''
-  });
-
-  const [fileFormData, setFileFormData] = useState({
-    fileName: '',
-    fileType: 'ภาพกราฟิก AI/PSD', // ภาพกราฟิก AI/PSD | วิดีโอ MP4 | สื่อสิ่งพิมพ์ POSM | เอกสาร Brief/PDF
-    assignedCreator: 'คุณเจนนี่ (Content Creator)',
-    driveUrl: '',
-    deliveryStatus: 'not_submitted', // submitted | not_submitted | needs_revision | approved
-    remarks: ''
-  });
-
-  // --- Handlers for 1. To-Do Tasks ---
-  const handleOpenAddTask = () => {
+  // Handlers for Add & Edit
+  const handleOpenAddModal = () => {
     setEditingTask(null);
-    setTaskFormData({
+    setFormData({
       title: '',
       category: 'Promotion Plan',
       priority: 'high',
@@ -110,219 +71,133 @@ export default function TodoListModule({
       dueDate: new Date(Date.now() + 86400000 * 3).toISOString().split('T')[0],
       description: ''
     });
-    setShowAddTaskModal(true);
+    setShowAddModal(true);
   };
 
-  const handleSaveTask = (e) => {
+  const handleOpenEditModal = (task) => {
+    setEditingTask(task);
+    setFormData({
+      title: task.title,
+      category: task.category,
+      priority: task.priority,
+      status: task.status,
+      assignedTo: task.assignedTo,
+      dueDate: task.dueDate,
+      description: task.description
+    });
+    setShowAddModal(true);
+  };
+
+  const handleSaveForm = (e) => {
     e.preventDefault();
+
     if (editingTask) {
       setTasks(prev => prev.map(t => t.id === editingTask.id ? {
         ...t,
-        ...taskFormData,
-        completed: taskFormData.status === 'completed'
+        title: formData.title,
+        category: formData.category,
+        priority: formData.priority,
+        status: formData.status,
+        assignedTo: formData.assignedTo,
+        dueDate: formData.dueDate,
+        description: formData.description,
+        completed: formData.status === 'completed'
       } : t));
     } else {
-      setTasks(prev => [{
+      const newTask = {
         id: `task-${Date.now()}`,
-        ...taskFormData,
-        completed: taskFormData.status === 'completed'
-      }, ...prev]);
+        title: formData.title,
+        category: formData.category,
+        priority: formData.priority,
+        status: formData.status,
+        assignedTo: formData.assignedTo,
+        dueDate: formData.dueDate,
+        description: formData.description,
+        completed: formData.status === 'completed'
+      };
+      setTasks(prev => [newTask, ...prev]);
     }
-    setShowAddTaskModal(false);
+
+    setShowAddModal(false);
   };
 
+  // Toggle Task Completion
   const handleToggleTaskCompleted = (taskId) => {
     setTasks(prev => prev.map(t => {
       if (t.id !== taskId) return t;
       const nextCompleted = !t.completed;
-      return { ...t, completed: nextCompleted, status: nextCompleted ? 'completed' : 'in_progress' };
-    }));
-  };
-
-  const handleDeleteTask = (taskId) => {
-    setTasks(prev => prev.filter(t => t.id !== taskId));
-  };
-
-  // --- Handlers for 2. Follow-Up Watchlist ---
-  const handleOpenAddFollowup = () => {
-    setEditingFollowup(null);
-    setFollowupFormData({
-      title: '',
-      targetPerson: 'คุณส้ม (ทีมกราฟิก)',
-      nextFollowupDate: new Date().toISOString().split('T')[0],
-      status: 'following',
-      notes: ''
-    });
-    setShowAddFollowupModal(true);
-  };
-
-  const handleSaveFollowup = (e) => {
-    e.preventDefault();
-    if (editingFollowup) {
-      setFollowupItems(prev => prev.map(f => f.id === editingFollowup.id ? {
-        ...f,
-        ...followupFormData
-      } : f));
-    } else {
-      setFollowupItems(prev => [{
-        id: `fol-${Date.now()}`,
-        ...followupFormData,
-        createdAt: new Date().toISOString().split('T')[0]
-      }, ...prev]);
-    }
-    setShowAddFollowupModal(false);
-  };
-
-  const handleDeleteFollowup = (id) => {
-    setFollowupItems(prev => prev.filter(f => f.id !== id));
-  };
-
-  // --- Handlers for 3. File Submission Tracker ---
-  const handleOpenAddFile = () => {
-    setEditingFile(null);
-    setFileFormData({
-      fileName: '',
-      fileType: 'ภาพกราฟิก AI/PSD',
-      assignedCreator: 'คุณเจนนี่ (Content Creator)',
-      driveUrl: '',
-      deliveryStatus: 'not_submitted',
-      remarks: ''
-    });
-    setShowAddFileModal(true);
-  };
-
-  const handleSaveFile = (e) => {
-    e.preventDefault();
-    const nowStr = new Date().toLocaleString('th-TH');
-
-    if (editingFile) {
-      setFileTrackers(prev => prev.map(f => f.id === editingFile.id ? {
-        ...f,
-        ...fileFormData,
-        submittedAt: fileFormData.deliveryStatus === 'submitted' ? nowStr : f.submittedAt
-      } : f));
-    } else {
-      setFileTrackers(prev => [{
-        id: `file-${Date.now()}`,
-        ...fileFormData,
-        submittedAt: fileFormData.deliveryStatus === 'submitted' ? nowStr : 'ยังไม่ส่ง'
-      }, ...prev]);
-    }
-    setShowAddFileModal(false);
-  };
-
-  const handleToggleFileStatus = (fileId) => {
-    const nowStr = new Date().toLocaleString('th-TH');
-    setFileTrackers(prev => prev.map(f => {
-      if (f.id !== fileId) return f;
-      const isNowSubmitted = f.deliveryStatus !== 'submitted';
       return {
-        ...f,
-        deliveryStatus: isNowSubmitted ? 'submitted' : 'not_submitted',
-        submittedAt: isNowSubmitted ? nowStr : 'ยังไม่ส่ง'
+        ...t,
+        completed: nextCompleted,
+        status: nextCompleted ? 'completed' : 'in_progress'
       };
     }));
   };
 
-  const handleDeleteFile = (id) => {
-    setFileTrackers(prev => prev.filter(f => f.id !== id));
+  // Delete Task
+  const handleDeleteTask = (taskId) => {
+    setTasks(prev => prev.filter(t => t.id !== taskId));
   };
 
-  const handleCopyLink = (url, id) => {
-    if (!url) return;
-    navigator.clipboard.writeText(url);
-    setCopiedId(id);
-    setTimeout(() => setCopiedId(null), 2000);
-  };
-
-  // Filtered Items Logic
+  // Filtered Logic
   const filteredTasks = tasks.filter(t => {
-    const matchStatus = selectedStatus === 'all' || 
+    const matchStatus = selectedStatus === 'all' ||
       (selectedStatus === 'completed' && t.completed) ||
       (selectedStatus === 'in_progress' && t.status === 'in_progress' && !t.completed) ||
       (selectedStatus === 'pending' && t.status === 'pending' && !t.completed);
 
     const matchPriority = selectedPriority === 'all' || t.priority === selectedPriority;
     const matchCategory = selectedCategory === 'all' || t.category === selectedCategory;
-    const matchSearch = !searchQuery || 
+    const matchSearch = !searchQuery ||
       t.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      t.assignedTo.toLowerCase().includes(searchQuery.toLowerCase());
+      t.assignedTo.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      t.description.toLowerCase().includes(searchQuery.toLowerCase());
 
     return matchStatus && matchPriority && matchCategory && matchSearch;
   });
 
-  const filteredFiles = fileTrackers.filter(f => {
-    const matchSearch = !searchQuery || 
-      f.fileName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      f.assignedCreator.toLowerCase().includes(searchQuery.toLowerCase());
-    return matchSearch;
-  });
-
   // Calculate Metrics
-  const submittedFilesCount = fileTrackers.filter(f => f.deliveryStatus === 'submitted' || f.deliveryStatus === 'approved').length;
-  const pendingFilesCount = fileTrackers.filter(f => f.deliveryStatus === 'not_submitted').length;
-  const followupActiveCount = followupItems.filter(f => f.status !== 'completed').length;
+  const totalCount = tasks.length;
+  const completedCount = tasks.filter(t => t.completed).length;
+  const inProgressCount = tasks.filter(t => t.status === 'in_progress' && !t.completed).length;
+  const pendingCount = tasks.filter(t => t.status === 'pending' && !t.completed).length;
+  const highPriorityCount = tasks.filter(t => t.priority === 'high' && !t.completed).length;
 
   return (
     <div className="space-y-6 animate-in fade-in duration-300">
-      
+
       {/* Header Banner Panel */}
       <div className="glass-panel p-6 border-[#E2D2EA]">
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
           <div>
             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#FFEBF3] border border-[#E2D2EA] text-xs font-bold text-purple-950 mb-2">
               <ListTodo className="w-3.5 h-3.5 text-purple-700" />
-              <span>ระบบบริหารจัดการงาน To-Do, บันทึกการติดตาม & เช็กสถานะการส่งไฟล์งาน</span>
+              <span>ระบบบริหารจัดการงาน To-Do List (Module: Task Management)</span>
             </div>
             <h2 className="text-xl font-bold text-purple-950 tracking-tight flex items-center gap-2">
-              <span>รายการงานการตลาด • ติดตามงานค้าง • เช็กไฟล์งานส่งแล้ว/ยังไม่ส่ง</span>
+              <span>รายการงานที่ต้องทำ (To-Do List & Task Action Items)</span>
             </h2>
             <p className="text-xs text-purple-800/80 font-medium mt-1">
-              ติดตามงานการบ้าน ติดตามงานกับทีมงาน และเช็กสถานะการส่งไฟล์งานสื่อโฆษณาได้ในจุดเดียว
+              ติดตามสถานะงาน มอบหมายผู้รับผิดชอบ กำหนดวันเสร็จสิ้น สลับโหมด Card View / List View ได้อิสระ
             </p>
           </div>
 
-          {/* Quick Action Button depending on Active Section */}
-          <div>
-            {activeSection === 'tasks' && (
-              <button
-                onClick={handleOpenAddTask}
-                className="px-4 py-2.5 bg-gradient-to-r from-purple-950 via-pink-900 to-purple-900 text-white font-bold rounded-xl text-xs transition shadow-md flex items-center gap-2 cursor-pointer hover:opacity-95"
-              >
-                <Plus className="w-4 h-4 text-pink-300" />
-                <span>+ เพิ่มงาน To-Do ใหม่</span>
-              </button>
-            )}
-
-            {activeSection === 'followup' && (
-              <button
-                onClick={handleOpenAddFollowup}
-                className="px-4 py-2.5 bg-gradient-to-r from-purple-950 via-pink-900 to-purple-900 text-white font-bold rounded-xl text-xs transition shadow-md flex items-center gap-2 cursor-pointer hover:opacity-95"
-              >
-                <BellRing className="w-4 h-4 text-pink-300" />
-                <span>+ บันทึกงานที่ต้องติดตาม</span>
-              </button>
-            )}
-
-            {activeSection === 'files' && (
-              <button
-                onClick={handleOpenAddFile}
-                className="px-4 py-2.5 bg-gradient-to-r from-purple-950 via-pink-900 to-purple-900 text-white font-bold rounded-xl text-xs transition shadow-md flex items-center gap-2 cursor-pointer hover:opacity-95"
-              >
-                <FolderCheck className="w-4 h-4 text-pink-300" />
-                <span>+ เพิ่มรายการติดตามไฟล์งาน</span>
-              </button>
-            )}
-          </div>
+          <button
+            onClick={handleOpenAddModal}
+            className="px-4 py-2.5 bg-gradient-to-r from-purple-950 via-pink-900 to-purple-900 text-white font-bold rounded-xl text-xs transition shadow-md flex items-center gap-2 cursor-pointer hover:opacity-95 self-start lg:self-auto"
+          >
+            <Plus className="w-4 h-4 text-pink-300" />
+            <span>+ เพิ่มงาน To-Do ใหม่</span>
+          </button>
         </div>
 
-        {/* Top Summary Metrics Row */}
+        {/* Metrics Cards Row */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mt-6 pt-6 border-t border-purple-100/60">
           <div className="p-4 rounded-2xl bg-white border border-[#E2D2EA] flex items-center justify-between shadow-xs">
             <div>
-              <span className="text-xs font-bold text-purple-900 block">งาน To-Do ในระบบ</span>
-              <span className="text-xl font-bold text-purple-950 font-mono">{tasks.length} งาน</span>
-              <span className="text-[10px] text-purple-700 font-medium block mt-0.5">เสร็จแล้ว {tasks.filter(t => t.completed).length} งาน</span>
+              <span className="text-xs font-bold text-purple-900 block">งานทั้งหมด</span>
+              <span className="text-xl font-bold text-purple-950 font-mono">{totalCount} งาน</span>
+              <span className="text-[10px] text-purple-700 font-medium block mt-0.5">รวมทุกหมวดหมู่การตลาด</span>
             </div>
             <div className="w-10 h-10 rounded-xl bg-[#FFEBF3] text-purple-800 flex items-center justify-center border border-[#E2D2EA]">
               <CheckSquare className="w-5 h-5" />
@@ -331,502 +206,482 @@ export default function TodoListModule({
 
           <div className="p-4 rounded-2xl bg-white border border-[#E2D2EA] flex items-center justify-between shadow-xs">
             <div>
-              <span className="text-xs font-bold text-purple-900 block">งานที่ต้องติดตามต่อ (Follow-Up)</span>
-              <span className="text-xl font-bold text-amber-700 font-mono">{followupActiveCount} งาน</span>
-              <span className="text-[10px] text-amber-800 font-bold block mt-0.5">กำลังติดตามงานค้าง</span>
+              <span className="text-xs font-bold text-purple-900 block">กำลังดำเนินการ (In Progress)</span>
+              <span className="text-xl font-bold text-purple-950 font-mono">{inProgressCount} งาน</span>
+              <span className="text-[10px] text-amber-700 font-bold block mt-0.5">รอดำเนินการอีก {pendingCount} งาน</span>
             </div>
             <div className="w-10 h-10 rounded-xl bg-[#FEF9C3] text-amber-800 flex items-center justify-center border border-[#E2D2EA]">
-              <BellRing className="w-5 h-5" />
-            </div>
-          </div>
-
-          <div className="p-4 rounded-2xl bg-white border border-[#E2D2EA] flex items-center justify-between shadow-xs">
-            <div>
-              <span className="text-xs font-bold text-purple-900 block">ไฟล์งานที่ส่งแล้ว (Submitted)</span>
-              <span className="text-xl font-bold text-emerald-700 font-mono">{submittedFilesCount} ไฟล์</span>
-              <span className="text-[10px] text-emerald-700 font-bold block mt-0.5">พร้อมใช้งานโฆษณา/สื่อ</span>
-            </div>
-            <div className="w-10 h-10 rounded-xl bg-emerald-100 text-emerald-800 flex items-center justify-center border border-emerald-200">
-              <FileCheck className="w-5 h-5" />
-            </div>
-          </div>
-
-          <div className="p-4 rounded-2xl bg-white border border-[#E2D2EA] flex items-center justify-between shadow-xs">
-            <div>
-              <span className="text-xs font-bold text-purple-900 block">ไฟล์งานที่ยังไม่ส่ง (Pending)</span>
-              <span className="text-xl font-bold text-rose-600 font-mono">{pendingFilesCount} ไฟล์</span>
-              <span className="text-[10px] text-rose-700 font-bold block mt-0.5">รอรับไฟล์จากผู้รับผิดชอบ</span>
-            </div>
-            <div className="w-10 h-10 rounded-xl bg-rose-100 text-rose-800 flex items-center justify-center border border-rose-200">
               <Clock className="w-5 h-5" />
             </div>
           </div>
-        </div>
-      </div>
 
-      {/* Main 3-in-1 Section Nav Switcher Tabs */}
-      <div className="flex items-center gap-2 border-b border-purple-200 pb-2 overflow-x-auto text-xs font-bold">
-        <button
-          onClick={() => setActiveSection('tasks')}
-          className={`px-4 py-2 rounded-xl transition flex items-center gap-2 cursor-pointer ${
-            activeSection === 'tasks'
-              ? 'bg-purple-950 text-white shadow-xs'
-              : 'bg-white text-purple-900 hover:bg-purple-50 border border-[#E2D2EA]'
-          }`}
-        >
-          <CheckSquare className="w-4 h-4" />
-          <span>1. รายการงาน To-Do List</span>
-          <span className="px-2 py-0.2 rounded-full text-[10px] bg-white/20 text-white">{tasks.length}</span>
-        </button>
-
-        <button
-          onClick={() => setActiveSection('followup')}
-          className={`px-4 py-2 rounded-xl transition flex items-center gap-2 cursor-pointer ${
-            activeSection === 'followup'
-              ? 'bg-purple-950 text-white shadow-xs'
-              : 'bg-white text-purple-900 hover:bg-purple-50 border border-[#E2D2EA]'
-          }`}
-        >
-          <BellRing className="w-4 h-4" />
-          <span>2. ส่วนบันทึกงานที่ต้องติดตาม (Follow-Up)</span>
-          <span className="px-2 py-0.2 rounded-full text-[10px] bg-amber-100 text-amber-900">{followupItems.length}</span>
-        </button>
-
-        <button
-          onClick={() => setActiveSection('files')}
-          className={`px-4 py-2 rounded-xl transition flex items-center gap-2 cursor-pointer ${
-            activeSection === 'files'
-              ? 'bg-purple-950 text-white shadow-xs'
-              : 'bg-white text-purple-900 hover:bg-purple-50 border border-[#E2D2EA]'
-          }`}
-        >
-          <FolderCheck className="w-4 h-4" />
-          <span>3. ส่วนติดตามไฟล์งาน (เช็กว่าส่งยัง)</span>
-          <span className="px-2 py-0.2 rounded-full text-[10px] bg-emerald-100 text-emerald-900">{fileTrackers.length}</span>
-        </button>
-      </div>
-
-      {/* SECTION 1: TO-DO TASKS */}
-      {activeSection === 'tasks' && (
-        <div className="space-y-4">
-          {/* Controls Bar */}
-          <div className="glass-panel p-4 border-[#E2D2EA] flex flex-wrap items-center justify-between gap-3 text-xs">
-            <div className="flex items-center gap-2">
-              <span className="font-bold text-purple-900">กรองสถานะ:</span>
-              {['all', 'pending', 'in_progress', 'completed'].map(st => (
-                <button
-                  key={st}
-                  onClick={() => setSelectedStatus(st)}
-                  className={`px-3 py-1 rounded-xl font-bold transition cursor-pointer ${
-                    selectedStatus === st ? 'bg-purple-950 text-white' : 'bg-white text-purple-900 border border-[#E2D2EA]'
-                  }`}
-                >
-                  {st === 'all' ? 'ทั้งหมด' : st === 'pending' ? 'รอดำเนินการ' : st === 'in_progress' ? 'กำลังทำ' : 'เสร็จสมบูรณ์'}
-                </button>
-              ))}
+          <div className="p-4 rounded-2xl bg-white border border-[#E2D2EA] flex items-center justify-between shadow-xs">
+            <div>
+              <span className="text-xs font-bold text-purple-900 block">ความสำคัญสูงมาก (High Priority)</span>
+              <span className="text-xl font-bold text-rose-600 font-mono">{highPriorityCount} งาน</span>
+              <span className="text-[10px] text-rose-700 font-bold block mt-0.5">ด่วนที่สุด ต้องเร่งเสร็จ</span>
             </div>
-
-            <div className="flex items-center gap-1.5 bg-white p-1 rounded-xl border border-[#E2D2EA]">
-              <button
-                onClick={() => setViewMode('card')}
-                className={`px-3 py-1 rounded-lg font-bold transition flex items-center gap-1 text-xs cursor-pointer ${
-                  viewMode === 'card' ? 'bg-purple-950 text-white' : 'text-purple-900'
-                }`}
-              >
-                <LayoutGrid className="w-3.5 h-3.5" />
-                <span>Card View</span>
-              </button>
-              <button
-                onClick={() => setViewMode('list')}
-                className={`px-3 py-1 rounded-lg font-bold transition flex items-center gap-1 text-xs cursor-pointer ${
-                  viewMode === 'list' ? 'bg-purple-950 text-white' : 'text-purple-900'
-                }`}
-              >
-                <List className="w-3.5 h-3.5" />
-                <span>List View</span>
-              </button>
+            <div className="w-10 h-10 rounded-xl bg-rose-100 text-rose-800 flex items-center justify-center border border-rose-200">
+              <Flag className="w-5 h-5" />
             </div>
           </div>
 
-          {/* Tasks Container */}
-          {filteredTasks.length === 0 ? (
-            <div className="glass-panel p-12 text-center border-[#E2D2EA] space-y-3">
-              <CheckSquare className="w-8 h-8 text-purple-400 mx-auto" />
-              <h3 className="font-bold text-purple-950 text-sm">ยังไม่มีรายการงาน To-Do</h3>
-              <button onClick={handleOpenAddTask} className="px-4 py-2 bg-purple-950 text-white font-bold rounded-xl text-xs">
-                + เพิ่มงาน To-Do ใหม่
-              </button>
+          <div className="p-4 rounded-2xl bg-white border border-[#E2D2EA] flex items-center justify-between shadow-xs">
+            <div>
+              <span className="text-xs font-bold text-purple-900 block">ทำเสร็จแล้ว (Completed)</span>
+              <span className="text-xl font-bold text-emerald-700 font-mono">{completedCount} งาน</span>
+              <span className="text-[10px] text-emerald-700 font-bold block mt-0.5">อัตราสำเร็จ {totalCount > 0 ? (completedCount / totalCount * 100).toFixed(0) : 0}%</span>
             </div>
-          ) : (
-            <div className={viewMode === 'card' ? 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4' : 'space-y-3'}>
-              {filteredTasks.map(task => (
-                <div key={task.id} className="glass-panel p-4 border border-[#E2D2EA] space-y-3">
-                  <div className="flex items-center justify-between">
-                    <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-[#FFEBF3] text-purple-950 border border-[#E2D2EA]">{task.category}</span>
-                    <button onClick={() => handleDeleteTask(task.id)} className="text-rose-500 hover:bg-rose-50 p-1 rounded"><Trash2 className="w-3.5 h-3.5" /></button>
-                  </div>
-                  <div className="flex items-start gap-2">
-                    <input type="checkbox" checked={task.completed} onChange={() => handleToggleTaskCompleted(task.id)} className="mt-1 rounded text-purple-950" />
-                    <h4 className={`font-bold text-purple-950 text-sm ${task.completed ? 'line-through text-purple-400' : ''}`}>{task.title}</h4>
-                  </div>
-                  <p className="text-xs text-purple-800/80">{task.description}</p>
-                </div>
-              ))}
+            <div className="w-10 h-10 rounded-xl bg-emerald-100 text-emerald-800 flex items-center justify-center border border-emerald-200">
+              <CheckCircle2 className="w-5 h-5" />
             </div>
-          )}
+          </div>
         </div>
-      )}
+      </div>
 
-      {/* SECTION 2: FOLLOW-UP WATCHLIST (ส่วนบันทึกงานที่ต้องติดตาม) */}
-      {activeSection === 'followup' && (
-        <div className="space-y-4">
-          <div className="glass-panel p-4 border-[#E2D2EA] flex items-center justify-between gap-3 text-xs">
-            <span className="font-bold text-purple-950 flex items-center gap-1.5">
-              <BellRing className="w-4 h-4 text-amber-600" />
-              <span>รายการบันทึกงานที่ต้องตามต่อ (Follow-Up Watchlist)</span>
+      {/* Filter & Control Panel */}
+      <div className="glass-panel p-4 border-[#E2D2EA] space-y-3 text-xs">
+        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3">
+
+          {/* Status Tabs */}
+          <div className="flex items-center gap-1.5 overflow-x-auto pb-1">
+            <span className="font-bold text-purple-900 flex items-center gap-1 shrink-0 mr-1">
+              <Filter className="w-3.5 h-3.5 text-purple-600" />
+              <span>สถานะงาน:</span>
             </span>
 
-            <button
-              onClick={handleOpenAddFollowup}
-              className="px-3.5 py-2 bg-gradient-to-r from-purple-950 via-pink-900 to-purple-900 text-white font-bold rounded-xl text-xs flex items-center gap-1 cursor-pointer"
-            >
-              <Plus className="w-3.5 h-3.5" />
-              <span>+ บันทึกงานติดตามใหม่</span>
-            </button>
+            {[
+              { value: 'all', label: 'ทั้งหมด' },
+              { value: 'pending', label: 'รอดำเนินการ' },
+              { value: 'in_progress', label: 'กำลังทำ' },
+              { value: 'completed', label: 'เสร็จสมบูรณ์' }
+            ].map(tab => (
+              <button
+                key={tab.value}
+                onClick={() => setSelectedStatus(tab.value)}
+                className={`px-3 py-1.5 rounded-xl font-bold transition whitespace-nowrap cursor-pointer ${selectedStatus === tab.value
+                    ? 'bg-purple-950 text-white shadow-xs'
+                    : 'bg-white text-purple-900 hover:bg-purple-50 border border-[#E2D2EA]'
+                  }`}
+              >
+                {tab.label}
+              </button>
+            ))}
           </div>
 
-          {followupItems.length === 0 ? (
-            <div className="glass-panel p-12 text-center border-[#E2D2EA] space-y-3">
-              <div className="w-12 h-12 rounded-2xl bg-[#FEF9C3] text-amber-800 flex items-center justify-center border border-[#E2D2EA] mx-auto">
-                <BellRing className="w-6 h-6" />
-              </div>
-              <h3 className="font-bold text-purple-950 text-sm">ยังไม่มีงานบันทึกติดตามในระบบ</h3>
-              <p className="text-xs text-purple-800/80 max-w-md mx-auto">
-                กดปุ่มเพื่อบันทึกงานที่ต้องตามกับทีมงาน ฟรีแลนซ์ หรือซัพพลายเออร์
-              </p>
-              <button
-                onClick={handleOpenAddFollowup}
-                className="px-4 py-2 bg-purple-950 text-white font-bold rounded-xl text-xs cursor-pointer inline-flex items-center gap-1"
-              >
-                <Plus className="w-4 h-4" />
-                <span>+ บันทึกงานติดตามใหม่</span>
-              </button>
-            </div>
-          ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {followupItems.map(item => (
-                <div key={item.id} className="glass-panel p-4 border border-[#E2D2EA] space-y-3 hover:shadow-xs transition">
-                  <div className="flex items-center justify-between gap-2">
-                    <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold border ${
-                      item.status === 'following' ? 'bg-amber-100 text-amber-900 border-amber-200' : 'bg-emerald-100 text-emerald-900 border-emerald-200'
-                    }`}>
-                      {item.status === 'following' ? 'กำลังตามงาน' : 'ติดตามเรียบร้อย'}
-                    </span>
+          {/* Search Box */}
+          <div className="relative w-full lg:w-64">
+            <Search className="w-3.5 h-3.5 text-purple-400 absolute left-3 top-1/2 -translate-y-1/2" />
+            <input
+              type="text"
+              placeholder="ค้นหาชื่องาน ผู้รับผิดชอบ หรือรายละเอียด..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full pl-8 pr-3 py-1.5 bg-white border border-[#E2D2EA] rounded-xl text-purple-950 font-medium focus:outline-none text-xs"
+            />
+          </div>
+        </div>
 
-                    <button onClick={() => handleDeleteFollowup(item.id)} className="text-rose-500 hover:bg-rose-50 p-1 rounded">
+        {/* Secondary Filter Row & Layout Switcher */}
+        <div className="flex flex-wrap items-center justify-between gap-3 pt-2.5 border-t border-purple-100/60">
+          <div className="flex flex-wrap items-center gap-3">
+            {/* Priority Filter */}
+            <div className="flex items-center gap-1.5 bg-white px-2.5 py-1 rounded-xl border border-[#E2D2EA]">
+              <Flag className="w-3.5 h-3.5 text-purple-600" />
+              <span className="font-bold text-purple-900">ระดับความด่วน:</span>
+              <select
+                value={selectedPriority}
+                onChange={(e) => setSelectedPriority(e.target.value)}
+                className="bg-transparent font-bold text-purple-950 focus:outline-none text-xs"
+              >
+                <option value="all">ระดับทั้งหมด</option>
+                <option value="high">สูงมาก (High)</option>
+                <option value="medium">ปานกลาง (Medium)</option>
+                <option value="low">ทั่วไป (Low)</option>
+              </select>
+            </div>
+
+            {/* Category Filter */}
+            <div className="flex items-center gap-1.5 bg-white px-2.5 py-1 rounded-xl border border-[#E2D2EA]">
+              <Tag className="w-3.5 h-3.5 text-purple-600" />
+              <span className="font-bold text-purple-900">หมวดหมู่โมดูล:</span>
+              <select
+                value={selectedCategory}
+                onChange={(e) => setSelectedCategory(e.target.value)}
+                className="bg-transparent font-bold text-purple-950 focus:outline-none text-xs"
+              >
+                <option value="all">ทุกหมวดหมู่</option>
+                <option value="Promotion Plan">แผนโปรโมท (Promotion Plan)</option>
+                <option value="Content Plan">คอนเทนต์ (Content Plan)</option>
+                <option value="Marketing Plan">กลยุทธ์ (Marketing Plan)</option>
+                <option value="Product Campaign">แคมเปญสินค้า (Product Campaign)</option>
+              </select>
+            </div>
+          </div>
+
+          {/* View Mode Toggle Controls (Card View vs List View) */}
+          <div className="flex items-center gap-1.5 bg-white p-1 rounded-xl border border-[#E2D2EA] shadow-xs">
+            <button
+              onClick={() => setViewMode('card')}
+              className={`px-3 py-1 rounded-lg font-bold transition flex items-center gap-1.5 cursor-pointer text-xs ${viewMode === 'card'
+                  ? 'bg-purple-950 text-white shadow-xs'
+                  : 'text-purple-900 hover:bg-purple-50'
+                }`}
+              title="แสดงผลรูปแบบ Card Grid"
+            >
+              <LayoutGrid className="w-3.5 h-3.5" />
+              <span>Card View</span>
+            </button>
+
+            <button
+              onClick={() => setViewMode('list')}
+              className={`px-3 py-1 rounded-lg font-bold transition flex items-center gap-1.5 cursor-pointer text-xs ${viewMode === 'list'
+                  ? 'bg-purple-950 text-white shadow-xs'
+                  : 'text-purple-900 hover:bg-purple-50'
+                }`}
+              title="แสดงผลรูปแบบ List รายการ"
+            >
+              <List className="w-3.5 h-3.5" />
+              <span>List View</span>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* Task Displays Container (Card View vs List View) */}
+      {filteredTasks.length === 0 ? (
+        <div className="glass-panel p-12 text-center border-[#E2D2EA] space-y-3">
+          <div className="w-12 h-12 rounded-2xl bg-[#FFEBF3] text-purple-800 flex items-center justify-center border border-[#E2D2EA] mx-auto">
+            <CheckSquare className="w-6 h-6" />
+          </div>
+          <h3 className="font-bold text-purple-950 text-sm">ยังไม่มีรายการงาน To-Do ในระบบ</h3>
+          <p className="text-xs text-purple-800/80 max-w-md mx-auto">
+            กดปุ่มด้านล่างเพื่อเริ่มสร้างรายการงาน To-Do การบ้านการตลาดใหม่
+          </p>
+          <button
+            onClick={handleOpenAddModal}
+            className="px-4 py-2 bg-gradient-to-r from-purple-950 via-pink-900 to-purple-900 text-white font-bold rounded-xl text-xs shadow-md hover:opacity-95 transition cursor-pointer inline-flex items-center gap-2"
+          >
+            <Plus className="w-4 h-4 text-pink-300" />
+            <span>+ เพิ่มงาน To-Do ใหม่</span>
+          </button>
+        </div>
+      ) : viewMode === 'card' ? (
+        /* CARD VIEW MODE GRID */
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+          {filteredTasks.map(task => (
+            <div
+              key={task.id}
+              className={`glass-panel p-5 border flex flex-col justify-between space-y-4 hover:shadow-md transition ${task.completed
+                  ? 'bg-purple-50/40 border-purple-200 opacity-80'
+                  : 'bg-white border-[#E2D2EA]'
+                }`}
+            >
+              <div>
+                {/* Header Badge Row */}
+                <div className="flex items-center justify-between gap-2 mb-2">
+                  <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold border ${task.priority === 'high'
+                      ? 'bg-rose-100 text-rose-800 border-rose-200'
+                      : task.priority === 'medium'
+                        ? 'bg-amber-100 text-amber-900 border-amber-200'
+                        : 'bg-slate-100 text-slate-700 border-slate-200'
+                    }`}>
+                    {task.priority === 'high' ? 'ด่วนมาก' : task.priority === 'medium' ? 'ปานกลาง' : 'ทั่วไป'}
+                  </span>
+
+                  <div className="flex items-center gap-1">
+                    <button
+                      onClick={() => handleOpenEditModal(task)}
+                      className="p-1 text-purple-600 hover:bg-purple-50 rounded-lg transition cursor-pointer"
+                      title="แก้ไขงาน"
+                    >
+                      <Edit3 className="w-3.5 h-3.5" />
+                    </button>
+
+                    <button
+                      onClick={() => handleDeleteTask(task.id)}
+                      className="p-1 text-rose-500 hover:bg-rose-50 rounded-lg transition cursor-pointer"
+                      title="ลบงาน"
+                    >
                       <Trash2 className="w-3.5 h-3.5" />
                     </button>
                   </div>
+                </div>
 
-                  <h4 className="font-bold text-purple-950 text-sm">{item.title}</h4>
+                {/* Checkbox & Task Title */}
+                <div className="flex items-start gap-2.5">
+                  <input
+                    type="checkbox"
+                    checked={task.completed}
+                    onChange={() => handleToggleTaskCompleted(task.id)}
+                    className="mt-1 w-4 h-4 rounded text-purple-950 focus:ring-purple-500 cursor-pointer shrink-0"
+                  />
+                  <h3 className={`font-bold text-base text-purple-950 leading-snug ${task.completed ? 'line-through text-purple-400' : ''}`}>
+                    {task.title}
+                  </h3>
+                </div>
 
-                  <div className="p-2.5 bg-purple-50/70 rounded-xl border border-purple-100 text-xs space-y-1">
-                    <div className="flex items-center justify-between">
-                      <span className="text-purple-800 font-medium">ตามกับใคร:</span>
-                      <span className="font-bold text-purple-950">{item.targetPerson}</span>
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <span className="text-purple-800 font-medium">วันที่ต้องตามรอบถัดไป:</span>
-                      <span className="font-mono font-bold text-amber-900">{item.nextFollowupDate}</span>
-                    </div>
+                {/* Description Box */}
+                <p className="mt-2.5 p-3 bg-purple-50/60 rounded-xl border border-purple-100 text-xs text-purple-800/90 font-medium leading-relaxed">
+                  {task.description}
+                </p>
+
+                {/* Metadata Row */}
+                <div className="mt-3 space-y-1.5 text-xs">
+                  <div className="flex items-center justify-between text-[11px]">
+                    <span className="text-purple-800 font-medium flex items-center gap-1">
+                      <User className="w-3.5 h-3.5 text-purple-600" />
+                      <span>มอบหมาย:</span>
+                    </span>
+                    <span className="font-bold text-purple-950">{task.assignedTo}</span>
                   </div>
 
-                  {item.notes && (
-                    <p className="text-xs text-purple-800/80 font-medium">{item.notes}</p>
-                  )}
-
-                  <div className="pt-2 border-t border-purple-100 flex justify-end">
-                    <button
-                      onClick={() => setLineModalItem({
-                        id: item.id,
-                        title: `[Follow-Up Alert] ตามงาน: ${item.title}`,
-                        platform: item.targetPerson,
-                        publish_date: item.nextFollowupDate,
-                        assigned_to: item.targetPerson,
-                        status: 'FOLLOW_UP',
-                        media_url: 'https://images.unsplash.com/photo-1620916566398-39f1143ab7be?auto=format&fit=crop&w=600&q=80'
-                      })}
-                      className="px-3 py-1 bg-[#FFEBF3] hover:bg-pink-200 text-purple-950 font-bold rounded-xl border border-[#E2D2EA] text-xs flex items-center gap-1 cursor-pointer"
-                    >
-                      <Send className="w-3.5 h-3.5 text-purple-700" />
-                      <span>ยิงตามงานเข้า LINE</span>
-                    </button>
+                  <div className="flex items-center justify-between text-[11px]">
+                    <span className="text-purple-800 font-medium flex items-center gap-1">
+                      <Calendar className="w-3.5 h-3.5 text-purple-600" />
+                      <span>กำหนดเสร็จ:</span>
+                    </span>
+                    <span className="font-mono font-bold text-purple-950">{task.dueDate}</span>
                   </div>
                 </div>
-              ))}
+              </div>
+
+              {/* Card Footer Actions */}
+              <div className="pt-3 border-t border-purple-100 flex items-center justify-between gap-2 text-xs">
+                <span className="px-2 py-0.5 rounded-md bg-[#FFEBF3] text-purple-950 text-[10px] font-bold border border-[#E2D2EA]">
+                  {task.category}
+                </span>
+
+                <button
+                  onClick={() => setLineModalItem({
+                    id: task.id,
+                    title: `[To-Do Work] ${task.title}`,
+                    platform: task.assignedTo,
+                    publish_date: task.dueDate,
+                    assigned_to: task.assignedTo,
+                    status: task.completed ? 'COMPLETED' : 'IN_PROGRESS',
+                    media_url: 'https://images.unsplash.com/photo-1620916566398-39f1143ab7be?auto=format&fit=crop&w=600&q=80'
+                  })}
+                  className="px-3 py-1.5 bg-[#FFEBF3] hover:bg-pink-200 text-purple-950 font-bold rounded-xl border border-[#E2D2EA] transition flex items-center gap-1.5 text-xs shadow-xs cursor-pointer"
+                >
+                  <Send className="w-3.5 h-3.5 text-purple-700" />
+                  <span>ส่งเข้า LINE</span>
+                </button>
+              </div>
             </div>
-          )}
+          ))}
+        </div>
+      ) : (
+        /* LIST VIEW MODE ROWS */
+        <div className="space-y-3">
+          {filteredTasks.map(task => (
+            <div
+              key={task.id}
+              className={`glass-panel p-4 border transition flex flex-col md:flex-row md:items-center justify-between gap-4 ${task.completed
+                  ? 'bg-purple-50/40 border-purple-200 opacity-75'
+                  : 'bg-white border-[#E2D2EA] hover:shadow-md'
+                }`}
+            >
+              {/* Left Task Content & Checkbox */}
+              <div className="flex items-start gap-3 flex-1">
+                <input
+                  type="checkbox"
+                  checked={task.completed}
+                  onChange={() => handleToggleTaskCompleted(task.id)}
+                  className="mt-1 w-4 h-4 rounded text-purple-950 focus:ring-purple-500 cursor-pointer"
+                />
+
+                <div className="space-y-1">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <h3 className={`font-bold text-sm text-purple-950 ${task.completed ? 'line-through text-purple-500' : ''}`}>
+                      {task.title}
+                    </h3>
+
+                    {/* Priority Badge */}
+                    <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold border ${task.priority === 'high'
+                        ? 'bg-rose-100 text-rose-800 border-rose-200'
+                        : task.priority === 'medium'
+                          ? 'bg-amber-100 text-amber-900 border-amber-200'
+                          : 'bg-slate-100 text-slate-700 border-slate-200'
+                      }`}>
+                      {task.priority === 'high' ? 'ด่วนมาก' : task.priority === 'medium' ? 'ปานกลาง' : 'ทั่วไป'}
+                    </span>
+
+                    {/* Category Tag */}
+                    <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-[#FFEBF3] text-purple-950 border border-[#E2D2EA]">
+                      {task.category}
+                    </span>
+                  </div>
+
+                  <p className="text-xs text-purple-800/80 font-medium">
+                    {task.description}
+                  </p>
+
+                  <div className="flex items-center gap-4 text-[11px] text-purple-800 pt-1 flex-wrap font-medium">
+                    <span className="flex items-center gap-1">
+                      <User className="w-3.5 h-3.5 text-purple-600" />
+                      <span>มอบหมาย: <strong>{task.assignedTo}</strong></span>
+                    </span>
+
+                    <span className="flex items-center gap-1">
+                      <Calendar className="w-3.5 h-3.5 text-purple-600" />
+                      <span>กำหนดเสร็จ: <strong className="font-mono">{task.dueDate}</strong></span>
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Right Action Buttons */}
+              <div className="flex items-center gap-2 shrink-0 justify-end border-t md:border-t-0 pt-2 md:pt-0 border-purple-100">
+                {/* LINE Alert Button */}
+                <button
+                  onClick={() => setLineModalItem({
+                    id: task.id,
+                    title: `[To-Do Work] ${task.title}`,
+                    platform: task.assignedTo,
+                    publish_date: task.dueDate,
+                    assigned_to: task.assignedTo,
+                    status: task.completed ? 'COMPLETED' : 'IN_PROGRESS',
+                    media_url: 'https://images.unsplash.com/photo-1620916566398-39f1143ab7be?auto=format&fit=crop&w=600&q=80'
+                  })}
+                  className="px-2.5 py-1.5 bg-[#FFEBF3] hover:bg-pink-200 text-purple-950 font-bold rounded-xl border border-[#E2D2EA] transition flex items-center gap-1 text-xs cursor-pointer shadow-xs"
+                  title="แจ้งเตือนงานเข้า LINE Group"
+                >
+                  <Send className="w-3.5 h-3.5 text-purple-700" />
+                  <span className="hidden sm:inline">ส่งเข้า LINE</span>
+                </button>
+
+                <button
+                  onClick={() => handleOpenEditModal(task)}
+                  className="p-1.5 text-purple-700 hover:bg-purple-50 rounded-xl transition cursor-pointer"
+                  title="แก้ไขงาน To-Do"
+                >
+                  <Edit3 className="w-4 h-4" />
+                </button>
+
+                <button
+                  onClick={() => handleDeleteTask(task.id)}
+                  className="p-1.5 text-rose-500 hover:bg-rose-50 rounded-xl transition cursor-pointer"
+                  title="ลบงาน"
+                >
+                  <Trash2 className="w-4 h-4" />
+                </button>
+              </div>
+            </div>
+          ))}
         </div>
       )}
 
-      {/* SECTION 3: FILE SUBMISSION TRACKER (ส่วนติดตามไฟล์งาน - เช็กว่าส่งยัง) */}
-      {activeSection === 'files' && (
-        <div className="space-y-4">
-          <div className="glass-panel p-4 border-[#E2D2EA] flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
-            <span className="font-bold text-purple-950 flex items-center gap-1.5">
-              <FolderCheck className="w-4 h-4 text-emerald-600" />
-              <span>ตารางติดตามการส่งไฟล์งาน (File Delivery Status Tracker)</span>
-            </span>
-
-            <button
-              onClick={handleOpenAddFile}
-              className="px-3.5 py-2 bg-gradient-to-r from-purple-950 via-pink-900 to-purple-900 text-white font-bold rounded-xl text-xs flex items-center gap-1 cursor-pointer"
-            >
-              <Plus className="w-3.5 h-3.5" />
-              <span>+ เพิ่มรายการติดตามไฟล์งาน</span>
-            </button>
-          </div>
-
-          {filteredFiles.length === 0 ? (
-            <div className="glass-panel p-12 text-center border-[#E2D2EA] space-y-3">
-              <div className="w-12 h-12 rounded-2xl bg-emerald-100 text-emerald-800 flex items-center justify-center border border-[#E2D2EA] mx-auto">
-                <FileCheck className="w-6 h-6" />
+      {/* Add / Edit Task Modal */}
+      {showAddModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-xs p-4 animate-in fade-in duration-150 overflow-y-auto">
+          <div className="glass-panel max-w-lg w-full p-6 space-y-4 border-[#E2D2EA] shadow-2xl bg-white/95 my-8">
+            <div className="flex items-center justify-between border-b border-purple-100 pb-3">
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded-xl bg-[#FFEBF3] text-purple-800 flex items-center justify-center border border-[#E2D2EA]">
+                  <CheckSquare className="w-4 h-4" />
+                </div>
+                <h3 className="text-base font-bold text-purple-950">
+                  {editingTask ? 'แก้ไขงาน To-Do' : 'สร้างงาน To-Do ใหม่'}
+                </h3>
               </div>
-              <h3 className="font-bold text-purple-950 text-sm">ยังไม่มีรายการติดตามไฟล์งานในระบบ</h3>
-              <p className="text-xs text-purple-800/80 max-w-md mx-auto">
-                กดปุ่มเพื่อเริ่มบันทึกรายการไฟล์งาน เช่น ภาพกราฟิก, วิดีโอ TikTok, สื่อ POSM เพื่อเช็กสถานะส่งแล้ว/ยังไม่ส่ง
-              </p>
-              <button
-                onClick={handleOpenAddFile}
-                className="px-4 py-2 bg-purple-950 text-white font-bold rounded-xl text-xs cursor-pointer inline-flex items-center gap-1"
-              >
-                <Plus className="w-4 h-4" />
-                <span>+ เพิ่มรายการติดตามไฟล์งาน</span>
+              <button onClick={() => setShowAddModal(false)} className="text-purple-400 hover:text-purple-700 font-bold cursor-pointer">
+                <X className="w-4 h-4" />
               </button>
             </div>
-          ) : (
-            <div className="space-y-3">
-              {filteredFiles.map(file => {
-                const isSubmitted = file.deliveryStatus === 'submitted' || file.deliveryStatus === 'approved';
 
-                return (
-                  <div key={file.id} className="glass-panel p-4 border border-[#E2D2EA] space-y-3 hover:shadow-xs transition">
-                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-                      <div className="flex items-center gap-2">
-                        <span className={`px-3 py-1 rounded-full text-xs font-extrabold border flex items-center gap-1.5 ${
-                          isSubmitted 
-                            ? 'bg-emerald-100 text-emerald-900 border-emerald-300'
-                            : 'bg-amber-100 text-amber-900 border-amber-300'
-                        }`}>
-                          <span className={`w-2 h-2 rounded-full ${isSubmitted ? 'bg-emerald-500 animate-pulse' : 'bg-amber-500'}`} />
-                          <span>{isSubmitted ? 'ส่งไฟล์แล้ว 🟢' : 'ยังไม่ส่งไฟล์ 🟠'}</span>
-                        </span>
-
-                        <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-[#FFEBF3] text-purple-950 border border-[#E2D2EA]">
-                          {file.fileType}
-                        </span>
-                      </div>
-
-                      <div className="flex items-center gap-2">
-                        <button
-                          onClick={() => handleToggleFileStatus(file.id)}
-                          className={`px-3 py-1 rounded-xl text-xs font-bold border transition cursor-pointer ${
-                            isSubmitted ? 'bg-amber-50 text-amber-900 border-amber-200' : 'bg-emerald-600 text-white'
-                          }`}
-                        >
-                          {isSubmitted ? 'เปลี่ยนเป็น: ยังไม่ส่ง' : 'สลับเป็น: ส่งไฟล์แล้ว'}
-                        </button>
-
-                        <button onClick={() => handleDeleteFile(file.id)} className="text-rose-500 hover:bg-rose-50 p-1 rounded">
-                          <Trash2 className="w-3.5 h-3.5" />
-                        </button>
-                      </div>
-                    </div>
-
-                    <h4 className="font-bold text-purple-950 text-base">{file.fileName}</h4>
-
-                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 p-3 bg-purple-50/70 rounded-xl border border-purple-100 text-xs">
-                      <div>
-                        <span className="text-purple-800 text-[10px] block">ผู้จัดทำไฟล์:</span>
-                        <span className="font-bold text-purple-950">{file.assignedCreator}</span>
-                      </div>
-                      <div>
-                        <span className="text-purple-800 text-[10px] block">เวลาที่ส่งไฟล์:</span>
-                        <span className="font-mono font-bold text-purple-950">{file.submittedAt}</span>
-                      </div>
-                      <div>
-                        <span className="text-purple-800 text-[10px] block">ลิงก์ไฟล์งาน (Drive/Cloud):</span>
-                        {file.driveUrl ? (
-                          <div className="flex items-center gap-1 mt-0.5">
-                            <a href={file.driveUrl} target="_blank" rel="noreferrer" className="text-purple-950 font-bold hover:underline truncate flex items-center gap-1">
-                              <ExternalLink className="w-3 h-3 text-purple-600 shrink-0" />
-                              <span className="truncate">เปิดลิงก์ไฟล์</span>
-                            </a>
-                            <button onClick={() => handleCopyLink(file.driveUrl, file.id)} className="p-0.5 text-purple-600 hover:bg-purple-100 rounded">
-                              {copiedId === file.id ? <Check className="w-3 h-3 text-emerald-600" /> : <Copy className="w-3 h-3" />}
-                            </button>
-                          </div>
-                        ) : (
-                          <span className="text-purple-400 text-[11px]">ยังไม่มีลิงก์</span>
-                        )}
-                      </div>
-                    </div>
-
-                    {file.remarks && (
-                      <p className="text-xs text-purple-800/80 font-medium">หมายเหตุ: {file.remarks}</p>
-                    )}
-
-                    <div className="pt-2 border-t border-purple-100 flex justify-end">
-                      <button
-                        onClick={() => setLineModalItem({
-                          id: file.id,
-                          title: `[File Status] ${file.fileName}`,
-                          platform: file.assignedCreator,
-                          publish_date: file.submittedAt,
-                          assigned_to: file.assignedCreator,
-                          status: isSubmitted ? 'FILE_DELIVERED' : 'FILE_PENDING',
-                          media_url: 'https://images.unsplash.com/photo-1620916566398-39f1143ab7be?auto=format&fit=crop&w=600&q=80'
-                        })}
-                        className="px-3 py-1 bg-[#FFEBF3] hover:bg-pink-200 text-purple-950 font-bold rounded-xl border border-[#E2D2EA] text-xs flex items-center gap-1 cursor-pointer"
-                      >
-                        <Send className="w-3.5 h-3.5 text-purple-700" />
-                        <span>ยิงสถานะไฟล์เข้า LINE</span>
-                      </button>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* MODAL 1: Add Task Modal */}
-      {showAddTaskModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-xs p-4 animate-in fade-in duration-150 overflow-y-auto">
-          <div className="glass-panel max-w-lg w-full p-6 space-y-4 border-[#E2D2EA] shadow-2xl bg-white/95 my-8">
-            <div className="flex items-center justify-between border-b border-purple-100 pb-3">
-              <h3 className="text-base font-bold text-purple-950">+ สร้างงาน To-Do ใหม่</h3>
-              <button onClick={() => setShowAddTaskModal(false)} className="text-purple-400 font-bold"><X className="w-4 h-4" /></button>
-            </div>
-            <form onSubmit={handleSaveTask} className="space-y-3 text-xs">
+            <form onSubmit={handleSaveForm} className="space-y-3 text-xs">
               <div>
-                <label className="block font-bold mb-1">หัวข้องาน</label>
-                <input type="text" required value={taskFormData.title} onChange={e => setTaskFormData({...taskFormData, title: e.target.value})} className="w-full px-3 py-2 border rounded-xl" />
+                <label className="block text-purple-950 font-bold mb-1">หัวข้องาน (Task Title)</label>
+                <input
+                  type="text"
+                  required
+                  placeholder="เช่น จัดทำอาร์ตเวิร์คโปรโมชัน หรือ เซ็ตอัปโฆษณา Facebook Ads"
+                  value={formData.title}
+                  onChange={(e) => setFormData(prev => ({ ...prev, title: e.target.value }))}
+                  className="w-full px-3 py-2 bg-white border border-[#E2D2EA] rounded-xl text-purple-950 font-medium focus:outline-none shadow-xs"
+                />
               </div>
+
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block font-bold mb-1">หมวดหมู่</label>
-                  <select value={taskFormData.category} onChange={e => setTaskFormData({...taskFormData, category: e.target.value})} className="w-full px-3 py-2 border rounded-xl font-bold">
-                    <option value="Promotion Plan">Promotion Plan</option>
-                    <option value="Content Plan">Content Plan</option>
-                    <option value="Marketing Plan">Marketing Plan</option>
+                  <label className="block text-purple-950 font-bold mb-1">หมวดหมู่โมดูล (Category)</label>
+                  <select
+                    value={formData.category}
+                    onChange={(e) => setFormData(prev => ({ ...prev, category: e.target.value }))}
+                    className="w-full px-3 py-2 bg-white border border-[#E2D2EA] rounded-xl text-purple-950 font-bold focus:outline-none shadow-xs"
+                  >
+                    <option value="Promotion Plan">แผนโปรโมท (Promotion Plan)</option>
+                    <option value="Content Plan">คอนเทนต์ (Content Plan)</option>
+                    <option value="Marketing Plan">กลยุทธ์ (Marketing Plan)</option>
+                    <option value="Product Campaign">แคมเปญสินค้า (Product Campaign)</option>
                   </select>
                 </div>
-                <div>
-                  <label className="block font-bold mb-1">ผู้รับผิดชอบ</label>
-                  <input type="text" required value={taskFormData.assignedTo} onChange={e => setTaskFormData({...taskFormData, assignedTo: e.target.value})} className="w-full px-3 py-2 border rounded-xl" />
-                </div>
-              </div>
-              <div>
-                <label className="block font-bold mb-1">รายละเอียดงาน</label>
-                <textarea rows={3} value={taskFormData.description} onChange={e => setTaskFormData({...taskFormData, description: e.target.value})} className="w-full px-3 py-2 border rounded-xl" />
-              </div>
-              <div className="pt-2 flex justify-end gap-2">
-                <button type="button" onClick={() => setShowAddTaskModal(false)} className="px-4 py-2 bg-purple-50 font-bold rounded-xl">ยกเลิก</button>
-                <button type="submit" className="px-5 py-2 bg-purple-950 text-white font-bold rounded-xl">+ บันทึกงาน</button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
 
-      {/* MODAL 2: Add Follow-up Modal */}
-      {showAddFollowupModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-xs p-4 animate-in fade-in duration-150 overflow-y-auto">
-          <div className="glass-panel max-w-lg w-full p-6 space-y-4 border-[#E2D2EA] shadow-2xl bg-white/95 my-8">
-            <div className="flex items-center justify-between border-b border-purple-100 pb-3">
-              <h3 className="text-base font-bold text-purple-950">+ บันทึกงานที่ต้องติดตาม (Follow-Up)</h3>
-              <button onClick={() => setShowAddFollowupModal(false)} className="text-purple-400 font-bold"><X className="w-4 h-4" /></button>
-            </div>
-            <form onSubmit={handleSaveFollowup} className="space-y-3 text-xs">
-              <div>
-                <label className="block font-bold mb-1">ชื่องานที่ต้องติดตาม</label>
-                <input type="text" required placeholder="เช่น ตามไฟล์วิดีโอ 9.9 จากเอเจนซี่ หรือ ใบเสนอราคาป้าย" value={followupFormData.title} onChange={e => setFollowupFormData({...followupFormData, title: e.target.value})} className="w-full px-3 py-2 border rounded-xl" />
-              </div>
-              <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block font-bold mb-1">ตามงานกับใคร</label>
-                  <input type="text" required placeholder="เช่น คุณส้ม ทีมกราฟิก" value={followupFormData.targetPerson} onChange={e => setFollowupFormData({...followupFormData, targetPerson: e.target.value})} className="w-full px-3 py-2 border rounded-xl" />
-                </div>
-                <div>
-                  <label className="block font-bold mb-1">วันที่ต้องตามรอบถัดไป</label>
-                  <input type="date" required value={followupFormData.nextFollowupDate} onChange={e => setFollowupFormData({...followupFormData, nextFollowupDate: e.target.value})} className="w-full px-3 py-2 border rounded-xl" />
-                </div>
-              </div>
-              <div>
-                <label className="block font-bold mb-1">บันทึกความคืบหน้า</label>
-                <textarea rows={3} placeholder="ระบุรายละเอียดเพิ่มเติม..." value={followupFormData.notes} onChange={e => setFollowupFormData({...followupFormData, notes: e.target.value})} className="w-full px-3 py-2 border rounded-xl" />
-              </div>
-              <div className="pt-2 flex justify-end gap-2">
-                <button type="button" onClick={() => setShowAddFollowupModal(false)} className="px-4 py-2 bg-purple-50 font-bold rounded-xl">ยกเลิก</button>
-                <button type="submit" className="px-5 py-2 bg-purple-950 text-white font-bold rounded-xl">+ บันทึกงานติดตาม</button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-
-      {/* MODAL 3: Add File Tracker Modal */}
-      {showAddFileModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-xs p-4 animate-in fade-in duration-150 overflow-y-auto">
-          <div className="glass-panel max-w-lg w-full p-6 space-y-4 border-[#E2D2EA] shadow-2xl bg-white/95 my-8">
-            <div className="flex items-center justify-between border-b border-purple-100 pb-3">
-              <h3 className="text-base font-bold text-purple-950">+ เพิ่มรายการติดตามไฟล์งาน</h3>
-              <button onClick={() => setShowAddFileModal(false)} className="text-purple-400 font-bold"><X className="w-4 h-4" /></button>
-            </div>
-            <form onSubmit={handleSaveFile} className="space-y-3 text-xs">
-              <div>
-                <label className="block font-bold mb-1">ชื่อไฟล์งาน / อาร์ตเวิร์ค</label>
-                <input type="text" required placeholder="เช่น ภาพปก Facebook Sunscreen Aqua Gel 1 แถม 1" value={fileFormData.fileName} onChange={e => setFileFormData({...fileFormData, fileName: e.target.value})} className="w-full px-3 py-2 border rounded-xl" />
-              </div>
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block font-bold mb-1">ประเภทไฟล์</label>
-                  <select value={fileFormData.fileType} onChange={e => setFileFormData({...fileFormData, fileType: e.target.value})} className="w-full px-3 py-2 border rounded-xl font-bold">
-                    <option value="ภาพกราฟิก AI/PSD">ภาพกราฟิก AI/PSD</option>
-                    <option value="วิดีโอ MP4">วิดีโอ MP4</option>
-                    <option value="สื่อสิ่งพิมพ์ POSM">สื่อสิ่งพิมพ์ POSM</option>
-                    <option value="เอกสาร Brief/PDF">เอกสาร Brief/PDF</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="block font-bold mb-1">สถานะการส่งไฟล์</label>
-                  <select value={fileFormData.deliveryStatus} onChange={e => setFileFormData({...fileFormData, deliveryStatus: e.target.value})} className="w-full px-3 py-2 border rounded-xl font-bold">
-                    <option value="not_submitted">ยังไม่ส่งไฟล์ 🟠</option>
-                    <option value="submitted">ส่งไฟล์แล้ว 🟢</option>
-                    <option value="needs_revision">รอแก้ไข 🟡</option>
-                    <option value="approved">อนุมัติแล้ว 🔵</option>
+                  <label className="block text-purple-950 font-bold mb-1">ระดับความด่วน (Priority)</label>
+                  <select
+                    value={formData.priority}
+                    onChange={(e) => setFormData(prev => ({ ...prev, priority: e.target.value }))}
+                    className="w-full px-3 py-2 bg-white border border-[#E2D2EA] rounded-xl text-purple-950 font-bold focus:outline-none shadow-xs"
+                  >
+                    <option value="high">ด่วนมาก (High)</option>
+                    <option value="medium">ปานกลาง (Medium)</option>
+                    <option value="low">ทั่วไป (Low)</option>
                   </select>
                 </div>
               </div>
+
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block font-bold mb-1">ผู้จัดทำไฟล์</label>
-                  <input type="text" required placeholder="เช่น คุณเจนนี่" value={fileFormData.assignedCreator} onChange={e => setFileFormData({...fileFormData, assignedCreator: e.target.value})} className="w-full px-3 py-2 border rounded-xl" />
+                  <label className="block text-purple-950 font-bold mb-1">ผู้รับผิดชอบ / ทีม (Assignee)</label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="เช่น ทีมกราฟิก / แอดมิน LINE OA / ทีมยิงแอด"
+                    value={formData.assignedTo}
+                    onChange={(e) => setFormData(prev => ({ ...prev, assignedTo: e.target.value }))}
+                    className="w-full px-3 py-2 bg-white border border-[#E2D2EA] rounded-xl text-purple-950 font-medium focus:outline-none shadow-xs"
+                  />
                 </div>
+
                 <div>
-                  <label className="block font-bold mb-1">ลิงก์ไฟล์ (Drive / Canva / Cloud)</label>
-                  <input type="url" placeholder="https://drive.google.com/..." value={fileFormData.driveUrl} onChange={e => setFileFormData({...fileFormData, driveUrl: e.target.value})} className="w-full px-3 py-2 border rounded-xl" />
+                  <label className="block text-purple-950 font-bold mb-1">กำหนดเสร็จ (Due Date)</label>
+                  <input
+                    type="date"
+                    required
+                    value={formData.dueDate}
+                    onChange={(e) => setFormData(prev => ({ ...prev, dueDate: e.target.value }))}
+                    className="w-full px-3 py-2 bg-white border border-[#E2D2EA] rounded-xl text-purple-950 font-medium focus:outline-none shadow-xs"
+                  />
                 </div>
               </div>
+
               <div>
-                <label className="block font-bold mb-1">หมายเหตุเพิ่มเติม</label>
-                <textarea rows={2} placeholder="เช่น ไฟล์ขนาด 1080x1080px..." value={fileFormData.remarks} onChange={e => setFileFormData({...fileFormData, remarks: e.target.value})} className="w-full px-3 py-2 border rounded-xl" />
+                <label className="block text-purple-950 font-bold mb-1">รายละเอียดงานเพิ่มเติม</label>
+                <textarea
+                  rows={3}
+                  placeholder="ระบุข้อกำหนดเพิ่มเติม ลิงก์ไดรฟ์เก็บไฟล์ หรือคำแนะนำ..."
+                  value={formData.description}
+                  onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
+                  className="w-full px-3 py-2 bg-white border border-[#E2D2EA] rounded-xl text-purple-950 font-medium focus:outline-none shadow-xs"
+                />
               </div>
-              <div className="pt-2 flex justify-end gap-2">
-                <button type="button" onClick={() => setShowAddFileModal(false)} className="px-4 py-2 bg-purple-50 font-bold rounded-xl">ยกเลิก</button>
-                <button type="submit" className="px-5 py-2 bg-purple-950 text-white font-bold rounded-xl">+ บันทึกติดตามไฟล์</button>
+
+              <div className="pt-3 border-t border-purple-100 flex justify-end gap-2 text-xs">
+                <button
+                  type="button"
+                  onClick={() => setShowAddModal(false)}
+                  className="px-4 py-2 bg-purple-50 text-purple-900 rounded-xl font-bold hover:bg-purple-100 transition cursor-pointer"
+                >
+                  ยกเลิก
+                </button>
+                <button
+                  type="submit"
+                  className="px-5 py-2 bg-gradient-to-r from-purple-950 via-pink-900 to-purple-900 text-white font-bold rounded-xl shadow-md hover:opacity-95 transition cursor-pointer"
+                >
+                  {editingTask ? 'บันทึกการแก้ไข' : '+ เพิ่มงาน To-Do'}
+                </button>
               </div>
             </form>
           </div>

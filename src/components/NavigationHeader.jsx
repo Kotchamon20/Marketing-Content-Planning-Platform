@@ -48,7 +48,7 @@ export default function NavigationHeader({
     { id: 'product-plan', label: 'Module 2: Product Plan & Campaign Readiness', icon: Package },
     { id: 'marketing-plan', label: 'Module 3: Marketing Plan & Brainstorming', icon: Compass },
     { id: 'promotion-plan', label: 'Module 4: แผนการโปรโมท (Promotion Plan)', icon: Megaphone },
-    { id: 'todo-list', label: 'Module 5: To-Do List (รายการงาน)', icon: CheckSquare },
+    { id: 'todo-list', label: 'Module 5: To-Do List & ติดตามไฟล์งาน', icon: CheckSquare },
     { id: 'kpi-analytics', label: 'Module 6: KPI Analytics', icon: BarChart3 },
   ];
 
