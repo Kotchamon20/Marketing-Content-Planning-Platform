@@ -1537,6 +1537,17 @@ export default function ContentPlanModule({
     );
   };
 
+  // แสดง Badge สำหรับหมวดหมู่ย่อย (Sub-Category)
+  const getSubCategoryBadge = (subCat) => {
+    if (!subCat || !subCat.trim()) return null;
+    return (
+      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-bold border bg-amber-50 text-amber-900 border-amber-300 truncate max-w-[160px]">
+        <Tag className="w-2.5 h-2.5 shrink-0" />
+        {subCat}
+      </span>
+    );
+  };
+
   // Helper for generating monthly calendar days
   const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
   const firstDayOfWeek = new Date(currentYear, currentMonth, 1).getDay(); // 0 = Sunday
@@ -2208,10 +2219,12 @@ export default function ContentPlanModule({
                                   {/* Title */}
                                   <div className="font-semibold text-rose-950 line-clamp-1 leading-tight">{item.title}</div>
 
-                                  {/* Group Badge Tag */}
-                                  {item.group && (
+                                  {/* Sub-Category Badge Tag */}
+                                  {item.subCategory ? (
+                                    <div className="pt-0.5">{getSubCategoryBadge(item.subCategory)}</div>
+                                  ) : item.group ? (
                                     <div className="pt-0.5">{getGroupBadge(item.group)}</div>
-                                  )}
+                                  ) : null}
                                 </div>
                               ))}
                             </div>
@@ -2238,7 +2251,7 @@ export default function ContentPlanModule({
                         <div>
                           <div className="flex items-center justify-between gap-2 mb-2 flex-wrap">
                             {getPlatformBadge(item.platform)}
-                            {item.group && getGroupBadge(item.group)}
+                            {item.subCategory ? getSubCategoryBadge(item.subCategory) : (item.group && getGroupBadge(item.group))}
                             {getStatusBadge(item.status)}
                           </div>
 
@@ -2755,7 +2768,9 @@ export default function ContentPlanModule({
                 <div>
                   <div className="flex items-center gap-2 mb-0.5 flex-wrap">
                     {getPlatformBadge(selectedDetailContent.platform)}
-                    {selectedDetailContent.group && getGroupBadge(selectedDetailContent.group)}
+                    {selectedDetailContent.subCategory
+                      ? getSubCategoryBadge(selectedDetailContent.subCategory)
+                      : (selectedDetailContent.group && getGroupBadge(selectedDetailContent.group))}
                     {getStatusBadge(selectedDetailContent.status)}
                   </div>
                   <h3 className="font-bold text-rose-950 text-base">

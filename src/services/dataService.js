@@ -81,95 +81,74 @@ function formatIsoDateForDb(rawVal) {
 export async function upsertContentItemToSupabase(contentItem) {
   try {
     const rawPlat = contentItem.platform;
-    let platformsArr = ['facebook'];
+    let singlePlatform = 'facebook';
     if (Array.isArray(rawPlat) && rawPlat.length > 0) {
-      platformsArr = rawPlat;
+      singlePlatform = rawPlat[0];
     } else if (typeof rawPlat === 'string' && rawPlat.trim()) {
-      platformsArr = rawPlat.split(/[\s,]+/).filter(Boolean);
+      singlePlatform = rawPlat.split(/[\s,]+/).filter(Boolean)[0] || 'facebook';
     }
 
-    // Always pick a single valid enum string for platform column compatibility
-    const singlePlatform = platformsArr[0] || 'facebook';
     const cleanPublishDate = formatIsoDateForDb(contentItem.publish_date);
 
-    // Attempt 1: Full Payload with new columns
-    const fullPayload = {
+    // Single clean payload — only columns that exist in the actual Supabase schema
+    const payload = {
       title: contentItem.title || '[Untitled Content]',
       caption: contentItem.caption || '',
       visual_concept: contentItem.visual_concept || '',
       platform: singlePlatform,
-      platforms: platformsArr,
       status: ['draft', 'scheduled', 'published'].includes(contentItem.status) ? contentItem.status : 'draft',
       publish_date: cleanPublishDate,
       media_url: contentItem.media_url || '',
       reference_url: contentItem.reference_url || '',
-      content_group: contentItem.group || ''
+      content_group: contentItem.group || '',
+      group_name: contentItem.group || '',
+      sub_category: contentItem.subCategory || ''
     };
-    if (isUuid(contentItem.id)) fullPayload.id = contentItem.id;
 
-    let { data, error } = await supabase
+    // Only include UUID id if valid
+    if (isUuid(contentItem.id)) payload.id = contentItem.id;
+
+    const { data, error } = await supabase
       .from('content_items')
-      .upsert([fullPayload])
+      .upsert([payload], { onConflict: 'id' })
       .select();
 
     if (!error) {
-      console.log('✅ Supabase upsert successful (Full Payload):', data);
+      console.log('✅ Supabase upsert OK:', data?.[0]?.id);
       return data;
     }
 
-    console.warn('⚠️ Supabase full upsert warning:', error.message, error.details || '');
+    // If columns don't exist yet — strip unknown columns and retry with minimal safe payload
+    console.warn('⚠️ Supabase upsert warning (will retry minimal):', error.message);
 
-    // Attempt 2: Core Payload (standard columns only)
-    const corePayload = {
+    const safePayload = {
       title: contentItem.title || '[Untitled Content]',
       caption: contentItem.caption || '',
       platform: singlePlatform,
       status: ['draft', 'scheduled', 'published'].includes(contentItem.status) ? contentItem.status : 'draft',
       publish_date: cleanPublishDate,
-      media_url: contentItem.media_url || '',
-      reference_url: contentItem.reference_url || ''
+      media_url: contentItem.media_url || ''
     };
-    if (isUuid(contentItem.id)) corePayload.id = contentItem.id;
+    if (isUuid(contentItem.id)) safePayload.id = contentItem.id;
 
-    const fallbackRes = await supabase
+    const { data: safeData, error: safeError } = await supabase
       .from('content_items')
-      .upsert([corePayload])
+      .upsert([safePayload], { onConflict: 'id' })
       .select();
 
-    if (!fallbackRes.error) {
-      console.log('✅ Supabase upsert successful (Core Fallback):', fallbackRes.data);
-      return fallbackRes.data;
+    if (!safeError) {
+      console.log('✅ Supabase upsert OK (safe fallback):', safeData?.[0]?.id);
+      return safeData;
     }
 
-    console.warn('⚠️ Supabase core upsert warning:', fallbackRes.error.message);
-
-    // Attempt 3: Bare Essential Payload
-    const minimalPayload = {
-      title: contentItem.title || '[Untitled Content]',
-      caption: contentItem.caption || '',
-      platform: 'facebook',
-      status: 'draft',
-      publish_date: cleanPublishDate
-    };
-    if (isUuid(contentItem.id)) minimalPayload.id = contentItem.id;
-
-    const minRes = await supabase
-      .from('content_items')
-      .upsert([minimalPayload])
-      .select();
-
-    if (minRes.error) {
-      console.error('❌ Supabase minimal upsert failed:', minRes.error.message, minRes.error.details || '');
-      return null;
-    }
-
-    console.log('✅ Supabase upsert successful (Minimal Fallback):', minRes.data);
-    return minRes.data;
+    console.error('❌ Supabase upsert failed (both attempts):', safeError.message);
+    return null;
   } catch (err) {
     console.error('❌ Supabase upsertContentItem catch:', err);
     return null;
   }
 }
+
 
 export async function deleteContentItemFromSupabase(id) {
   try {
