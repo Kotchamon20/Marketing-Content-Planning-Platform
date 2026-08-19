@@ -207,6 +207,36 @@ export default function KpiAnalyticsModule({ campaigns = [], products = [] }) {
     }
   };
 
+  const handleCreateKpiItem = (e) => {
+    e.preventDefault();
+    if (!newKpiTitle.trim()) return;
+
+    const newItem = {
+      id: `kpi-${Date.now()}`,
+      title: newKpiTitle.trim(),
+      category: newKpiCategory || categories[0]?.id || 'shopee',
+      subGroup: newKpiSubGroup || 'Shopee Official Store',
+      targetRevenue: Number(newKpiTargetRevenue) || 100000,
+      actualRevenue: Number(newKpiActualRevenue) || 0,
+      ordersCount: Math.round((Number(newKpiActualRevenue) || 0) / 650) || 0,
+      conversionRate: 4.8,
+      roas: (Number(newKpiActualRevenue) || 0) > 0 ? 5.2 : 0,
+      cpa: 180,
+      aov: 650,
+      reach: Number(newKpiReach) || 50000,
+      engagementRate: Number(newKpiER) || 5.0,
+      vtr: 35.0,
+      ctr: 3.0,
+      status: (Number(newKpiActualRevenue) || 0) >= (Number(newKpiTargetRevenue) || 100000) ? 'exceeded' : 'on_track',
+      startDate: new Date().toISOString().split('T')[0],
+      endDate: new Date(Date.now() + 86400000 * 30).toISOString().split('T')[0]
+    };
+
+    setKpiItems(prev => [newItem, ...prev]);
+    setShowAddKpiModal(false);
+    setNewKpiTitle('');
+  };
+
   // Filter Items
   const filteredKpiItems = kpiItems.filter(item => {
     if (activeCategory !== 'all' && item.category !== activeCategory) return false;
