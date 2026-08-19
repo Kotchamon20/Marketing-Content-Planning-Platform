@@ -21,7 +21,19 @@ import {
   deleteAllContentItemsFromSupabase,
   upsertCampaignToSupabase,
   upsertMarketingPlanToSupabase,
-  upsertProductToSupabase
+  upsertProductToSupabase,
+  fetchContentGroupsFromSupabase,
+  upsertContentGroupToSupabase,
+  deleteContentGroupFromSupabase,
+  subscribeToContentGroups,
+  fetchCampaignIdeasFromSupabase,
+  upsertCampaignIdeaToSupabase,
+  deleteCampaignIdeaFromSupabase,
+  subscribeToCampaignIdeas,
+  fetchIdeaVaultFromSupabase,
+  upsertIdeaVaultToSupabase,
+  deleteIdeaVaultFromSupabase,
+  subscribeToIdeaVault
 } from './services/dataService';
 
 import {
@@ -49,55 +61,17 @@ export default function App() {
   const [activeTab, setActiveTab] = useState('dashboard');
   const [schemaModalOpen, setSchemaModalOpen] = useState(false);
 
-  // Module Data States with localStorage persistence (Pure Real Data from Supabase & User Entry)
-  const [products, setProducts] = useState(() => {
-    const saved = localStorage.getItem('nitan_products');
-    return saved ? JSON.parse(saved) : [];
-  });
-
-  const [marketingPlans, setMarketingPlans] = useState(() => {
-    const saved = localStorage.getItem('nitan_marketingPlans');
-    return saved ? JSON.parse(saved) : [];
-  });
-
-  const [campaignIdeas, setCampaignIdeas] = useState(() => {
-    const saved = localStorage.getItem('nitan_campaignIdeas');
-    return saved ? JSON.parse(saved) : [];
-  });
-
-  const [campaigns, setCampaigns] = useState(() => {
-    const saved = localStorage.getItem('nitan_campaigns');
-    return saved ? JSON.parse(saved) : [];
-  });
-
-  const [contentItems, setContentItems] = useState(() => {
-    const saved = localStorage.getItem('nitan_contentItems');
-    return saved ? JSON.parse(saved) : [];
-  });
-
-  const [contentGroups, setContentGroups] = useState(() => {
-    const saved = localStorage.getItem('nitan_contentGroups');
-    return saved ? JSON.parse(saved) : INITIAL_CONTENT_GROUPS;
-  });
-
-  const [ideaVault, setIdeaVault] = useState(() => {
-    const saved = localStorage.getItem('nitan_ideaVault');
-    return saved ? JSON.parse(saved) : [];
-  });
+  // Module Data States (Pure Real Data from Supabase & User Entry)
+  const [products, setProducts] = useState([]);
+  const [marketingPlans, setMarketingPlans] = useState([]);
+  const [campaignIdeas, setCampaignIdeas] = useState([]);
+  const [campaigns, setCampaigns] = useState([]);
+  const [contentItems, setContentItems] = useState([]);
+  const [contentGroups, setContentGroups] = useState([]);
+  const [ideaVault, setIdeaVault] = useState([]);
 
   const [notificationRules, setNotificationRules] = useState(INITIAL_NOTIFICATION_RULES);
   const [notificationLogs, setNotificationLogs] = useState(INITIAL_NOTIFICATION_LOGS);
-
-  // Auto-Sync to localStorage on changes
-  React.useEffect(() => {
-    localStorage.setItem('nitan_products', JSON.stringify(products));
-    localStorage.setItem('nitan_marketingPlans', JSON.stringify(marketingPlans));
-    localStorage.setItem('nitan_campaignIdeas', JSON.stringify(campaignIdeas));
-    localStorage.setItem('nitan_campaigns', JSON.stringify(campaigns));
-    localStorage.setItem('nitan_contentItems', JSON.stringify(contentItems));
-    localStorage.setItem('nitan_contentGroups', JSON.stringify(contentGroups));
-    localStorage.setItem('nitan_ideaVault', JSON.stringify(ideaVault));
-  }, [products, marketingPlans, campaignIdeas, campaigns, contentItems, contentGroups, ideaVault]);
 
   // Auto-fetch from Supabase DB on mount & Subscribe to Realtime Changes (Live Sync across Local & Production)
   React.useEffect(() => {
@@ -159,17 +133,69 @@ export default function App() {
           team_id: prod.team_id || 'team-1'
         })));
       }
+      // 5. Content Groups
+      const dbGroups = await fetchContentGroupsFromSupabase();
+      if (dbGroups) {
+        setContentGroups(dbGroups.map(g => ({
+          ...g,
+          colorClass: g.color_class || 'bg-slate-500 text-white',
+          subCategories: g.sub_categories || []
+        })));
+      }
+
+      // 6. Campaign Ideas
+      const dbIdeas = await fetchCampaignIdeasFromSupabase();
+      if (dbIdeas) {
+        setCampaignIdeas(dbIdeas.map(i => ({
+          ...i,
+          campaignId: i.campaign_id || null
+        })));
+      }
+
+      // 7. Idea Vault
+      const dbVault = await fetchIdeaVaultFromSupabase();
+      if (dbVault) {
+        setIdeaVault(dbVault.map(v => ({
+          ...v,
+          isUsed: v.is_used || false
+        })));
+      }
     }
 
     loadFromSupabase();
 
     // Subscribe to Live Realtime DB changes (Broadcasts to all open tabs/clients on Local & Production)
-    const unsubscribe = subscribeToContentItems((freshDbItems) => {
+    const unsubContentItems = subscribeToContentItems((freshDbItems) => {
       mapDbItems(freshDbItems);
     });
 
+    const unsubContentGroups = subscribeToContentGroups((freshDbGroups) => {
+      setContentGroups(freshDbGroups.map(g => ({
+        ...g,
+        colorClass: g.color_class || 'bg-slate-500 text-white',
+        subCategories: g.sub_categories || []
+      })));
+    });
+
+    const unsubCampaignIdeas = subscribeToCampaignIdeas((freshDbIdeas) => {
+      setCampaignIdeas(freshDbIdeas.map(i => ({
+        ...i,
+        campaignId: i.campaign_id || null
+      })));
+    });
+
+    const unsubIdeaVault = subscribeToIdeaVault((freshDbVault) => {
+      setIdeaVault(freshDbVault.map(v => ({
+        ...v,
+        isUsed: v.is_used || false
+      })));
+    });
+
     return () => {
-      if (unsubscribe) unsubscribe();
+      if (unsubContentItems) unsubContentItems();
+      if (unsubContentGroups) unsubContentGroups();
+      if (unsubCampaignIdeas) unsubCampaignIdeas();
+      if (unsubIdeaVault) unsubIdeaVault();
     };
   }, []);
 
@@ -226,28 +252,34 @@ export default function App() {
 
   const handleClearAllContent = () => {
     setContentItems([]);
-    localStorage.removeItem('nitan_contentItems');
     deleteAllContentItemsFromSupabase();
-    showSaveToast('ล้างรายการคอนเทนต์ทั้งหมดใน DB และ LocalStorage เรียบร้อยแล้ว!');
+    showSaveToast('ล้างรายการคอนเทนต์ทั้งหมดใน DB เรียบร้อยแล้ว!');
   };
 
   const handleAddContentGroup = (newGroup) => {
     setContentGroups(prev => [...prev, newGroup]);
+    upsertContentGroupToSupabase(newGroup);
     showSaveToast('บันทึกกลุ่มคอนเทนต์ใหม่เรียบร้อยแล้ว!');
   };
 
   const handleDeleteContentGroup = (groupId) => {
     setContentGroups(prev => prev.filter(g => g.id !== groupId));
+    deleteContentGroupFromSupabase(groupId);
     showSaveToast('ลบกลุ่มคอนเทนต์เรียบร้อยแล้ว!');
   };
 
   const handleUpdateContentGroups = (updatedGroups) => {
     setContentGroups(updatedGroups);
-    showSaveToast('บันทึกการเปลี่ยนแปลงหมวดหมู่เรียบร้อยแล้ว!');
+    // Since updatedGroups is the full array, we should ideally upsert all of them.
+    // For simplicity, assuming the module only updates one at a time or reorders,
+    // we'll loop and upsert all active groups to ensure they are synced.
+    updatedGroups.forEach(g => upsertContentGroupToSupabase(g));
+    showSaveToast('อัปเดตข้อมูลกลุ่มคอนเทนต์เรียบร้อยแล้ว!');
   };
 
   const handleAddVaultIdea = (newIdea) => {
     setIdeaVault(prev => [newIdea, ...prev]);
+    upsertIdeaVaultToSupabase(newIdea);
     showSaveToast('บันทึกไอเดียลง คลังไอเดีย (Idea Vault) เรียบร้อยแล้ว!');
   };
 
@@ -262,13 +294,15 @@ export default function App() {
       platform: idea.platforms[0] || 'tiktok',
       status: 'draft',
       publish_date: new Date(Date.now() + 86400000 * 3).toISOString(),
-      media_url: 'https://images.unsplash.com/photo-1620916566398-39f1143ab7be?auto=format&fit=crop&w=600&q=80',
+      media_url: '',
+      reference_url: '',
       performance: { views: 0, likes: 0, comments: 0, shares: 0, ctr: 0 }
     };
 
     setContentItems(prev => [newContent, ...prev]);
     upsertContentItemToSupabase(newContent);
     setIdeaVault(prev => prev.filter(v => v.id !== idea.id));
+    deleteIdeaVaultFromSupabase(idea.id);
     confetti({ particleCount: 60, spread: 70, origin: { y: 0.7 } });
     showSaveToast('ย้ายไอเดียเป็นแผนคอนเทนต์และบันทึกเรียบร้อยแล้ว!');
   };
@@ -285,11 +319,17 @@ export default function App() {
   };
 
   const handleUpvoteIdea = (ideaId) => {
-    setCampaignIdeas(prev => prev.map(i => i.id === ideaId ? { ...i, upvotes: i.upvotes + 1 } : i));
+    setCampaignIdeas(prev => {
+      const updated = prev.map(i => i.id === ideaId ? { ...i, upvotes: (i.upvotes || i.votes || 0) + 1, votes: (i.upvotes || i.votes || 0) + 1 } : i);
+      const targetIdea = updated.find(i => i.id === ideaId);
+      if (targetIdea) upsertCampaignIdeaToSupabase(targetIdea);
+      return updated;
+    });
   };
 
   const handleAddCampaignIdea = (newIdea) => {
     setCampaignIdeas(prev => [newIdea, ...prev]);
+    upsertCampaignIdeaToSupabase(newIdea);
     confetti({ particleCount: 40, spread: 50, origin: { y: 0.8 } });
     showSaveToast('บันทึกไอเดียแคมเปญใหม่เรียบร้อยแล้ว!');
   };

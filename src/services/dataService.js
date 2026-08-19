@@ -568,3 +568,200 @@ export async function upsertPromotionPlanToSupabase(plan) {
     return null;
   }
 }
+
+// ==========================================
+// CONTENT GROUPS (fetch, upsert, delete)
+// ==========================================
+export async function fetchContentGroupsFromSupabase() {
+  try {
+    const { data, error } = await supabase
+      .from('content_groups')
+      .select('*')
+      .order('created_at', { ascending: true });
+    
+    if (error) throw error;
+    return data;
+  } catch (err) {
+    console.error('fetchContentGroupsFromSupabase Error:', err);
+    return null;
+  }
+}
+
+export async function upsertContentGroupToSupabase(group) {
+  try {
+    const payload = {
+      name: group.name,
+      color_class: group.colorClass,
+      sub_categories: group.subCategories || []
+    };
+    if (isUuid(group.id)) payload.id = group.id;
+
+    const { data, error } = await supabase
+      .from('content_groups')
+      .upsert([payload], { onConflict: 'id' })
+      .select();
+    
+    if (error) throw error;
+    return data ? data[0] : null;
+  } catch (err) {
+    console.error('upsertContentGroupToSupabase Error:', err);
+    return null;
+  }
+}
+
+export async function deleteContentGroupFromSupabase(id) {
+  try {
+    if (!isUuid(id)) return;
+    const { error } = await supabase
+      .from('content_groups')
+      .delete()
+      .eq('id', id);
+    if (error) throw error;
+  } catch (err) {
+    console.error('deleteContentGroupFromSupabase Error:', err);
+  }
+}
+
+// ==========================================
+// CAMPAIGN IDEAS (fetch, upsert, delete)
+// ==========================================
+export async function fetchCampaignIdeasFromSupabase() {
+  try {
+    const { data, error } = await supabase
+      .from('campaign_ideas')
+      .select('*')
+      .order('created_at', { ascending: false });
+    
+    if (error) throw error;
+    return data;
+  } catch (err) {
+    console.error('fetchCampaignIdeasFromSupabase Error:', err);
+    return null;
+  }
+}
+
+export async function upsertCampaignIdeaToSupabase(idea) {
+  try {
+    const payload = {
+      title: idea.title,
+      description: idea.description,
+      status: idea.status || 'draft',
+      votes: idea.votes || 0,
+      campaign_id: isUuid(idea.campaignId) ? idea.campaignId : null
+    };
+    if (isUuid(idea.id)) payload.id = idea.id;
+
+    const { data, error } = await supabase
+      .from('campaign_ideas')
+      .upsert([payload], { onConflict: 'id' })
+      .select();
+    
+    if (error) throw error;
+    return data ? data[0] : null;
+  } catch (err) {
+    console.error('upsertCampaignIdeaToSupabase Error:', err);
+    return null;
+  }
+}
+
+export async function deleteCampaignIdeaFromSupabase(id) {
+  try {
+    if (!isUuid(id)) return;
+    const { error } = await supabase
+      .from('campaign_ideas')
+      .delete()
+      .eq('id', id);
+    if (error) throw error;
+  } catch (err) {
+    console.error('deleteCampaignIdeaFromSupabase Error:', err);
+  }
+}
+
+// ==========================================
+// IDEA VAULT (fetch, upsert, delete)
+// ==========================================
+export async function fetchIdeaVaultFromSupabase() {
+  try {
+    const { data, error } = await supabase
+      .from('idea_vault')
+      .select('*')
+      .order('created_at', { ascending: false });
+    
+    if (error) throw error;
+    return data;
+  } catch (err) {
+    console.error('fetchIdeaVaultFromSupabase Error:', err);
+    return null;
+  }
+}
+
+export async function upsertIdeaVaultToSupabase(idea) {
+  try {
+    const payload = {
+      title: idea.title,
+      notes: idea.notes || '',
+      platforms: idea.platforms || [],
+      tags: idea.tags || [],
+      is_used: idea.isUsed || false
+    };
+    if (isUuid(idea.id)) payload.id = idea.id;
+
+    const { data, error } = await supabase
+      .from('idea_vault')
+      .upsert([payload], { onConflict: 'id' })
+      .select();
+    
+    if (error) throw error;
+    return data ? data[0] : null;
+  } catch (err) {
+    console.error('upsertIdeaVaultToSupabase Error:', err);
+    return null;
+  }
+}
+
+export async function deleteIdeaVaultFromSupabase(id) {
+  try {
+    if (!isUuid(id)) return;
+    const { error } = await supabase
+      .from('idea_vault')
+      .delete()
+      .eq('id', id);
+    if (error) throw error;
+  } catch (err) {
+    console.error('deleteIdeaVaultFromSupabase Error:', err);
+  }
+}
+
+// ==========================================
+// SUBSCRIPTIONS
+// ==========================================
+
+export function subscribeToContentGroups(onUpdate) {
+  const channel = supabase.channel('realtime_content_groups')
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'content_groups' }, async () => {
+      const fresh = await fetchContentGroupsFromSupabase();
+      if (fresh) onUpdate(fresh);
+    })
+    .subscribe();
+  return () => { supabase.removeChannel(channel); };
+}
+
+export function subscribeToCampaignIdeas(onUpdate) {
+  const channel = supabase.channel('realtime_campaign_ideas')
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'campaign_ideas' }, async () => {
+      const fresh = await fetchCampaignIdeasFromSupabase();
+      if (fresh) onUpdate(fresh);
+    })
+    .subscribe();
+  return () => { supabase.removeChannel(channel); };
+}
+
+export function subscribeToIdeaVault(onUpdate) {
+  const channel = supabase.channel('realtime_idea_vault')
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'idea_vault' }, async () => {
+      const fresh = await fetchIdeaVaultFromSupabase();
+      if (fresh) onUpdate(fresh);
+    })
+    .subscribe();
+  return () => { supabase.removeChannel(channel); };
+}

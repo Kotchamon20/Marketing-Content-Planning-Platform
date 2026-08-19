@@ -36,3 +36,17 @@ SELECT column_name, data_type
 FROM information_schema.columns
 WHERE table_name = 'content_items'
 ORDER BY ordinal_position;
+-- 18. CONTENT GROUPS (Dynamic Category Setup)
+CREATE TABLE IF NOT EXISTS content_groups (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    team_id UUID REFERENCES teams(id) ON DELETE CASCADE,
+    name VARCHAR(255) NOT NULL,
+    color_class VARCHAR(100),
+    sub_categories TEXT[],
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+ALTER TABLE content_groups DISABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Allow public all access on content_groups" ON content_groups;
+CREATE POLICY "Allow public all access on content_groups" ON content_groups FOR ALL USING (true);
+
