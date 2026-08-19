@@ -107,8 +107,8 @@ export default function App() {
         caption: item.caption || '',
         visual_concept: item.visual_concept || '',
         platform: item.platforms || (item.platform ? item.platform.split(/[\s,]+/) : ['facebook']),
-        group: item.content_group || 'Brand Vibe (Atmosphere)',
-        subCategory: '',
+        group: item.content_group || item.group_name || 'Brand Vibe (Atmosphere)',
+        subCategory: item.sub_category || '',
         status: item.status || 'draft',
         publish_date: item.publish_date ? item.publish_date.split('T')[0] : '2026-08-20',
         media_url: item.media_url || '',
@@ -118,9 +118,41 @@ export default function App() {
     };
 
     async function loadFromSupabase() {
+      // 1. Content Items
       const dbItems = await fetchContentItemsFromSupabase();
       if (dbItems && dbItems.length > 0) {
         mapDbItems(dbItems);
+      }
+
+      // 2. Campaigns
+      const dbCampaigns = await fetchCampaignsFromSupabase();
+      if (dbCampaigns && dbCampaigns.length > 0) {
+        setCampaigns(dbCampaigns.map(c => ({
+          ...c,
+          team_id: c.team_id || 'team-1',
+          projectedSales: c.revenue_target || c.projectedSales || 0,
+          budget: c.budget || 0,
+          stages: c.stages || INITIAL_CAMPAIGNS[0].stages
+        })));
+      }
+
+      // 3. Marketing Plans
+      const dbPlans = await fetchMarketingPlansFromSupabase();
+      if (dbPlans && dbPlans.length > 0) {
+        setMarketingPlans(dbPlans.map(p => ({
+          ...p,
+          team_id: p.team_id || 'team-1',
+          budget: p.total_budget || p.budget || 0
+        })));
+      }
+
+      // 4. Products Catalog
+      const dbProducts = await fetchProductsFromSupabase();
+      if (dbProducts && dbProducts.length > 0) {
+        setProducts(dbProducts.map(prod => ({
+          ...prod,
+          team_id: prod.team_id || 'team-1'
+        })));
       }
     }
 
@@ -229,6 +261,7 @@ export default function App() {
     };
 
     setContentItems(prev => [newContent, ...prev]);
+    upsertContentItemToSupabase(newContent);
     setIdeaVault(prev => prev.filter(v => v.id !== idea.id));
     confetti({ particleCount: 60, spread: 70, origin: { y: 0.7 } });
     showSaveToast('ย้ายไอเดียเป็นแผนคอนเทนต์และบันทึกเรียบร้อยแล้ว!');
