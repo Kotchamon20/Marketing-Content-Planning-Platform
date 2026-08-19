@@ -112,9 +112,16 @@ export default function BranchBudgetAllocation() {
   });
 
   const currentMonthKey = `${selectedYear}-${selectedMonth}`;
+  const isUserEditingRef = React.useRef(false);
 
   React.useEffect(() => {
     localStorage.setItem('nitan_monthly_budgets_data', JSON.stringify(monthlyBudgetsData));
+
+    // ONLY sync to Supabase & set saving status if user actually edited data
+    if (!isUserEditingRef.current) {
+      setSaveStatus('saved');
+      return;
+    }
 
     const filledBranchesToSync = (monthlyBudgetsData[currentMonthKey] || []).filter(
       b => b.previousSales > 0 || b.manualFullBudget > 0 || b.channelAllocations?.some(c => c.amount > 0 || c.percent > 0)
@@ -122,6 +129,7 @@ export default function BranchBudgetAllocation() {
 
     if (filledBranchesToSync.length === 0) {
       setSaveStatus('saved');
+      isUserEditingRef.current = false;
       return;
     }
 
@@ -133,6 +141,7 @@ export default function BranchBudgetAllocation() {
       });
       setSaveStatus('saved');
       setLastSavedTime(new Date().toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit', second: '2-digit' }));
+      isUserEditingRef.current = false;
     }, 400);
 
     return () => clearTimeout(syncTimer);
@@ -210,6 +219,7 @@ export default function BranchBudgetAllocation() {
   const currentBranches = hasMonthData ? monthlyBudgetsData[currentMonthKey] : [];
 
   const handleInitializeMonthBudget = () => {
+    isUserEditingRef.current = true;
     setMonthlyBudgetsData(prev => ({
       ...prev,
       [currentMonthKey]: DEFAULT_NITAN_BRANCHES
@@ -217,6 +227,7 @@ export default function BranchBudgetAllocation() {
   };
 
   const updateCurrentBranches = (newBranchesOrFn) => {
+    isUserEditingRef.current = true;
     setMonthlyBudgetsData(prev => {
       const activeList = (prev[currentMonthKey] && prev[currentMonthKey].length > 0) ? prev[currentMonthKey] : DEFAULT_NITAN_BRANCHES;
       const updated = typeof newBranchesOrFn === 'function' ? newBranchesOrFn(activeList) : newBranchesOrFn;
