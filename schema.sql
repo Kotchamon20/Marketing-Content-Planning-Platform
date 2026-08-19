@@ -325,9 +325,11 @@ CREATE TABLE IF NOT EXISTS custom_platforms (
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
--- MIGRATIONS FOR CONTENT ITEMS (Visual Concept & Multi-Platforms)
+-- MIGRATIONS FOR CONTENT ITEMS (Visual Concept, Multi-Platforms, Group Name & Sub Category)
 ALTER TABLE content_items ADD COLUMN IF NOT EXISTS visual_concept TEXT;
 ALTER TABLE content_items ADD COLUMN IF NOT EXISTS platforms TEXT[];
+ALTER TABLE content_items ADD COLUMN IF NOT EXISTS group_name TEXT;
+ALTER TABLE content_items ADD COLUMN IF NOT EXISTS sub_category TEXT;
 ALTER TABLE content_items ALTER COLUMN platform TYPE TEXT USING platform::text;
 
 ALTER TABLE custom_platforms DISABLE ROW LEVEL SECURITY;
