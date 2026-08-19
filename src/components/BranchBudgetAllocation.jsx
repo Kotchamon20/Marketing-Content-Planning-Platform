@@ -86,9 +86,9 @@ export default function BranchBudgetAllocation() {
 
   const [deleteBranchId, setDeleteBranchId] = useState(null);
 
-  // Groq AI Smart Scanner States
+  // Groq AI Smart Scanner States (Initialized null - Clean Upload UI)
   const [showImageScanModal, setShowImageScanModal] = useState(false);
-  const [uploadedImageSrc, setUploadedImageSrc] = useState('/excel_full_sheet_layout.png');
+  const [uploadedImageSrc, setUploadedImageSrc] = useState(null);
   const [isScanningImage, setIsScanningImage] = useState(false);
   const [groqAiScanNote, setGroqAiScanNote] = useState('');
 
@@ -868,12 +868,26 @@ export default function BranchBudgetAllocation() {
                   />
 
                   {uploadedImageSrc ? (
-                    <div className="relative h-64 rounded-xl overflow-hidden shadow-inner border border-purple-200">
+                    <div className="relative h-64 rounded-xl overflow-hidden shadow-inner border border-purple-200 group/img">
                       <img src={uploadedImageSrc} alt="Preview Table Spreadsheet" className="w-full h-full object-contain bg-white" />
+
+                      {/* Clear Uploaded Image Button */}
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setUploadedImageSrc(null);
+                        }}
+                        className="absolute top-2 right-2 px-2.5 py-1 bg-rose-600 hover:bg-rose-700 text-white rounded-lg text-[10px] font-bold shadow-md z-30 flex items-center gap-1 cursor-pointer transition"
+                        title="ลบรูปภาพและแนบรูปใหม่"
+                      >
+                        <X className="w-3 h-3" />
+                        <span>ลบรูปภาพ</span>
+                      </button>
 
                       {/* Scanning Laser Line Animation */}
                       {isScanningImage && (
-                        <div className="absolute inset-0 bg-purple-900/40 flex flex-col items-center justify-center backdrop-blur-xs animate-pulse">
+                        <div className="absolute inset-0 bg-purple-900/40 flex flex-col items-center justify-center backdrop-blur-xs animate-pulse z-20">
                           <div className="w-full h-1 bg-gradient-to-r from-transparent via-pink-400 to-transparent shadow-[0_0_15px_#f472b6] animate-bounce" />
                           <span className="text-white font-bold text-xs mt-2 px-3 py-1 bg-black/70 rounded-full flex items-center gap-1.5 shadow-md">
                             <RefreshCw className="w-3.5 h-3.5 text-yellow-400 animate-spin" />
@@ -885,8 +899,8 @@ export default function BranchBudgetAllocation() {
                   ) : (
                     <div className="py-12 space-y-2">
                       <UploadCloud className="w-10 h-10 text-purple-400 mx-auto group-hover:scale-110 transition" />
-                      <span className="font-bold text-purple-950 block">คลิกเพื่ออัปโหลด หรือลากไฟล์รูปภาพมาวางที่นี่</span>
-                      <span className="text-[11px] text-purple-700/80 block">รองรับ PNG, JPG, WEBP (รูปสกรีนช็อต Excel)</span>
+                      <span className="font-bold text-purple-950 block">คลิกเพื่อแนบรูปภาพ หรือลากไฟล์มาวางที่นี่</span>
+                      <span className="text-[11px] text-purple-700/80 block">รองรับ PNG, JPG, WEBP (สกรีนช็อตตารางงบสเปรดชีต)</span>
                     </div>
                   )}
                 </div>
