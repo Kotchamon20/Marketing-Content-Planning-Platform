@@ -729,6 +729,19 @@ export default function ContentPlanModule({
       // กลุ่มคอนเทนต์หลักใช้จาก bulkTargetGroup (ตั้งแต่ขั้น Group Selector ก่อน Import)
       const group = effectiveContentGroups[0]?.name || 'Brand Vibe (Atmosphere)';
 
+      // Match subCategory กับรายการ subCategories จริงของ Group ที่เลือก (Fuzzy match)
+      let matchedSubCategory = subCategoryRaw;
+      const targetGroupObj = effectiveContentGroups.find(g => g.name === bulkTargetGroup);
+      const targetSubCats = targetGroupObj?.subCategories || [];
+      if (subCategoryRaw && targetSubCats.length > 0) {
+        const exactMatch = targetSubCats.find(s => s.toLowerCase() === subCategoryRaw.toLowerCase());
+        const partialMatch = targetSubCats.find(s =>
+          s.toLowerCase().includes(subCategoryRaw.toLowerCase()) ||
+          subCategoryRaw.toLowerCase().includes(s.toLowerCase())
+        );
+        matchedSubCategory = exactMatch || partialMatch || subCategoryRaw;
+      }
+
       items.push({
         id: `cnt-${Date.now()}-${i}`,
         team_id: 'team-1',
@@ -739,7 +752,7 @@ export default function ContentPlanModule({
         visual_concept,
         platform: parsePlatformString(platformRaw),
         group,
-        subCategory: subCategoryRaw,  // อ่านตรงจากไฟล์
+        subCategory: matchedSubCategory,  // อ่านจากไฟล์ + match กับ subCategories ในระบบ
         status: parseStatusString(statusRaw),
         publish_date: parseThaiDateTime(dateRaw),
         media_url: media_url.startsWith('http') ? media_url : (media_url ? `https://${media_url}` : ''),
@@ -1233,10 +1246,28 @@ export default function ContentPlanModule({
       return;
     }
 
-    const itemsToImport = parsedBulkItems.map(item => ({
-      ...item,
-      group: bulkTargetGroup || item.group || (contentGroups[0]?.name || 'Brand Vibe (Atmosphere)')
-    }));
+    // Get the subCategories for the selected group
+    const targetGroupObj = effectiveContentGroups.find(g => g.name === bulkTargetGroup);
+    const targetSubCats = targetGroupObj?.subCategories || [];
+
+    const itemsToImport = parsedBulkItems.map(item => {
+      // Re-match subCategory against the target group's subCategories
+      let linkedSubCategory = item.subCategory || '';
+      if (linkedSubCategory && targetSubCats.length > 0) {
+        const exactMatch = targetSubCats.find(s => s.toLowerCase() === linkedSubCategory.toLowerCase());
+        const partialMatch = targetSubCats.find(s =>
+          s.toLowerCase().includes(linkedSubCategory.toLowerCase()) ||
+          linkedSubCategory.toLowerCase().includes(s.toLowerCase())
+        );
+        linkedSubCategory = exactMatch || partialMatch || linkedSubCategory;
+      }
+
+      return {
+        ...item,
+        group: bulkTargetGroup,
+        subCategory: linkedSubCategory
+      };
+    });
 
     itemsToImport.forEach(item => {
       onAddContentItem(item);
@@ -2827,15 +2858,41 @@ export default function ContentPlanModule({
                     <label className="block text-rose-800 font-bold mb-1">กลุ่มคอนเทนต์ (Content Group)</label>
                     <select
                       value={editGroup}
-                      onChange={(e) => setEditGroup(e.target.value)}
+                      onChange={(e) => {
+                        const selG = e.target.value;
+                        setEditGroup(selG);
+                        const gObj = effectiveContentGroups.find(g => g.name === selG);
+                        setEditSubCategory(gObj?.subCategories?.[0] || '');
+                      }}
                       className="w-full bg-pink-50/40 border border-pink-200 text-rose-950 p-2.5 rounded-xl font-medium cursor-pointer"
                     >
-                      {contentGroups.map(g => (
+                      {effectiveContentGroups.map(g => (
                         <option key={g.id} value={g.name}>
                           {g.name}
                         </option>
                       ))}
                     </select>
+                  </div>
+
+                  {/* Sub-Category Dropdown — linked to selected group's subCategories */}
+                  <div>
+                    <label className="block text-amber-800 font-bold mb-1">หมวดหมู่ย่อย (Sub-Category)</label>
+                    {(() => {
+                      const editGObj = effectiveContentGroups.find(g => g.name === editGroup);
+                      const editSubCats = editGObj?.subCategories || [];
+                      return (
+                        <select
+                          value={editSubCategory}
+                          onChange={(e) => setEditSubCategory(e.target.value)}
+                          className="w-full bg-amber-50/60 border border-amber-300 text-amber-950 p-2.5 rounded-xl font-medium cursor-pointer"
+                        >
+                          <option value="">-- ไม่ระบุหมวดหมู่ย่อย --</option>
+                          {editSubCats.map((sub, sIdx) => (
+                            <option key={sIdx} value={sub}>{sub}</option>
+                          ))}
+                        </select>
+                      );
+                    })()}
                   </div>
 
                   <div>
