@@ -3,6 +3,7 @@ import confetti from 'canvas-confetti';
 import NavigationHeader from './components/NavigationHeader';
 import DashboardOverview from './components/DashboardOverview';
 import ContentPlanModule from './components/ContentPlanModule';
+import BranchBudgetAllocation from './components/BranchBudgetAllocation';
 import MarketingPlanModule from './components/MarketingPlanModule';
 import ProductPlanModule from './components/ProductPlanModule';
 import KpiAnalyticsModule from './components/KpiAnalyticsModule';
@@ -100,103 +101,56 @@ export default function App() {
     };
 
     setContentItems(prev => [newContent, ...prev]);
-    setIdeaVault(prev => prev.map(v => v.id === idea.id ? { ...v, is_used: true } : v));
-    setActiveTab('content-plan');
+    setIdeaVault(prev => prev.filter(v => v.id !== idea.id));
+    confetti({ particleCount: 60, spread: 70, origin: { y: 0.7 } });
   };
 
   // Handlers for Module 2: Marketing Plan
   const handleUpdateStrategyCanvas = (planId, updatedFields) => {
-    setMarketingPlans(prev => prev.map(plan => plan.id === planId ? { ...plan, ...updatedFields } : plan));
+    setMarketingPlans(prev => prev.map(m => m.id === planId ? { ...m, ...updatedFields } : m));
   };
 
   const handleUpvoteIdea = (ideaId) => {
-    setCampaignIdeas(prev => prev.map(idea => idea.id === ideaId ? { ...idea, upvotes: idea.upvotes + 1 } : idea));
+    setCampaignIdeas(prev => prev.map(i => i.id === ideaId ? { ...i, upvotes: i.upvotes + 1 } : i));
   };
 
   const handleAddCampaignIdea = (newIdea) => {
     setCampaignIdeas(prev => [newIdea, ...prev]);
+    confetti({ particleCount: 40, spread: 50, origin: { y: 0.8 } });
   };
 
   // Handlers for Module 3: Product Plan
-  const handleToggleStageChecklist = (campaignId, stageField) => {
-    setCampaigns(prev => prev.map(camp => {
-      if (camp.id === campaignId) {
-        const updated = { ...camp, [stageField]: !camp[stageField] };
-
-        // Auto-update stage status
-        if (updated.image_ready && updated.scheduled && updated.posted) {
-          updated.stage_status = 't_minus_0';
-          updated.status = 'completed';
-        } else if (updated.image_ready && updated.scheduled) {
-          updated.stage_status = 't_minus_2';
-        }
-        return updated;
-      }
-      return camp;
+  const handleToggleStageChecklist = (campaignId, stageId, itemIndex) => {
+    setCampaigns(prev => prev.map(c => {
+      if (c.id !== campaignId) return c;
+      const updatedStages = c.stages.map(s => {
+        if (s.id !== stageId) return s;
+        const updatedChecklist = [...s.checklist];
+        updatedChecklist[itemIndex] = {
+          ...updatedChecklist[itemIndex],
+          completed: !updatedChecklist[itemIndex].completed
+        };
+        return { ...s, checklist: updatedChecklist };
+      });
+      return { ...c, stages: updatedStages };
     }));
   };
 
-  const handleAddCampaign = (newCamp) => {
-    setCampaigns(prev => [newCamp, ...prev]);
-    confetti({ particleCount: 60, spread: 70, origin: { y: 0.7 } });
-  };
-
-  // Handlers for Module 4: Notification Engine
-  const handleUpdateRuleTemplate = (ruleId, newTemplate) => {
-    setNotificationRules(prev => prev.map(rule => rule.id === ruleId ? { ...rule, template: newTemplate } : rule));
-  };
-
-  const handleToggleRuleActive = (ruleId) => {
-    setNotificationRules(prev => prev.map(rule => rule.id === ruleId ? { ...rule, is_active: !rule.is_active } : rule));
-  };
-
-  const handleTriggerNotification = (campaignId) => {
-    const targetCamp = campaigns.find(c => c.id === campaignId) || campaigns[0];
-    const currentUser = users.find(u => u.id === activeUserId) || users[0];
-
-    const newLog = {
-      id: `log-${Date.now()}`,
-      team_id: activeTeamId,
-      campaign_id: targetCamp.id,
-      recipient_name: currentUser.name,
-      recipient_line: currentUser.line_display_name,
-      stage: targetCamp.stage_status || 't_minus_2',
-      message: `[LINE Alert Engine] แจ้งเตือนแคมเปญ "${targetCamp.name}" สถานะ: ${targetCamp.stage_status.toUpperCase()}`,
-      sent_at: new Date().toISOString().replace('T', ' ').substring(0, 19),
-      status: 'sent',
-      escalation_count: targetCamp.stage_status === 'overdue' ? 2 : 0
-    };
-
-    setNotificationLogs(prev => [newLog, ...prev]);
-    confetti({ particleCount: 40, spread: 50, origin: { y: 0.6 } });
-    alert(`ส่งข้อความแจ้งเตือนผ่าน LINE OA ถึง ${currentUser.name} เรียบร้อยแล้ว!`);
-  };
-
-  const handleGenerateDigest = () => {
-    const currentUser = users.find(u => u.id === activeUserId) || users[0];
-    const newLog = {
-      id: `log-${Date.now()}`,
-      team_id: activeTeamId,
-      campaign_id: currentTeamCampaigns[0]?.id || '',
-      recipient_name: currentUser.name,
-      recipient_line: currentUser.line_display_name,
-      stage: 't_minus_5',
-      message: `[Daily Digest Summary] รวมสรุปสถานะแคมเปญ ${currentTeamCampaigns.length} แคมเปญ และคอนเทนต์ ${currentTeamContent.length} รายการ`,
-      sent_at: new Date().toISOString().replace('T', ' ').substring(0, 19),
-      status: 'sent',
-      escalation_count: 0
-    };
-
-    setNotificationLogs(prev => [newLog, ...prev]);
+  const handleAddCampaign = (newCampaign) => {
+    setCampaigns(prev => [newCampaign, ...prev]);
     confetti({ particleCount: 70, spread: 80, origin: { y: 0.7 } });
-    alert('สร้างและยิงรายงานสรุป Digest เข้า LINE สำเร็จ!');
+  };
+
+  // Notification Engine Triggering Simulation
+  const handleTriggerNotification = (logEntry) => {
+    setNotificationLogs(prev => [logEntry, ...prev]);
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 text-slate-800 flex flex-col justify-between">
-
+    <div className="min-h-screen bg-[#FCFAF7] text-purple-950 font-sans selection:bg-purple-200 selection:text-purple-950 flex flex-col justify-between">
+      
       <div>
-        {/* Navigation Header */}
+        {/* Navigation Bar */}
         <NavigationHeader
           teams={teams}
           activeTeamId={activeTeamId}
@@ -260,13 +214,16 @@ export default function App() {
             />
           )}
 
+          {activeTab === 'branch-budget' && (
+            <BranchBudgetAllocation />
+          )}
+
           {activeTab === 'kpi-analytics' && (
             <KpiAnalyticsModule
               campaigns={currentTeamCampaigns}
               products={currentTeamProducts}
             />
           )}
-
 
         </main>
       </div>
@@ -278,14 +235,14 @@ export default function App() {
       />
 
       {/* Footer */}
-      <footer className="border-t border-slate-200/80 bg-white/80 backdrop-blur-md py-6 mt-12 text-center text-xs text-slate-600">
+      <footer className="border-t border-purple-100 bg-white/80 backdrop-blur-md py-6 mt-12 text-center text-xs text-purple-900">
         <div className="w-full max-w-[1920px] mx-auto px-4 sm:px-6 lg:px-10 flex flex-col sm:flex-row items-center justify-between gap-4">
           <div className="flex items-center gap-2">
-            <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse shadow-sm shadow-emerald-500" />
-            <span className="font-extrabold text-slate-900">Marketing & Content Planning Platform</span>
-            <span className="text-emerald-700 bg-emerald-50 px-2.5 py-0.5 rounded-full border border-emerald-200 font-bold">v1.0 Clean Pastel</span>
+            <span className="w-2.5 h-2.5 rounded-full bg-purple-600 animate-pulse shadow-xs" />
+            <span className="font-extrabold text-purple-950">Marketing & Content Planning Platform</span>
+            <span className="text-purple-900 bg-[#FFEBF3] px-2.5 py-0.5 rounded-full border border-[#E2D2EA] font-bold">v1.0 Pastel</span>
           </div>
-          <p className="text-slate-500 font-medium">
+          <p className="text-purple-800/80 font-medium">
             ระบบบริหารจัดการการตลาด คอนเทนต์ แคมเปญสินค้า และแจ้งเตือนอัตโนมัติผ่าน LINE
           </p>
         </div>
