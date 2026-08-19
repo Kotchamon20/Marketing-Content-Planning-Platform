@@ -146,8 +146,8 @@ const MultiPlatformSelectDropdown = ({ platformsList, selectedPlatforms, onChang
                 key={p.id}
                 onClick={() => togglePlatform(p.id)}
                 className={`flex items-center justify-between p-2.5 rounded-xl text-xs font-bold transition cursor-pointer ${isChecked
-                    ? 'bg-pink-50 text-rose-950 border border-pink-200 shadow-2xs'
-                    : 'hover:bg-slate-50 text-slate-700 border border-transparent'
+                  ? 'bg-pink-50 text-rose-950 border border-pink-200 shadow-2xs'
+                  : 'hover:bg-slate-50 text-slate-700 border border-transparent'
                   }`}
               >
                 <div className="flex items-center gap-2.5">
@@ -549,18 +549,18 @@ export default function ContentPlanModule({
 
   // สี Tag หมวดหมู่ย่อย (Sub-Category Badge Colors)
   const SUB_CATEGORY_COLORS = [
-    { label: '🟡 Amber Gold',     value: 'bg-amber-50 text-amber-900 border-amber-400',     dot: 'bg-amber-400' },
-    { label: '🟣 Soft Purple',    value: 'bg-purple-50 text-purple-900 border-purple-300',   dot: 'bg-purple-400' },
-    { label: '🔵 Sky Blue',       value: 'bg-sky-50 text-sky-900 border-sky-400',           dot: 'bg-sky-400' },
-    { label: '🟢 Emerald Green',  value: 'bg-emerald-50 text-emerald-900 border-emerald-400', dot: 'bg-emerald-400' },
-    { label: '🔴 Rose Pink',      value: 'bg-rose-50 text-rose-900 border-rose-300',         dot: 'bg-rose-400' },
-    { label: '🟠 Orange',         value: 'bg-orange-50 text-orange-900 border-orange-400',   dot: 'bg-orange-400' },
-    { label: '🟤 Warm Brown',     value: 'bg-stone-100 text-stone-800 border-stone-400',     dot: 'bg-stone-500' },
-    { label: '⚪ Slate Gray',      value: 'bg-slate-100 text-slate-800 border-slate-400',     dot: 'bg-slate-500' },
-    { label: '💚 Teal',           value: 'bg-teal-50 text-teal-900 border-teal-400',         dot: 'bg-teal-400' },
-    { label: '🟦 Indigo',         value: 'bg-indigo-50 text-indigo-900 border-indigo-300',   dot: 'bg-indigo-400' },
-    { label: '💗 Light Blue',     value: 'bg-blue-50 text-blue-900 border-blue-300',         dot: 'bg-blue-400' },
-    { label: '💞 Fuchsia',        value: 'bg-fuchsia-50 text-fuchsia-900 border-fuchsia-300', dot: 'bg-fuchsia-400' },
+    { label: '🟡 Amber Gold', value: 'bg-amber-50 text-amber-900 border-amber-400', dot: 'bg-amber-400' },
+    { label: '🟣 Soft Purple', value: 'bg-purple-50 text-purple-900 border-purple-300', dot: 'bg-purple-400' },
+    { label: '🔵 Sky Blue', value: 'bg-sky-50 text-sky-900 border-sky-400', dot: 'bg-sky-400' },
+    { label: '🟢 Emerald Green', value: 'bg-emerald-50 text-emerald-900 border-emerald-400', dot: 'bg-emerald-400' },
+    { label: '🔴 Rose Pink', value: 'bg-rose-50 text-rose-900 border-rose-300', dot: 'bg-rose-400' },
+    { label: '🟠 Orange', value: 'bg-orange-50 text-orange-900 border-orange-400', dot: 'bg-orange-400' },
+    { label: '🟤 Warm Brown', value: 'bg-stone-100 text-stone-800 border-stone-400', dot: 'bg-stone-500' },
+    { label: '⚪ Slate Gray', value: 'bg-slate-100 text-slate-800 border-slate-400', dot: 'bg-slate-500' },
+    { label: '💚 Teal', value: 'bg-teal-50 text-teal-900 border-teal-400', dot: 'bg-teal-400' },
+    { label: '🟦 Indigo', value: 'bg-indigo-50 text-indigo-900 border-indigo-300', dot: 'bg-indigo-400' },
+    { label: '💗 Light Blue', value: 'bg-blue-50 text-blue-900 border-blue-300', dot: 'bg-blue-400' },
+    { label: '💞 Fuchsia', value: 'bg-fuchsia-50 text-fuchsia-900 border-fuchsia-300', dot: 'bg-fuchsia-400' },
   ];
   const DEFAULT_SUB_CAT_COLOR = SUB_CATEGORY_COLORS[0].value;
 
@@ -1622,13 +1622,13 @@ export default function ContentPlanModule({
     const groupObj = effectiveContentGroups.find(g => g.name === groupName);
     const colorClass = groupObj?.color || 'bg-purple-50 text-purple-900 border-purple-200';
     return (
-      <span className={`px-2 py-0.5 rounded-full text-[9px] font-bold border ${colorClass} truncate max-w-[140px]`}>
+      <span className={`inline-block px-2.5 py-0.5 rounded-full text-[9px] font-bold border ${colorClass} max-w-full truncate shadow-2xs leading-tight`}>
         {groupName}
       </span>
     );
   };
 
-  // แสดง Badge สำหรับหมวดหมู่ย่อย (Sub-Category) — สีจาก subCategoryColors map
+  // แสดง Badge สำหรับหมวดหมู่ย่อย (Sub-Category) — มินิมอลทรง Pill สไตล์ต้นแบบ
   const getSubCategoryBadge = (subCat) => {
     if (!subCat || !subCat.trim()) return null;
     // หาสีจาก subCategoryColors ของทุก Group
@@ -1641,9 +1641,8 @@ export default function ContentPlanModule({
       }
     }
     return (
-      <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-bold border ${colorClass} max-w-full overflow-hidden text-ellipsis whitespace-nowrap`}>
-        <Tag className="w-2.5 h-2.5 shrink-0" />
-        <span className="truncate">{subCat}</span>
+      <span className={`inline-block px-2.5 py-0.5 rounded-full text-[9px] font-bold border ${colorClass} max-w-full truncate shadow-2xs leading-tight`}>
+        {subCat}
       </span>
     );
   };
@@ -1694,8 +1693,8 @@ export default function ContentPlanModule({
           <button
             onClick={() => setActiveSubTab('calendar')}
             className={`px-3.5 py-2 rounded-xl text-xs font-semibold transition-all flex items-center gap-2 cursor-pointer ${activeSubTab === 'calendar'
-                ? 'bg-white text-rose-600 shadow-sm border border-pink-100 scale-[1.02]'
-                : 'text-rose-700/70 hover:text-rose-950 hover:bg-pink-100/50'
+              ? 'bg-white text-rose-600 shadow-sm border border-pink-100 scale-[1.02]'
+              : 'text-rose-700/70 hover:text-rose-950 hover:bg-pink-100/50'
               }`}
           >
             <CalendarIcon className="w-3.5 h-3.5" />
@@ -1704,8 +1703,8 @@ export default function ContentPlanModule({
           <button
             onClick={() => setActiveSubTab('vault')}
             className={`px-3.5 py-2 rounded-xl text-xs font-semibold transition-all flex items-center gap-2 cursor-pointer ${activeSubTab === 'vault'
-                ? 'bg-white text-rose-600 shadow-sm border border-pink-100 scale-[1.02]'
-                : 'text-rose-700/70 hover:text-rose-950 hover:bg-pink-100/50'
+              ? 'bg-white text-rose-600 shadow-sm border border-pink-100 scale-[1.02]'
+              : 'text-rose-700/70 hover:text-rose-950 hover:bg-pink-100/50'
               }`}
           >
             <Lightbulb className="w-3.5 h-3.5" />
@@ -1714,8 +1713,8 @@ export default function ContentPlanModule({
           <button
             onClick={() => setActiveSubTab('analytics')}
             className={`px-3.5 py-2 rounded-xl text-xs font-semibold transition-all flex items-center gap-2 cursor-pointer ${activeSubTab === 'analytics'
-                ? 'bg-white text-rose-600 shadow-sm border border-pink-100 scale-[1.02]'
-                : 'text-rose-700/70 hover:text-rose-950 hover:bg-pink-100/50'
+              ? 'bg-white text-rose-600 shadow-sm border border-pink-100 scale-[1.02]'
+              : 'text-rose-700/70 hover:text-rose-950 hover:bg-pink-100/50'
               }`}
           >
             <BarChart2 className="w-3.5 h-3.5" />
@@ -1736,8 +1735,8 @@ export default function ContentPlanModule({
               <button
                 onClick={() => setIsSidebarVisible(!isSidebarVisible)}
                 className={`px-3 py-2 rounded-xl text-xs font-semibold border transition flex items-center gap-2 cursor-pointer shadow-sm ${isSidebarVisible
-                    ? 'bg-pink-100/80 text-rose-900 border-pink-300'
-                    : 'bg-white text-rose-800 border-pink-200 hover:bg-pink-50'
+                  ? 'bg-pink-100/80 text-rose-900 border-pink-300'
+                  : 'bg-white text-rose-800 border-pink-200 hover:bg-pink-50'
                   }`}
                 title={isSidebarVisible ? "ซ่อนแถบปฏิทินของฉัน (Hide Sidebar)" : "แสดงแถบปฏิทินของฉัน (Show Sidebar)"}
               >
@@ -2232,22 +2231,21 @@ export default function ContentPlanModule({
                   </div>
 
                   {/* Calendar Grid Container */}
-                  <div className="border border-pink-100 rounded-2xl overflow-x-auto shadow-sm bg-white">
-                    <div className="min-w-[750px]">
+                  <div className="border border-pink-100 rounded-2xl overflow-hidden shadow-sm bg-white">
 
-                      {/* Days of Week Header */}
-                      <div className="grid grid-cols-7 bg-pink-50/50 border-b border-pink-100 text-center text-xs font-semibold text-rose-900 py-2.5">
-                        <div className="text-rose-500">อาทิตย์</div>
-                        <div>จันทร์</div>
-                        <div>อังคาร</div>
-                        <div>พุธ</div>
-                        <div>พฤหัสบดี</div>
-                        <div>ศุกร์</div>
-                        <div className="text-pink-500">เสาร์</div>
-                      </div>
+                    {/* Days of Week Header */}
+                    <div className="grid grid-cols-7 bg-pink-50/50 border-b border-pink-100 text-center text-xs font-semibold text-rose-900 py-2.5">
+                      <div className="text-rose-500">อาทิตย์</div>
+                      <div>จันทร์</div>
+                      <div>อังคาร</div>
+                      <div>พุธ</div>
+                      <div>พฤหัสบดี</div>
+                      <div>ศุกร์</div>
+                      <div className="text-pink-500">เสาร์</div>
+                    </div>
 
-                      {/* Days Cells Grid */}
-                      <div className="grid grid-cols-7 auto-rows-fr divide-x divide-y divide-pink-100/60 bg-white">
+                    {/* Days Cells Grid */}
+                    <div className="grid grid-cols-7 auto-rows-fr divide-x divide-y divide-pink-100/60 bg-white">
 
                       {/* Empty lead cells before 1st day of month */}
                       {Array.from({ length: firstDayOfWeek }).map((_, idx) => (
@@ -2268,8 +2266,8 @@ export default function ContentPlanModule({
                             onDragLeave={handleCalendarDragLeave}
                             onDrop={(e) => handleCalendarDrop(e, dayNum)}
                             className={`min-h-[110px] p-2 transition-all flex flex-col justify-between group relative ${isTargetHover
-                                ? 'bg-purple-100/80 border-2 border-dashed border-purple-400 scale-[0.99] shadow-inner'
-                                : isToday ? 'bg-pink-50/60' : 'bg-white hover:bg-pink-50/30'
+                              ? 'bg-purple-100/80 border-2 border-dashed border-purple-400 scale-[0.99] shadow-inner'
+                              : isToday ? 'bg-pink-50/60' : 'bg-white hover:bg-pink-50/30'
                               }`}
                           >
                             {/* Day Number Row */}
@@ -2337,8 +2335,7 @@ export default function ContentPlanModule({
 
                   </div>
                 </div>
-              </div>
-            )}
+              )}
 
               {/* VIEW MODE 2: PIPELINE LIST CARD VIEW (FR-1.3) */}
               {viewMode === 'list' && (
@@ -2448,8 +2445,8 @@ export default function ContentPlanModule({
                         onClick={handleGridUndo}
                         disabled={gridUndoStack.length === 0}
                         className={`px-2.5 py-1.5 rounded-xl text-xs font-semibold border transition flex items-center gap-1.5 cursor-pointer shadow-xs ${gridUndoStack.length > 0
-                            ? 'bg-white hover:bg-pink-50 text-rose-900 border-pink-200'
-                            : 'bg-pink-50 text-pink-300 border-pink-100 cursor-not-allowed'
+                          ? 'bg-white hover:bg-pink-50 text-rose-900 border-pink-200'
+                          : 'bg-pink-50 text-pink-300 border-pink-100 cursor-not-allowed'
                           }`}
                         title="ย้อนกลับการแก้ไข (Ctrl / Cmd + Z)"
                       >
@@ -2547,8 +2544,8 @@ export default function ContentPlanModule({
                                     onEditContentItem && onEditContentItem({ ...item, title: e.target.value });
                                   }}
                                   className={`w-full p-2 rounded-xl font-bold text-rose-950 text-xs focus:outline-none transition ${selectedGridCell?.row === rowIdx && selectedGridCell?.col === 0
-                                      ? 'bg-white border-2 border-rose-500 shadow-sm'
-                                      : 'bg-pink-50/20 hover:bg-pink-50/60 border border-pink-100'
+                                    ? 'bg-white border-2 border-rose-500 shadow-sm'
+                                    : 'bg-pink-50/20 hover:bg-pink-50/60 border border-pink-100'
                                     }`}
                                 />
                               </td>
@@ -2566,8 +2563,8 @@ export default function ContentPlanModule({
                                     onEditContentItem && onEditContentItem({ ...item, caption: e.target.value });
                                   }}
                                   className={`w-full p-2 rounded-xl font-medium text-rose-900 text-xs focus:outline-none transition ${selectedGridCell?.row === rowIdx && selectedGridCell?.col === 1
-                                      ? 'bg-white border-2 border-rose-500 shadow-sm'
-                                      : 'bg-pink-50/20 hover:bg-pink-50/60 border border-pink-100'
+                                    ? 'bg-white border-2 border-rose-500 shadow-sm'
+                                    : 'bg-pink-50/20 hover:bg-pink-50/60 border border-pink-100'
                                     }`}
                                 />
                               </td>
@@ -2583,8 +2580,8 @@ export default function ContentPlanModule({
                                     onEditContentItem && onEditContentItem({ ...item, group: e.target.value });
                                   }}
                                   className={`w-full p-2 rounded-xl font-semibold text-[11px] cursor-pointer focus:outline-none transition border shadow-xs ${selectedGridCell?.row === rowIdx && selectedGridCell?.col === 2
-                                      ? 'bg-white border-2 border-rose-500 shadow-sm'
-                                      : 'bg-pink-50/50 hover:bg-pink-100/80 border-pink-200 text-rose-900'
+                                    ? 'bg-white border-2 border-rose-500 shadow-sm'
+                                    : 'bg-pink-50/50 hover:bg-pink-100/80 border-pink-200 text-rose-900'
                                     }`}
                                 >
                                   {contentGroups.map(g => (
@@ -2606,8 +2603,8 @@ export default function ContentPlanModule({
                                     onEditContentItem && onEditContentItem({ ...item, platform: e.target.value });
                                   }}
                                   className={`w-full p-2 rounded-xl font-semibold text-[11px] cursor-pointer focus:outline-none transition border shadow-xs ${selectedGridCell?.row === rowIdx && selectedGridCell?.col === 3
-                                      ? 'bg-white border-2 border-rose-500 shadow-sm'
-                                      : 'bg-pink-50/50 hover:bg-pink-100/80 border-pink-200 text-rose-900'
+                                    ? 'bg-white border-2 border-rose-500 shadow-sm'
+                                    : 'bg-pink-50/50 hover:bg-pink-100/80 border-pink-200 text-rose-900'
                                     }`}
                                 >
                                   <option value="tiktok">TikTok</option>
@@ -2629,8 +2626,8 @@ export default function ContentPlanModule({
                                     onUpdateContentStatus(item.id, e.target.value);
                                   }}
                                   className={`w-full p-2 rounded-xl font-bold text-[11px] cursor-pointer focus:outline-none border shadow-xs ${selectedGridCell?.row === rowIdx && selectedGridCell?.col === 4
-                                      ? 'bg-white border-2 border-rose-500 shadow-sm text-rose-950'
-                                      : item.status === 'published' ? 'bg-emerald-50 text-emerald-800 border-emerald-200' : item.status === 'scheduled' ? 'bg-sky-50 text-sky-800 border-sky-200' : 'bg-amber-50 text-amber-800 border-amber-200'
+                                    ? 'bg-white border-2 border-rose-500 shadow-sm text-rose-950'
+                                    : item.status === 'published' ? 'bg-emerald-50 text-emerald-800 border-emerald-200' : item.status === 'scheduled' ? 'bg-sky-50 text-sky-800 border-sky-200' : 'bg-amber-50 text-amber-800 border-amber-200'
                                     }`}
                                 >
                                   <option value="draft">Draft (ร่าง)</option>
@@ -2651,8 +2648,8 @@ export default function ContentPlanModule({
                                     onEditContentItem && onEditContentItem({ ...item, publish_date: e.target.value });
                                   }}
                                   className={`w-full p-1.5 rounded-xl font-medium text-rose-900 text-[11px] focus:outline-none transition ${selectedGridCell?.row === rowIdx && selectedGridCell?.col === 5
-                                      ? 'bg-white border-2 border-rose-500 shadow-sm'
-                                      : 'bg-pink-50/20 hover:bg-pink-50/60 border border-pink-100'
+                                    ? 'bg-white border-2 border-rose-500 shadow-sm'
+                                    : 'bg-pink-50/20 hover:bg-pink-50/60 border border-pink-100'
                                     }`}
                                 />
                               </td>
@@ -2670,8 +2667,8 @@ export default function ContentPlanModule({
                                     onEditContentItem && onEditContentItem({ ...item, reference_url: e.target.value });
                                   }}
                                   className={`w-full p-2 rounded-xl font-mono text-rose-900 text-[10px] focus:outline-none transition ${selectedGridCell?.row === rowIdx && selectedGridCell?.col === 6
-                                      ? 'bg-white border-2 border-rose-500 shadow-sm'
-                                      : 'bg-pink-50/20 hover:bg-pink-50/60 border border-pink-100'
+                                    ? 'bg-white border-2 border-rose-500 shadow-sm'
+                                    : 'bg-pink-50/20 hover:bg-pink-50/60 border border-pink-100'
                                     }`}
                                 />
                               </td>
@@ -2783,8 +2780,8 @@ export default function ContentPlanModule({
                     onClick={() => onConvertVaultIdeaToContent(idea)}
                     disabled={idea.is_used}
                     className={`w-full py-2.5 rounded-xl text-xs font-bold transition flex items-center justify-center gap-2 cursor-pointer ${idea.is_used
-                        ? 'bg-pink-50 text-pink-300 cursor-not-allowed border border-pink-100'
-                        : 'bg-gradient-to-r from-[#F0E6F5] via-[#FFEBF3] to-[#E6F2FF] hover:opacity-90 text-purple-950 font-bold border border-[#E2D2EA] shadow-xs'
+                      ? 'bg-pink-50 text-pink-300 cursor-not-allowed border border-pink-100'
+                      : 'bg-gradient-to-r from-[#F0E6F5] via-[#FFEBF3] to-[#E6F2FF] hover:opacity-90 text-purple-950 font-bold border border-[#E2D2EA] shadow-xs'
                       }`}
                   >
                     <Send className="w-3.5 h-3.5" />
@@ -3381,8 +3378,8 @@ export default function ContentPlanModule({
                     onClick={handleGroqAiParseTable}
                     disabled={isParsingWithAi || !bulkRawText.trim()}
                     className={`px-3.5 py-1.5 rounded-xl text-xs font-extrabold transition shadow-sm flex items-center gap-1.5 cursor-pointer ${isParsingWithAi
-                        ? 'bg-purple-200 text-purple-700 animate-pulse cursor-wait'
-                        : 'bg-gradient-to-r from-purple-600 via-pink-600 to-rose-600 hover:opacity-95 text-white border border-purple-500 shadow-purple-500/20'
+                      ? 'bg-purple-200 text-purple-700 animate-pulse cursor-wait'
+                      : 'bg-gradient-to-r from-purple-600 via-pink-600 to-rose-600 hover:opacity-95 text-white border border-purple-500 shadow-purple-500/20'
                       }`}
                     title="ใช้ Groq AI อ่านและสกัดโครงสร้างตารางให้อัตโนมัติ"
                   >
@@ -3477,7 +3474,7 @@ export default function ContentPlanModule({
                           <tr key={idx} className="hover:bg-pink-50/50 transition">
                             <td className="p-3 text-center text-rose-400 font-bold">{idx + 1}</td>
                             <td className="p-3 font-bold text-slate-900 leading-snug">{item.title}</td>
-                             <td className="p-3">{item.subCategory ? getSubCategoryBadge(item.subCategory) : <span className="text-slate-400 italic text-[11px]">-</span>}</td>
+                            <td className="p-3">{item.subCategory ? getSubCategoryBadge(item.subCategory) : <span className="text-slate-400 italic text-[11px]">-</span>}</td>
                             <td className="p-3 text-slate-700 leading-snug">{item.visual_concept || '-'}</td>
                             <td className="p-3 text-slate-800 font-normal leading-relaxed whitespace-pre-line">{item.caption || '-'}</td>
                             <td className="p-3">{getPlatformBadge(item.platform)}</td>
@@ -3521,8 +3518,8 @@ export default function ContentPlanModule({
                 onClick={handleConfirmBulkImport}
                 disabled={parsedBulkItems.length === 0 || !bulkTargetGroup}
                 className={`px-5 py-2 rounded-xl text-xs font-extrabold transition flex items-center gap-2 cursor-pointer shadow-md ${parsedBulkItems.length === 0 || !bulkTargetGroup
-                    ? 'bg-slate-100 text-slate-400 cursor-not-allowed border border-slate-200'
-                    : 'bg-gradient-to-r from-emerald-500 to-teal-600 hover:opacity-90 text-white border border-emerald-600'
+                  ? 'bg-slate-100 text-slate-400 cursor-not-allowed border border-slate-200'
+                  : 'bg-gradient-to-r from-emerald-500 to-teal-600 hover:opacity-90 text-white border border-emerald-600'
                   }`}
               >
                 <CheckCircle2 className="w-4 h-4" />
@@ -4097,8 +4094,8 @@ export default function ContentPlanModule({
                   type="submit"
                   disabled={!newCustomPlatformName.trim()}
                   className={`px-4 py-2.5 rounded-xl text-xs font-extrabold transition shadow-sm cursor-pointer ${newCustomPlatformName.trim()
-                      ? 'bg-rose-500 hover:bg-rose-600 text-white'
-                      : 'bg-slate-100 text-slate-400 cursor-not-allowed'
+                    ? 'bg-rose-500 hover:bg-rose-600 text-white'
+                    : 'bg-slate-100 text-slate-400 cursor-not-allowed'
                     }`}
                 >
                   + เพิ่ม
