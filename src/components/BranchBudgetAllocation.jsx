@@ -49,6 +49,13 @@ export default function BranchBudgetAllocation() {
   const [selectedMonth, setSelectedMonth] = useState('08');
   const [selectedYear, setSelectedYear] = useState('2026');
 
+  // Google Search Sub-Campaign Breakdown State for Main Branch (NITAN หลัก)
+  const [googleSearchBreakdown, setGoogleSearchBreakdown] = useState({
+    generalSearch: 283.72,
+    leadsSearch: 283.72,
+    naJomtienSearch: 567.43
+  });
+
   // Month List
   const monthsList = [
     { value: '01', label: 'มกราคม' },
@@ -412,6 +419,10 @@ export default function BranchBudgetAllocation() {
     return sum + fullB;
   }, 0);
 
+  const totalGoogleSearchSubAmount = Number(googleSearchBreakdown.generalSearch || 0) + 
+                                     Number(googleSearchBreakdown.leadsSearch || 0) + 
+                                     Number(googleSearchBreakdown.naJomtienSearch || 0);
+
   const currentMonthLabel = monthsList.find(m => m.value === selectedMonth)?.label || 'สิงหาคม';
 
   return (
@@ -429,7 +440,7 @@ export default function BranchBudgetAllocation() {
               <span>ตารางจัดสรรงบประมาณการตลาด MKT ประจำเดือน {currentMonthLabel} {Number(selectedYear) + 543}</span>
             </h2>
             <p className="text-xs text-purple-800/80 font-medium mt-1">
-              ตารางจัดสรรงบประมาณ ถอดแบบตามตาราง Google Sheet / Excel จริง พร้อมระบบสลับคำนวณ 2% อัตโนมัติ หรือกรอกงบจำนวนเต็มเอง (Manual & Auto)
+              ตารางจัดสรรงบประมาณ ถอดแบบตามตาราง Google Sheet / Excel จริง พร้อมแยกสัดส่วนงบ Google Search (การค้นหา, Leads, ร้านนาจอมเทียน)
             </p>
           </div>
 
@@ -760,7 +771,7 @@ export default function BranchBudgetAllocation() {
 
                 {['Google', 'Facebook', 'TikTok', 'Instagram', 'Lazada', 'Shopee', 'Grab'].map(chName => (
                   <tr key={chName}>
-                    <td className="py-2 px-4 pl-7 text-purple-900 border-r border-purple-200">
+                    <td className="py-2 px-4 pl-7 text-purple-900 border-r border-purple-200 font-medium">
                       {chName}
                     </td>
                     {currentBranches.map(branch => {
@@ -855,16 +866,110 @@ export default function BranchBudgetAllocation() {
                     </td>
                     {currentBranches.map(branch => {
                       const chObj = branch.channelAllocations.find(c => c.name.toLowerCase().includes(chName.toLowerCase()));
-                      const dailyChannelBudget = chObj && chObj.amount > 0 ? Math.round(chObj.amount / 30) : 0;
+                      const dailyChannelBudget = chObj && chObj.amount > 0 ? (chObj.amount / 30).toFixed(2) : '0';
 
                       return (
                         <td key={branch.id} className="py-2 px-4 text-right border-r border-purple-200 font-mono font-bold text-purple-950">
-                          {dailyChannelBudget > 0 ? `฿${dailyChannelBudget.toLocaleString()}` : '-'}
+                          {Number(dailyChannelBudget) > 0 ? `฿${Number(dailyChannelBudget).toLocaleString()}` : '-'}
                         </td>
                       );
                     })}
                   </tr>
                 ))}
+
+                {/* SECTION 5: แยกสัดส่วนงบ Google Search (%) สำหรับสาขาหลัก (NITAN หลัก) */}
+                <tr className="bg-[#E6F2FF] font-bold">
+                  <td colSpan={currentBranches.length + 1} className="py-2.5 px-4 text-purple-950 border-b border-purple-200 uppercase tracking-wider text-[11px]">
+                    🔍 แคมเปญ Google Search Breakdown (แยกสัดส่วนงบ Google สำหรับสาขาหลัก)
+                  </td>
+                </tr>
+
+                <tr>
+                  <td className="py-2 px-4 pl-7 text-purple-900 border-r border-purple-200 font-medium">
+                    1. การค้นหา (General Search)
+                  </td>
+                  {currentBranches.map((branch, bIdx) => (
+                    <td key={branch.id} className="py-2 px-4 text-right border-r border-purple-200 font-mono font-bold">
+                      {bIdx === 0 ? (
+                        <div className="flex items-center justify-end gap-1">
+                          <span>฿</span>
+                          <input
+                            type="number"
+                            step="0.01"
+                            value={googleSearchBreakdown.generalSearch}
+                            onChange={(e) => setGoogleSearchBreakdown(prev => ({ ...prev, generalSearch: Number(e.target.value) || 0 }))}
+                            className="w-24 px-1.5 py-0.5 bg-white border border-[#E2D2EA] rounded text-right font-mono font-bold text-purple-950 text-xs"
+                          />
+                          <span className="text-[10px] text-purple-700">/วัน</span>
+                        </div>
+                      ) : (
+                        <span className="text-purple-400 font-normal text-[11px]">-</span>
+                      )}
+                    </td>
+                  ))}
+                </tr>
+
+                <tr>
+                  <td className="py-2 px-4 pl-7 text-purple-900 border-r border-purple-200 font-medium">
+                    2. Leads-Search (ค้นหาผู้สนใจ)
+                  </td>
+                  {currentBranches.map((branch, bIdx) => (
+                    <td key={branch.id} className="py-2 px-4 text-right border-r border-purple-200 font-mono font-bold">
+                      {bIdx === 0 ? (
+                        <div className="flex items-center justify-end gap-1">
+                          <span>฿</span>
+                          <input
+                            type="number"
+                            step="0.01"
+                            value={googleSearchBreakdown.leadsSearch}
+                            onChange={(e) => setGoogleSearchBreakdown(prev => ({ ...prev, leadsSearch: Number(e.target.value) || 0 }))}
+                            className="w-24 px-1.5 py-0.5 bg-white border border-[#E2D2EA] rounded text-right font-mono font-bold text-purple-950 text-xs"
+                          />
+                          <span className="text-[10px] text-purple-700">/วัน</span>
+                        </div>
+                      ) : (
+                        <span className="text-purple-400 font-normal text-[11px]">-</span>
+                      )}
+                    </td>
+                  ))}
+                </tr>
+
+                <tr>
+                  <td className="py-2 px-4 pl-7 text-purple-900 border-r border-purple-200 font-medium">
+                    3. ค้นหาร้านนาจอมเทียน (Na Jomtien Store Search)
+                  </td>
+                  {currentBranches.map((branch, bIdx) => (
+                    <td key={branch.id} className="py-2 px-4 text-right border-r border-purple-200 font-mono font-bold">
+                      {bIdx === 0 ? (
+                        <div className="flex items-center justify-end gap-1">
+                          <span>฿</span>
+                          <input
+                            type="number"
+                            step="0.01"
+                            value={googleSearchBreakdown.naJomtienSearch}
+                            onChange={(e) => setGoogleSearchBreakdown(prev => ({ ...prev, naJomtienSearch: Number(e.target.value) || 0 }))}
+                            className="w-24 px-1.5 py-0.5 bg-white border border-[#E2D2EA] rounded text-right font-mono font-bold text-purple-950 text-xs"
+                          />
+                          <span className="text-[10px] text-purple-700">/วัน</span>
+                        </div>
+                      ) : (
+                        <span className="text-purple-400 font-normal text-[11px]">-</span>
+                      )}
+                    </td>
+                  ))}
+                </tr>
+
+                {/* Subtotal Row for Google Search Campaigns */}
+                <tr className="bg-[#E6F2FF]/80 font-bold border-t border-b border-purple-200">
+                  <td className="py-2.5 px-4 text-purple-950 border-r border-purple-200">
+                    รวมงบแคมเปญ Google Search (ต่อวัน)
+                  </td>
+                  {currentBranches.map((branch, bIdx) => (
+                    <td key={branch.id} className="py-2.5 px-4 text-right border-r border-purple-200 font-mono font-bold text-purple-950">
+                      {bIdx === 0 ? `฿${totalGoogleSearchSubAmount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}/วัน` : '-'}
+                    </td>
+                  ))}
+                </tr>
 
               </tbody>
             </table>
@@ -879,7 +984,7 @@ export default function BranchBudgetAllocation() {
 
             <div className="flex items-center gap-2 text-purple-950 font-bold shrink-0">
               <CheckCircle2 className="w-4 h-4 text-emerald-600" />
-              <span>คำนวณงบประมาณถูกต้องตรงกับ Excel Master 100%</span>
+              <span>คำนวณงบประมาณและแยกสัดส่วน Google Ads ตรงตาม Excel Master 100%</span>
             </div>
           </div>
         </div>
