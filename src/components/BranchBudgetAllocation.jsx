@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import confetti from 'canvas-confetti';
 import { 
   Building2, 
   Plus, 
@@ -28,7 +29,8 @@ import {
   Search,
   ChevronDown,
   ChevronUp,
-  Check
+  Check,
+  Save
 } from 'lucide-react';
 import { parseFullSheetWithGroqAi } from '../services/groqAiService';
 import { upsertBranchBudgetToSupabase } from '../services/dataService';
@@ -233,6 +235,24 @@ export default function BranchBudgetAllocation() {
       const updated = typeof newBranchesOrFn === 'function' ? newBranchesOrFn(activeList) : newBranchesOrFn;
       return { ...prev, [currentMonthKey]: updated };
     });
+  };
+
+  // Manual Save Handler (User explicitly clicks "💾 บันทึกข้อมูลลง DB")
+  const handleManualSaveAllBranches = () => {
+    setSaveStatus('saving');
+    const branchesToSync = (monthlyBudgetsData[currentMonthKey] || []).filter(
+      b => b.previousSales > 0 || b.manualFullBudget > 0 || b.channelAllocations?.some(c => c.amount > 0 || c.percent > 0)
+    );
+
+    if (branchesToSync.length > 0) {
+      branchesToSync.forEach(b => {
+        upsertBranchBudgetToSupabase(b, currentMonthKey);
+      });
+    }
+
+    setSaveStatus('saved');
+    setLastSavedTime(new Date().toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit', second: '2-digit' }));
+    confetti({ particleCount: 50, spread: 60, origin: { y: 0.8 } });
   };
 
   // Handlers for updating branch sales & manual full budget
@@ -510,6 +530,16 @@ export default function BranchBudgetAllocation() {
                 <option value="2027">2027 (2570)</option>
               </select>
             </div>
+
+            {/* Manual Save Button to Supabase & LocalStorage */}
+            <button
+              onClick={handleManualSaveAllBranches}
+              className="px-4 py-2.5 bg-gradient-to-r from-emerald-600 to-teal-700 hover:opacity-90 text-white font-bold rounded-xl text-xs transition shadow-md flex items-center gap-2 cursor-pointer"
+              title="บันทึกข้อมูลจัดสรรงบประมาณสาขาทั้งหมดลง DB ทันที"
+            >
+              <Save className="w-4 h-4 text-emerald-100" />
+              <span>💾 บันทึกข้อมูลลง DB</span>
+            </button>
 
             {/* Smart Groq AI Image Auto-Scan Button */}
             <button
