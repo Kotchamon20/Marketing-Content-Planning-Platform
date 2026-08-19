@@ -924,8 +924,8 @@ export default function BranchBudgetAllocation() {
 
       {/* MODAL 1: Smart Groq AI Multi-Branch Image Auto-Scan OCR Review Modal */}
       {showImageScanModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-xs p-4 animate-in fade-in duration-200 overflow-y-auto">
-          <div className="glass-panel max-w-4xl w-full p-6 space-y-4 border-[#E2D2EA] shadow-2xl bg-white/95 my-8">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#12072B]/60 backdrop-blur-md p-4 animate-in fade-in duration-200 overflow-y-auto">
+          <div className="glass-panel max-w-4xl w-full p-6 space-y-4 border border-[#E2D2EA] shadow-2xl bg-white/98 rounded-3xl my-8">
             <div className="flex items-center justify-between border-b border-purple-100 pb-3">
               <div className="flex items-center gap-2">
                 <div className="w-9 h-9 rounded-2xl bg-gradient-to-tr from-purple-950 via-pink-900 to-purple-900 text-white flex items-center justify-center shadow-md">
@@ -1103,8 +1103,8 @@ export default function BranchBudgetAllocation() {
 
       {/* MODAL 2: Custom Add Branch Modal */}
       {showAddBranchModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-xs p-4 animate-in fade-in duration-150">
-          <div className="glass-panel max-w-md w-full p-6 space-y-4 border-[#E2D2EA] shadow-2xl bg-white/95">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#12072B]/60 backdrop-blur-md p-4 animate-in fade-in duration-150">
+          <div className="glass-panel max-w-md w-full p-6 space-y-4 border border-[#E2D2EA] shadow-2xl bg-white/98 rounded-3xl">
             <div className="flex items-center justify-between border-b border-purple-100 pb-3">
               <div className="flex items-center gap-2">
                 <div className="w-8 h-8 rounded-xl bg-[#FFEBF3] text-purple-800 flex items-center justify-center border border-[#E2D2EA]">
@@ -1168,8 +1168,8 @@ export default function BranchBudgetAllocation() {
 
       {/* MODAL 3: Custom Delete Confirmation Modal */}
       {deleteBranchId && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-xs p-4 animate-in fade-in duration-150">
-          <div className="glass-panel max-w-sm w-full p-6 space-y-4 border-[#E2D2EA] shadow-2xl bg-white/95">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#12072B]/60 backdrop-blur-md p-4 animate-in fade-in duration-150">
+          <div className="glass-panel max-w-sm w-full p-6 space-y-4 border border-[#E2D2EA] shadow-2xl bg-white/98 rounded-3xl">
             <div className="flex items-center gap-3 text-rose-600">
               <div className="w-10 h-10 rounded-2xl bg-rose-50 text-rose-600 flex items-center justify-center border border-rose-200">
                 <AlertTriangle className="w-5 h-5" />

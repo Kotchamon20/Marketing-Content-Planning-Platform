@@ -780,8 +780,8 @@ export default function KpiAnalyticsModule({ campaigns = [], products = [] }) {
 
       {/* Groq AI Performance & Paid Ads Advisor Modal */}
       {showGroqAiKpiModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-xs p-4 animate-in fade-in duration-150 overflow-y-auto">
-          <div className="glass-panel max-w-2xl w-full p-6 space-y-4 border-[#E2D2EA] shadow-2xl bg-white/95 my-8">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#12072B]/60 backdrop-blur-md p-4 animate-in fade-in duration-150 overflow-y-auto">
+          <div className="glass-panel max-w-2xl w-full p-6 space-y-4 border border-[#E2D2EA] shadow-2xl bg-white/98 rounded-3xl my-8">
             <div className="flex items-center justify-between border-b border-purple-100 pb-3">
               <div className="flex items-center gap-2">
                 <div className="w-8 h-8 rounded-xl bg-[#FFEBF3] text-purple-800 flex items-center justify-center border border-[#E2D2EA]">
@@ -824,8 +824,8 @@ export default function KpiAnalyticsModule({ campaigns = [], products = [] }) {
 
       {/* MODAL 1: Manage Categories Modal */}
       {showManageCategoriesModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-xs p-4 animate-in fade-in duration-150 overflow-y-auto">
-          <div className="glass-panel max-w-lg w-full p-6 space-y-4 border-[#E2D2EA] shadow-2xl bg-white/95 my-8">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#12072B]/60 backdrop-blur-md p-4 animate-in fade-in duration-150 overflow-y-auto">
+          <div className="glass-panel max-w-lg w-full p-6 space-y-4 border border-[#E2D2EA] shadow-2xl bg-white/98 rounded-3xl my-8">
             <div className="flex items-center justify-between border-b border-purple-100 pb-3">
               <div className="flex items-center gap-2">
                 <div className="w-8 h-8 rounded-xl bg-[#FFEBF3] text-purple-800 flex items-center justify-center border border-[#E2D2EA]">
@@ -866,8 +866,8 @@ export default function KpiAnalyticsModule({ campaigns = [], products = [] }) {
 
       {/* MODAL 2: Add New KPI Target (Includes Paid Ads Tracking) */}
       {showAddKpiModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-xs p-4 animate-in fade-in duration-150 overflow-y-auto">
-          <div className="glass-panel max-w-md w-full p-6 space-y-4 border-[#E2D2EA] my-8 shadow-2xl bg-white/95">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#12072B]/60 backdrop-blur-md p-4 animate-in fade-in duration-150 overflow-y-auto">
+          <div className="glass-panel max-w-md w-full p-6 space-y-4 border border-[#E2D2EA] my-8 shadow-2xl bg-white/98 rounded-3xl">
             <div className="flex items-center justify-between border-b border-purple-100 pb-3">
               <h3 className="text-base font-bold text-purple-950 flex items-center gap-2">
                 <Target className="w-4 h-4 text-purple-600" />
