@@ -594,12 +594,14 @@ export default function TodoListModule({
                       {item.status === 'following' ? 'กำลังตามงาน' : 'ติดตามเรียบร้อย'}
                     </span>
 
-                    <button onClick={() => handleOpenEditFollowup(item)} className="text-amber-500 hover:bg-amber-50 p-1 rounded">
-                      <Edit3 className="w-3.5 h-3.5" />
-                    </button>
-                    <button onClick={() => handleDeleteFollowup(item.id)} className="text-rose-500 hover:bg-rose-50 p-1 rounded">
-                      <Trash2 className="w-3.5 h-3.5" />
-                    </button>
+                    <div className="flex items-center gap-1">
+                      <button onClick={() => handleOpenEditFollowup(item)} className="text-amber-500 hover:bg-amber-50 p-1 rounded">
+                        <Edit3 className="w-3.5 h-3.5" />
+                      </button>
+                      <button onClick={() => handleDeleteFollowup(item.id)} className="text-rose-500 hover:bg-rose-50 p-1 rounded">
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
                   </div>
 
                   <h4 className="font-bold text-purple-950 text-base">{item.title}</h4>
