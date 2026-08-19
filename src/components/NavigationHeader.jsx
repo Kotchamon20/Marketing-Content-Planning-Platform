@@ -15,8 +15,7 @@ import {
   Compass,
   Package,
   MessageSquare,
-  BarChart3,
-  Calculator
+  BarChart3
 } from 'lucide-react';
 
 import LineGroupSettingsModal from './LineGroupSettingsModal';
@@ -44,10 +43,9 @@ export default function NavigationHeader({
   const tabs = [
     { id: 'dashboard', label: 'ภาพรวม Dashboard', icon: Sparkles },
     { id: 'content-plan', label: 'Module 1: Content Plan', icon: Calendar },
-    { id: 'marketing-plan', label: 'Module 2: Marketing Plan & Brainstorming', icon: Compass },
-    { id: 'product-plan', label: 'Module 3: Product Plan & Campaign Readiness', icon: Package },
-    { id: 'branch-budget', label: 'Module 4: จัดสรรงบประมาณ MKT', icon: Calculator },
-    { id: 'kpi-analytics', label: 'Module 5: KPI Analytics', icon: BarChart3 },
+    { id: 'product-plan', label: 'Module 2: Product Plan & Campaign Readiness', icon: Package },
+    { id: 'marketing-plan', label: 'Module 3: Marketing Plan & Brainstorming', icon: Compass },
+    { id: 'kpi-analytics', label: 'Module 4: KPI Analytics', icon: BarChart3 },
   ];
 
   return (

@@ -3,7 +3,6 @@ import confetti from 'canvas-confetti';
 import NavigationHeader from './components/NavigationHeader';
 import DashboardOverview from './components/DashboardOverview';
 import ContentPlanModule from './components/ContentPlanModule';
-import BranchBudgetAllocation from './components/BranchBudgetAllocation';
 import MarketingPlanModule from './components/MarketingPlanModule';
 import ProductPlanModule from './components/ProductPlanModule';
 import KpiAnalyticsModule from './components/KpiAnalyticsModule';
@@ -105,7 +104,7 @@ export default function App() {
     confetti({ particleCount: 60, spread: 70, origin: { y: 0.7 } });
   };
 
-  // Handlers for Module 2: Marketing Plan
+  // Handlers for Module 3: Marketing Plan
   const handleUpdateStrategyCanvas = (planId, updatedFields) => {
     setMarketingPlans(prev => prev.map(m => m.id === planId ? { ...m, ...updatedFields } : m));
   };
@@ -119,7 +118,7 @@ export default function App() {
     confetti({ particleCount: 40, spread: 50, origin: { y: 0.8 } });
   };
 
-  // Handlers for Module 3: Product Plan
+  // Handlers for Module 2: Product Plan
   const handleToggleStageChecklist = (campaignId, stageId, itemIndex) => {
     setCampaigns(prev => prev.map(c => {
       if (c.id !== campaignId) return c;
@@ -194,17 +193,6 @@ export default function App() {
             />
           )}
 
-          {activeTab === 'marketing-plan' && (
-            <MarketingPlanModule
-              marketingPlans={currentTeamMarketingPlans}
-              campaignIdeas={currentTeamIdeas}
-              campaigns={currentTeamCampaigns}
-              onUpdateStrategyCanvas={handleUpdateStrategyCanvas}
-              onUpvoteIdea={handleUpvoteIdea}
-              onAddCampaignIdea={handleAddCampaignIdea}
-            />
-          )}
-
           {activeTab === 'product-plan' && (
             <ProductPlanModule
               campaigns={currentTeamCampaigns}
@@ -214,8 +202,15 @@ export default function App() {
             />
           )}
 
-          {activeTab === 'branch-budget' && (
-            <BranchBudgetAllocation />
+          {activeTab === 'marketing-plan' && (
+            <MarketingPlanModule
+              marketingPlans={currentTeamMarketingPlans}
+              campaignIdeas={currentTeamIdeas}
+              campaigns={currentTeamCampaigns}
+              onUpdateStrategyCanvas={handleUpdateStrategyCanvas}
+              onUpvoteIdea={handleUpvoteIdea}
+              onAddCampaignIdea={handleAddCampaignIdea}
+            />
           )}
 
           {activeTab === 'kpi-analytics' && (
