@@ -1,6 +1,7 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import * as XLSX from 'xlsx';
 import LineFlexModal from './LineFlexModal';
+import { parseExcelWithGroqAi } from '../services/groqAiService';
 import { 
   Calendar as CalendarIcon, 
   Plus, 
@@ -53,8 +54,125 @@ import {
   Type,
   Undo2,
   Copy,
-  Download
+  Download,
+  Settings,
+  RotateCcw,
+  RefreshCw,
+  Globe
 } from 'lucide-react';
+
+// Multi-Select Platform Dropdown Select Component (Lucide Icons Only)
+const MultiPlatformSelectDropdown = ({ platformsList, selectedPlatforms, onChange, onOpenManage, renderPlatformIcon }) => {
+  const [isOpen, setIsOpen] = useState(false);
+  const dropdownRef = useRef(null);
+
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+        setIsOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  const togglePlatform = (id) => {
+    if (selectedPlatforms.includes(id)) {
+      if (selectedPlatforms.length > 1) {
+        onChange(selectedPlatforms.filter(item => item !== id));
+      }
+    } else {
+      onChange([...selectedPlatforms, id]);
+    }
+  };
+
+  return (
+    <div className="relative w-full" ref={dropdownRef}>
+      <button
+        type="button"
+        onClick={() => setIsOpen(!isOpen)}
+        className="w-full bg-white border border-slate-200 focus:border-pink-500 text-slate-900 font-semibold text-xs h-11 px-3 rounded-2xl transition shadow-xs flex items-center justify-between cursor-pointer"
+      >
+        <div className="flex items-center gap-1.5 flex-nowrap overflow-x-auto scrollbar-none min-w-0 flex-1 py-1 pr-1">
+          {selectedPlatforms.length === 0 ? (
+            <span className="text-slate-400">-- เลือกแพลตฟอร์มสื่อสาร --</span>
+          ) : (
+            selectedPlatforms.map(platId => {
+              const platObj = platformsList.find(p => p.id === platId) || { name: platId };
+              return (
+                <span
+                  key={platId}
+                  className="px-2.5 py-1 bg-slate-100/90 text-slate-800 border border-slate-200/80 rounded-lg text-xs font-semibold flex items-center gap-1.5 shrink-0 whitespace-nowrap"
+                >
+                  {renderPlatformIcon(platId)}
+                  <span>{platObj.name}</span>
+                </span>
+              );
+            })
+          )}
+        </div>
+        <div className="flex items-center gap-1.5 text-slate-400 shrink-0 ml-2">
+          {selectedPlatforms.length > 0 && (
+            <span className="text-[10px] font-bold text-pink-600 bg-pink-50 px-1.5 py-0.5 rounded-md border border-pink-100 whitespace-nowrap">
+              {selectedPlatforms.length} ช่องทาง
+            </span>
+          )}
+          <ChevronDown className={`w-4 h-4 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
+        </div>
+      </button>
+
+      {isOpen && (
+        <div className="absolute left-0 right-0 top-full mt-1.5 bg-white border border-pink-200 rounded-2xl shadow-xl z-50 p-2 space-y-1 animate-in fade-in zoom-in-95 duration-150 max-h-64 overflow-y-auto">
+          <div className="flex items-center justify-between px-2.5 py-1.5 border-b border-slate-100 text-[11px]">
+            <span className="font-bold text-slate-600">แพลตฟอร์มสื่อสาร (เลือกหลายช่องทางได้)</span>
+            {onOpenManage && (
+              <button
+                type="button"
+                onClick={() => {
+                  setIsOpen(false);
+                  onOpenManage();
+                }}
+                className="text-pink-600 font-bold hover:underline cursor-pointer"
+              >
+                + จัดการแพลตฟอร์ม
+              </button>
+            )}
+          </div>
+
+          {platformsList.map(p => {
+            const isChecked = selectedPlatforms.includes(p.id);
+            return (
+              <div
+                key={p.id}
+                onClick={() => togglePlatform(p.id)}
+                className={`flex items-center justify-between p-2.5 rounded-xl text-xs font-bold transition cursor-pointer ${
+                  isChecked
+                    ? 'bg-pink-50 text-rose-950 border border-pink-200 shadow-2xs'
+                    : 'hover:bg-slate-50 text-slate-700 border border-transparent'
+                }`}
+              >
+                <div className="flex items-center gap-2.5">
+                  <div className={`w-4 h-4 rounded-md border flex items-center justify-center transition ${
+                    isChecked ? 'bg-rose-500 border-rose-500 text-white' : 'border-slate-300 bg-white'
+                  }`}>
+                    {isChecked && <Check className="w-3 h-3 stroke-[3]" />}
+                  </div>
+                  {renderPlatformIcon(p.id)}
+                  <span>{p.name}</span>
+                </div>
+                {isChecked && (
+                  <span className="text-[10px] text-rose-600 font-bold bg-white px-2 py-0.5 rounded-md border border-pink-100">
+                    เลือกแล้ว
+                  </span>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+};
 
 export default function ContentPlanModule({
   contentItems,
@@ -66,9 +184,11 @@ export default function ContentPlanModule({
   onEditContentItem,
   onAddContentGroup,
   onDeleteContentGroup,
+  onUpdateContentGroups,
   onAddVaultIdea,
   onConvertVaultIdeaToContent,
-  onDeleteContentItem
+  onDeleteContentItem,
+  onClearAllContent
 }) {
   const [activeSubTab, setActiveSubTab] = useState('calendar'); // 'calendar' | 'vault' | 'analytics'
   const [viewMode, setViewMode] = useState('calendar'); // 'calendar' | 'list' | 'table'
@@ -82,22 +202,46 @@ export default function ContentPlanModule({
     {
       id: 'grp-product-plan',
       name: 'Product Plan & Campaign',
-      color: 'bg-purple-50 text-purple-900 border-purple-200'
+      color: 'bg-purple-50 text-purple-900 border-purple-200',
+      subCategories: [
+        'เปิดตัวสินค้าใหม่ (New Product Launch)',
+        'พรีออเดอร์ (Pre-Order)',
+        'จุดเด่นสเปกสินค้า (Product Highlights)',
+        'แคมเปญใหญ่ประจำไตรมาส (Mega Campaign)'
+      ]
     },
     {
       id: 'grp-promo-plan',
       name: 'แผนโปรโมท (Promotion Plan)',
-      color: 'bg-rose-50 text-rose-900 border-rose-200'
+      color: 'bg-rose-50 text-rose-900 border-rose-200',
+      subCategories: [
+        'โปรโมชัน Double Day (เช่น 8.8 / 9.9)',
+        'คูปองส่วนลดพิเศษ (Special Coupon)',
+        'แฟลชเซลล์ Flash Sale',
+        'ของแถมพิเศษ (Gift With Purchase)'
+      ]
     },
     {
       id: 'grp-always-on',
       name: 'คอนเทนต์ประจำ (Always-On)',
-      color: 'bg-amber-50 text-amber-900 border-amber-200'
+      color: 'bg-amber-50 text-amber-900 border-amber-200',
+      subCategories: [
+        '⭐ รีวิวจากผู้ใช้จริง (Customer Reviews & Testimonials)',
+        '🧪 เกร็ดความรู้ส่วนผสม (Skincare Knowledge & Tips)',
+        '✨ สไลด์ Before & After',
+        '🎬 เบื้องหลังแบรนด์ (Behind The Scenes)',
+        '💬 Q&A ตอบคำถามลูกค้ายอดฮิต (FAQ)'
+      ]
     },
     {
       id: 'grp-general-mkt',
       name: 'การตลาดทั่วไป (General Marketing)',
-      color: 'bg-sky-50 text-sky-900 border-sky-200'
+      color: 'bg-sky-50 text-sky-900 border-sky-200',
+      subCategories: [
+        'ข่าวสารแบรนด์ & PR',
+        'กิจกรรมแจกรางวัล (Giveaway & Contest)',
+        'คอนเทนต์ไวรัลตามเทรนด์ (Trending & Viral Content)'
+      ]
     }
   ], []);
 
@@ -106,6 +250,10 @@ export default function ContentPlanModule({
   // Multi-Select Google Calendar Style Group Filter (selectedGroupNames)
   const [selectedGroupNames, setSelectedGroupNames] = useState([]);
   const [selectedCategoryFilter, setSelectedCategoryFilter] = useState('all');
+
+  // Sub-Category Multi-Select Filter States & Card Collapse
+  const [selectedSubCategories, setSelectedSubCategories] = useState([]);
+  const [subCategoryCardCollapsed, setSubCategoryCardCollapsed] = useState(false);
 
   // Other Filter States
   const [selectedPlatform, setSelectedPlatform] = useState('all');
@@ -130,6 +278,11 @@ export default function ContentPlanModule({
   // Bulk Table Import States
   const [bulkRawText, setBulkRawText] = useState('');
   const [parsedBulkItems, setParsedBulkItems] = useState([]);
+  const [uploadedFileName, setUploadedFileName] = useState('');
+  const [excelWorkbook, setExcelWorkbook] = useState(null);
+  const [availableSheets, setAvailableSheets] = useState([]);
+  const [selectedSheetName, setSelectedSheetName] = useState('');
+  const [isParsingWithAi, setIsParsingWithAi] = useState(false);
 
   // Spreadsheet Data Grid State (Cell Selection, Range, Undo Stack)
   const [selectedGridCell, setSelectedGridCell] = useState(null); // { row: number, col: number }
@@ -145,11 +298,80 @@ export default function ContentPlanModule({
   // LINE Flex Alert Modal State
   const [lineModalItem, setLineModalItem] = useState(null);
 
+  // Sub-Category Management States & Handlers
+  const [newSubCategoryInput, setNewSubCategoryInput] = useState({});
+  const [editingSubCategory, setEditingSubCategory] = useState(null);
+
+  const handleAddSubCategory = (groupId, customName) => {
+    const nameToAdd = (customName || newSubCategoryInput[groupId] || '').trim();
+    if (!nameToAdd) return;
+
+    const currentGroups = effectiveContentGroups.map(grp => {
+      if (grp.id === groupId) {
+        const existingSubs = grp.subCategories || [];
+        if (existingSubs.includes(nameToAdd)) return grp;
+        return {
+          ...grp,
+          subCategories: [...existingSubs, nameToAdd]
+        };
+      }
+      return grp;
+    });
+
+    if (onUpdateContentGroups) {
+      onUpdateContentGroups(currentGroups);
+    }
+    setNewSubCategoryInput(prev => ({ ...prev, [groupId]: '' }));
+  };
+
+  const handleEditSubCategory = (groupId, oldName, newName) => {
+    const trimmedNew = newName.trim();
+    if (!trimmedNew || trimmedNew === oldName) {
+      setEditingSubCategory(null);
+      return;
+    }
+
+    const currentGroups = effectiveContentGroups.map(grp => {
+      if (grp.id === groupId) {
+        const existingSubs = grp.subCategories || [];
+        return {
+          ...grp,
+          subCategories: existingSubs.map(s => s === oldName ? trimmedNew : s)
+        };
+      }
+      return grp;
+    });
+
+    if (onUpdateContentGroups) {
+      onUpdateContentGroups(currentGroups);
+    }
+    setEditingSubCategory(null);
+  };
+
+  const handleDeleteSubCategory = (groupId, subNameToDelete) => {
+    const currentGroups = effectiveContentGroups.map(grp => {
+      if (grp.id === groupId) {
+        const existingSubs = grp.subCategories || [];
+        return {
+          ...grp,
+          subCategories: existingSubs.filter(s => s !== subNameToDelete)
+        };
+      }
+      return grp;
+    });
+
+    if (onUpdateContentGroups) {
+      onUpdateContentGroups(currentGroups);
+    }
+  };
+
   // Edit Content State inside Detail Modal
   const [editTitle, setEditTitle] = useState('');
   const [editCaption, setEditCaption] = useState('');
-  const [editPlatform, setEditPlatform] = useState('tiktok');
+  const [editVisualConcept, setEditVisualConcept] = useState('');
+  const [editPlatforms, setEditPlatforms] = useState(['facebook']);
   const [editGroup, setEditGroup] = useState('');
+  const [editSubCategory, setEditSubCategory] = useState('');
   const [editPublishDate, setEditPublishDate] = useState('');
   const [editMediaUrl, setEditMediaUrl] = useState('');
   const [editReferenceUrl, setEditReferenceUrl] = useState('');
@@ -159,10 +381,12 @@ export default function ContentPlanModule({
   // New Content Form State
   const [newTitle, setNewTitle] = useState('');
   const [newCaption, setNewCaption] = useState('');
-  const [newPlatform, setNewPlatform] = useState('tiktok');
+  const [newVisualConcept, setNewVisualConcept] = useState('');
+  const [newPlatforms, setNewPlatforms] = useState(['facebook', 'instagram', 'tiktok']);
   const [newGroup, setNewGroup] = useState(effectiveContentGroups[0]?.name || 'Product Plan & Campaign');
-  const [newPublishDate, setNewPublishDate] = useState('2026-08-20T10:00');
-  const [newMediaUrl, setNewMediaUrl] = useState('https://images.unsplash.com/photo-1620916566398-39f1143ab7be?auto=format&fit=crop&w=600&q=80');
+  const [newSubCategory, setNewSubCategory] = useState('');
+  const [newPublishDate, setNewPublishDate] = useState('2026-08-20');
+  const [newMediaUrl, setNewMediaUrl] = useState('');
   const [newReferenceUrl, setNewReferenceUrl] = useState('');
   const [newCampaignId, setNewCampaignId] = useState(campaigns[0]?.id || '');
 
@@ -175,6 +399,88 @@ export default function ContentPlanModule({
   const [newIdeaNotes, setNewIdeaNotes] = useState('');
   const [newIdeaTags, setNewIdeaTags] = useState('TikTok, Review');
   const [newIdeaPlatforms, setNewIdeaPlatforms] = useState(['tiktok', 'instagram']);
+
+  // Helper to render SVG Lucide Platform Icons (No Emojis)
+  const renderPlatformIcon = (keyOrId) => {
+    const k = String(keyOrId || '').toLowerCase().trim();
+    if (k.includes('facebook') || k.includes('fb')) return <Facebook className="w-3.5 h-3.5 text-blue-600 shrink-0" />;
+    if (k.includes('instagram') || k.includes('ig')) return <Camera className="w-3.5 h-3.5 text-pink-600 shrink-0" />;
+    if (k.includes('tiktok')) return <Video className="w-3.5 h-3.5 text-slate-900 shrink-0" />;
+    if (k.includes('line')) return <MessageSquare className="w-3.5 h-3.5 text-emerald-600 shrink-0" />;
+    if (k.includes('youtube') || k.includes('yt')) return <Video className="w-3.5 h-3.5 text-red-600 shrink-0" />;
+    if (k.includes('lemon8') || k.includes('sparkles')) return <Sparkles className="w-3.5 h-3.5 text-amber-500 shrink-0" />;
+    if (k.includes('twitter') || k.includes('x_') || k.includes('share')) return <Share2 className="w-3.5 h-3.5 text-slate-700 shrink-0" />;
+    return <Globe className="w-3.5 h-3.5 text-pink-500 shrink-0" />;
+  };
+
+  // Default & Dynamic Platforms List (Lucide Icons Only)
+  const DEFAULT_PLATFORMS = [
+    { id: 'facebook', name: 'Facebook', color: 'bg-blue-50 text-blue-700 border-blue-200' },
+    { id: 'instagram', name: 'Instagram', color: 'bg-pink-50 text-pink-700 border-pink-200' },
+    { id: 'tiktok', name: 'TikTok', color: 'bg-slate-100 text-slate-900 border-slate-300' },
+    { id: 'line_oa', name: 'LINE OA', color: 'bg-emerald-50 text-emerald-700 border-emerald-200' },
+    { id: 'youtube', name: 'YouTube', color: 'bg-red-50 text-red-700 border-red-200' },
+    { id: 'lemon8', name: 'Lemon8', color: 'bg-amber-50 text-amber-800 border-amber-200' },
+    { id: 'x_twitter', name: 'X (Twitter)', color: 'bg-zinc-100 text-zinc-900 border-zinc-300' },
+    { id: 'threads', name: 'Threads', color: 'bg-purple-50 text-purple-900 border-purple-200' }
+  ];
+
+  const [platformsList, setPlatformsList] = useState(() => {
+    try {
+      const saved = localStorage.getItem('nitan_platformsList');
+      return saved ? JSON.parse(saved) : DEFAULT_PLATFORMS;
+    } catch (e) {
+      return DEFAULT_PLATFORMS;
+    }
+  });
+
+  const [showManagePlatformsModal, setShowManagePlatformsModal] = useState(false);
+  const [newCustomPlatformName, setNewCustomPlatformName] = useState('');
+  const [editingPlatformId, setEditingPlatformId] = useState(null);
+  const [editPlatformNameInput, setEditPlatformNameInput] = useState('');
+
+  const savePlatformsList = (newList) => {
+    setPlatformsList(newList);
+    try {
+      localStorage.setItem('nitan_platformsList', JSON.stringify(newList));
+    } catch (e) {}
+  };
+
+  const handleAddPlatform = (e) => {
+    e?.preventDefault();
+    const trimmed = newCustomPlatformName.trim();
+    if (!trimmed) return;
+    const id = trimmed.toLowerCase().replace(/[^a-z0-9]/g, '_');
+    if (platformsList.some(p => p.id === id || p.name.toLowerCase() === trimmed.toLowerCase())) {
+      alert('แพลตฟอร์มนี้มีอยู่ในระบบแล้ว');
+      return;
+    }
+    const newPlat = {
+      id,
+      name: trimmed,
+      color: 'bg-pink-50 text-rose-800 border-pink-200'
+    };
+    savePlatformsList([...platformsList, newPlat]);
+    setNewCustomPlatformName('');
+  };
+
+  const handleDeletePlatform = (id) => {
+    if (platformsList.length <= 1) {
+      alert('ต้องมีอย่างน้อย 1 แพลตฟอร์มในระบบ');
+      return;
+    }
+    savePlatformsList(platformsList.filter(p => p.id !== id));
+  };
+
+  const handleEditPlatform = (id) => {
+    const trimmed = editPlatformNameInput.trim();
+    if (!trimmed) {
+      setEditingPlatformId(null);
+      return;
+    }
+    savePlatformsList(platformsList.map(p => p.id === id ? { ...p, name: trimmed } : p));
+    setEditingPlatformId(null);
+  };
 
   // Preset Sample Image URLs for quick selection
   const SAMPLE_IMAGES = [
@@ -194,98 +500,407 @@ export default function ContentPlanModule({
     { label: 'Indigo Teal', value: 'bg-indigo-50 text-indigo-800 border-indigo-200', checkBg: 'bg-indigo-500 border-indigo-500', checkBorder: 'border-indigo-400' }
   ];
 
-  // Excel File Upload Handler (.xlsx, .xls, .csv)
-  const handleExcelFileUpload = (e) => {
-    const file = e.target.files[0];
+  // Helper to parse Thai, Excel Serial, and Standard Date strings into YYYY-MM-DD format (Date Only, No Time)
+  const parseThaiDateTime = (rawVal) => {
+    if (rawVal === null || rawVal === undefined || rawVal === '') return '2026-08-20';
+
+    // Handle Date object
+    if (rawVal instanceof Date) {
+      if (!isNaN(rawVal.getTime())) {
+        const y = rawVal.getFullYear();
+        const m = String(rawVal.getMonth() + 1).padStart(2, '0');
+        const d = String(rawVal.getDate()).padStart(2, '0');
+        return `${y}-${m}-${d}`;
+      }
+    }
+
+    // Handle Excel Date Serial Number (e.g. 46237 or 46237.4166)
+    if (typeof rawVal === 'number') {
+      const jsDate = new Date(Math.round((rawVal - 25569) * 86400 * 1000));
+      if (!isNaN(jsDate.getTime())) {
+        const y = jsDate.getUTCFullYear();
+        const m = String(jsDate.getUTCMonth() + 1).padStart(2, '0');
+        const d = String(jsDate.getUTCDate()).padStart(2, '0');
+        return `${y}-${m}-${d}`;
+      }
+    }
+
+    const str = String(rawVal).trim();
+    if (!str) return '2026-08-20';
+
+    // If already in ISO YYYY-MM-DD
+    if (str.match(/^\d{4}-\d{2}-\d{2}/)) {
+      return str.substring(0, 10);
+    }
+
+    // Clean Thai day names (จ., อ., พ., พฤ., ศ., ส., อา.) and 'น.' suffix
+    const cleaned = str
+      .replace(/^(จ|อ|พ|พฤ|ศ|ส|อา)\.\s*/i, '')
+      .replace(/\s*น\.$/i, '')
+      .trim();
+
+    // Match ISO YYYY-MM-DD
+    const isoMatch = cleaned.match(/(\d{4})[\/\-](\d{1,2})[\/\-](\d{1,2})/);
+    let year = 2026;
+    let month = '08';
+    let day = '20';
+
+    if (isoMatch) {
+      year = parseInt(isoMatch[1], 10);
+      month = isoMatch[2].padStart(2, '0');
+      day = isoMatch[3].padStart(2, '0');
+    } else {
+      const dateMatch = cleaned.match(/(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{2,4})/);
+      if (dateMatch) {
+        day = dateMatch[1].padStart(2, '0');
+        month = dateMatch[2].padStart(2, '0');
+        let rawYear = parseInt(dateMatch[3], 10);
+        if (rawYear < 100) {
+          year = rawYear >= 50 ? 2500 + rawYear - 543 : 2000 + rawYear;
+        } else if (rawYear > 2500) {
+          year = rawYear - 543;
+        } else {
+          year = rawYear;
+        }
+      }
+    }
+
+    return `${year}-${month}-${day}`;
+  };
+
+  // Helper to format ISO date string for display (e.g. "13/08/2026" - Date Only, No Time)
+  const formatDisplayDate = (isoVal) => {
+    if (!isoVal) return '-';
+    try {
+      const dt = new Date(isoVal);
+      if (isNaN(dt.getTime())) {
+        const cleanStr = String(isoVal).split('T')[0].split(' ')[0];
+        return cleanStr || String(isoVal);
+      }
+      const day = String(dt.getDate()).padStart(2, '0');
+      const month = String(dt.getMonth() + 1).padStart(2, '0');
+      const year = dt.getFullYear();
+      return `${day}/${month}/${year}`;
+    } catch (e) {
+      return String(isoVal).split('T')[0].split(' ')[0];
+    }
+  };
+
+  // Helper to parse Platform string (supports multiple platforms per row)
+  const parsePlatformString = (platStr) => {
+    if (!platStr) return ['facebook'];
+    const lower = String(platStr).toLowerCase();
+    const result = [];
+
+    if (lower.includes('facebook') || lower.includes('fb')) result.push('facebook');
+    if (lower.includes('instagram') || lower.includes('ig')) result.push('instagram');
+    if (lower.includes('tiktok') || lower.includes('tt')) result.push('tiktok');
+    if (lower.includes('line')) result.push('line_oa');
+    if (lower.includes('youtube') || lower.includes('yt')) result.push('youtube');
+    if (lower.includes('lemon8') || lower.includes('lemon')) result.push('lemon8');
+    if (lower.includes('twitter') || lower.includes('x_') || lower.includes('x (')) result.push('x_twitter');
+    if (lower.includes('threads')) result.push('threads');
+
+    // Custom platforms matching
+    platformsList.forEach(p => {
+      if (lower.includes(p.id) || lower.includes(p.name.toLowerCase())) {
+        if (!result.includes(p.id)) result.push(p.id);
+      }
+    });
+
+    return result.length > 0 ? result : ['facebook'];
+  };
+
+  // Helper to parse Status string
+  const parseStatusString = (statStr) => {
+    if (!statStr) return 'draft';
+    const lower = String(statStr).toLowerCase();
+    if (lower.includes('scheduled') || lower.includes('ตั้งเวลา')) return 'scheduled';
+    if (lower.includes('published') || lower.includes('โพสต์แล้ว')) return 'published';
+    return 'draft';
+  };
+
+  // Process 2D Array of Rows (from Excel file or TSV paste) into Content Item Objects
+  const processTableRows = (rows) => {
+    if (!rows || rows.length === 0) return [];
+
+    let titleCol = 0;
+    let groupCol = 1;
+    let visualCol = 2;
+    let captionCol = 3;
+    let platformCol = 4;
+    let statusCol = 5;
+    let dateCol = 6;
+    let mediaCol = 7;
+
+    let startIndex = 0;
+
+    // Detect dynamic header row in first 3 rows with strict column matching priority
+    for (let rIdx = 0; rIdx < Math.min(3, rows.length); rIdx++) {
+      const candidateRow = rows[rIdx];
+      if (candidateRow && candidateRow.some(c => {
+        const s = String(c || '').toLowerCase();
+        return s.includes('title') || s.includes('หัวข้อ') || s.includes('pillar') || s.includes('หมวดหมู่') || s.includes('visual') || s.includes('caption') || s.includes('แคปชัน') || s.includes('platform') || s.includes('แพลตฟอร์ม');
+      })) {
+        startIndex = rIdx + 1;
+        candidateRow.forEach((colHeader, cIdx) => {
+          const headerStr = String(colHeader || '').toLowerCase().trim();
+
+          // 1. Media URL / Image Link (Check FIRST so "ลิงก์ภาพ" isn't misidentified as visualCol)
+          if (headerStr.includes('url') || headerStr.includes('ลิงก์') || headerStr.includes('link') || headerStr.includes('ภาพลิงก์')) {
+            mediaCol = cIdx;
+          } 
+          // 2. Title / Topic
+          else if (headerStr.includes('title') || headerStr.includes('หัวข้อ') || headerStr.includes('topic') || headerStr.includes('ชื่อคอนเทนต์')) {
+            titleCol = cIdx;
+          } 
+          // 3. Group / Pillar
+          else if (headerStr.includes('pillar') || headerStr.includes('หมวดหมู่') || headerStr.includes('กลุ่ม') || headerStr.includes('group')) {
+            groupCol = cIdx;
+          } 
+          // 4. Visual Concept / รูปแบบภาพ
+          else if (headerStr.includes('visual') || headerStr.includes('รูปแบบ') || headerStr.includes('ไอเดียภาพ') || headerStr.includes('แนวภาพ') || (headerStr.includes('ภาพ') && !headerStr.includes('ลิงก์'))) {
+            visualCol = cIdx;
+          } 
+          // 5. Caption / Copywriting
+          else if (headerStr.includes('caption') || headerStr.includes('แคปชัน') || headerStr.includes('copywriting') || headerStr.includes('ข้อความ')) {
+            captionCol = cIdx;
+          } 
+          // 6. Platform
+          else if (headerStr.includes('platform') || headerStr.includes('แพลตฟอร์ม') || headerStr.includes('ช่องทาง')) {
+            platformCol = cIdx;
+          } 
+          // 7. Status
+          else if (headerStr.includes('status') || headerStr.includes('สถานะ')) {
+            statusCol = cIdx;
+          } 
+          // 8. Publish Date
+          else if (headerStr.includes('publish') || headerStr.includes('กำหนดวัน') || headerStr.includes('วันโพสต์') || headerStr.includes('date') || (headerStr.includes('วัน') && !headerStr.includes('หมวดหมู่'))) {
+            dateCol = cIdx;
+          }
+        });
+        break;
+      }
+    }
+
+    const items = [];
+    for (let i = startIndex; i < rows.length; i++) {
+      const row = rows[i];
+      if (!row || row.length === 0) continue;
+
+      let title = String(row[titleCol] ?? '').trim();
+      const groupRaw = String(row[groupCol] ?? '').trim();
+      const visual_concept = String(row[visualCol] ?? '').trim();
+      const caption = String(row[captionCol] ?? '').trim();
+      const platformRaw = String(row[platformCol] ?? '').trim();
+      const statusRaw = String(row[statusCol] ?? '').trim();
+      const dateRaw = row[dateCol];
+      const media_url = String(row[mediaCol] ?? '').trim();
+
+      // If all fields are empty, skip row
+      if (!title && !groupRaw && !visual_concept && !caption && !platformRaw && !dateRaw && !media_url) continue;
+
+      // Fallback for title if empty but other fields exist in row
+      if (!title) {
+        if (caption) {
+          title = caption.length > 40 ? caption.substring(0, 40) + '...' : caption;
+        } else if (visual_concept) {
+          title = visual_concept.length > 40 ? visual_concept.substring(0, 40) + '...' : visual_concept;
+        } else {
+          title = `[Content #${items.length + 1}]`;
+        }
+      }
+
+      let group = groupRaw || effectiveContentGroups[0]?.name || 'Brand Vibe (Atmosphere)';
+      const matchedGrp = effectiveContentGroups.find(g => 
+        g.name.toLowerCase().includes(groupRaw.toLowerCase()) || groupRaw.toLowerCase().includes(g.name.toLowerCase())
+      );
+      if (matchedGrp) {
+        group = matchedGrp.name;
+      }
+
+      items.push({
+        id: `cnt-${Date.now()}-${i}`,
+        team_id: 'team-1',
+        campaign_id: campaigns[0]?.id || 'camp-1',
+        creator_id: 'user-2',
+        title,
+        caption,
+        visual_concept,
+        platform: parsePlatformString(platformRaw),
+        group,
+        subCategory: '',
+        status: parseStatusString(statusRaw),
+        publish_date: parseThaiDateTime(dateRaw),
+        media_url: media_url.startsWith('http') ? media_url : (media_url ? `https://${media_url}` : ''),
+        reference_url: '',
+        performance: { views: 0, likes: 0, comments: 0, shares: 0, ctr: 0 }
+      });
+    }
+
+    return items;
+  };
+
+  // TSV Parser for pasted multi-row multiline text with quotes
+  const parseTSVTextToRows = (text) => {
+    const rows = [];
+    let currentRow = [];
+    let currentCell = '';
+    let inQuotes = false;
+
+    for (let i = 0; i < text.length; i++) {
+      const char = text[i];
+      const nextChar = text[i + 1];
+
+      if (char === '"') {
+        if (inQuotes && nextChar === '"') {
+          currentCell += '"';
+          i++;
+        } else {
+          inQuotes = !inQuotes;
+        }
+      } else if (char === '\t' && !inQuotes) {
+        currentRow.push(currentCell.trim());
+        currentCell = '';
+      } else if ((char === '\r' || char === '\n') && !inQuotes) {
+        if (char === '\r' && nextChar === '\n') i++;
+        currentRow.push(currentCell.trim());
+        if (currentRow.some(c => c.length > 0)) {
+          rows.push(currentRow);
+        }
+        currentRow = [];
+        currentCell = '';
+      } else {
+        currentCell += char;
+      }
+    }
+
+    if (currentCell || currentRow.length > 0) {
+      currentRow.push(currentCell.trim());
+      if (currentRow.some(c => c.length > 0)) {
+        rows.push(currentRow);
+      }
+    }
+
+    return rows;
+  };
+
+  // Helper to format a 2D row array into proper TSV text (handling multiline & quotes)
+  const formatRowsToTSV = (rows) => {
+    if (!Array.isArray(rows)) return '';
+    return rows.map(row => {
+      if (!Array.isArray(row)) return String(row || '');
+      return row.map(cell => {
+        if (cell === null || cell === undefined) return '';
+        const str = String(cell);
+        if (str.includes('\t') || str.includes('\n') || str.includes('"')) {
+          return `"${str.replace(/"/g, '""')}"`;
+        }
+        return str;
+      }).join('\t');
+    }).join('\n');
+  };
+
+  // Reset Bulk Import state & file input (allow refresh/re-upload at any time)
+  const handleResetBulkImport = () => {
+    setBulkRawText('');
+    setParsedBulkItems([]);
+    setUploadedFileName('');
+    setExcelWorkbook(null);
+    setAvailableSheets([]);
+    setSelectedSheetName('');
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+  };
+
+  // Process data from a given sheet inside an open workbook
+  const processSheetData = (sheet, sheetName) => {
+    if (!sheet) return;
+    const rawData = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: '' });
+    if (!rawData || rawData.length === 0) return;
+
+    const tsvText = formatRowsToTSV(rawData);
+    setBulkRawText(tsvText);
+
+    const items = processTableRows(rawData);
+    setParsedBulkItems(items);
+    setSelectedSheetName(sheetName);
+  };
+
+  // Handle switching active sheet from dropdown
+  const handleSwitchSheet = (targetSheetName) => {
+    if (!excelWorkbook || !excelWorkbook.Sheets[targetSheetName]) return;
+    const targetSheet = excelWorkbook.Sheets[targetSheetName];
+    processSheetData(targetSheet, targetSheetName);
+  };
+
+  // Import Content Items from Excel File (.xlsx / .csv)
+  const handleFileUpload = (e) => {
+    const file = e.target.files?.[0];
     if (!file) return;
+
+    // Reset old state immediately
+    setBulkRawText('');
+    setParsedBulkItems([]);
+    setUploadedFileName(file.name);
 
     const reader = new FileReader();
     reader.onload = (evt) => {
       try {
-        const dataStr = evt.target.result;
-        const workbook = XLSX.read(dataStr, { type: 'binary' });
+        const buffer = evt.target.result;
+        const workbook = XLSX.read(buffer, { type: 'array' });
+        setExcelWorkbook(workbook);
 
-        const firstSheetName = workbook.SheetNames[0];
-        const worksheet = workbook.Sheets[firstSheetName];
+        const sheetNames = workbook.SheetNames || [];
+        setAvailableSheets(sheetNames);
 
-        const rawData = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
-        if (!rawData || rawData.length === 0) return;
+        if (sheetNames.length === 0) {
+          alert('⚠️ ไม่พบ Sheet ในไฟล์ Excel ที่เลือก');
+          return;
+        }
 
-        const items = [];
-        rawData.forEach((row, index) => {
-          if (!row || row.length === 0) return;
+        // Pick the sheet with maximum rows
+        let chosenSheetName = sheetNames[0];
+        let maxRows = 0;
 
-          const firstCell = String(row[0] || '').toLowerCase();
-          if (index === 0 && (firstCell.includes('title') || firstCell.includes('ชื่อ') || firstCell.includes('หัวข้อ') || firstCell.includes('topic'))) {
-            return;
+        sheetNames.forEach(sName => {
+          const s = workbook.Sheets[sName];
+          const rows = XLSX.utils.sheet_to_json(s, { header: 1, defval: '' });
+          if (rows && rows.length > maxRows) {
+            maxRows = rows.length;
+            chosenSheetName = sName;
           }
-
-          const title = String(row[0] || `[Content #${index + 1}]`);
-          const caption = String(row[1] || '');
-
-          let platform = 'tiktok';
-          let group = contentGroups[0]?.name || 'Promotion (โปรโมชัน)';
-          let publish_date = '2026-08-20T10:00';
-          let media_url = 'https://images.unsplash.com/photo-1620916566398-39f1143ab7be?auto=format&fit=crop&w=600&q=80';
-          let reference_url = '';
-
-          row.forEach((colVal, cIdx) => {
-            if (cIdx === 0 || cIdx === 1) return;
-            const strVal = String(colVal || '').trim();
-            const lower = strVal.toLowerCase();
-
-            if (['tiktok', 'facebook', 'instagram', 'line_oa', 'youtube'].includes(lower)) {
-              platform = lower;
-            }
-            const matchedGrp = contentGroups.find(g => g.name.toLowerCase().includes(lower) || lower.includes(g.name.toLowerCase()));
-            if (matchedGrp) {
-              group = matchedGrp.name;
-            }
-            if (strVal.includes('2026') || strVal.includes('2025') || strVal.match(/\d{2}\/\d{2}/)) {
-              publish_date = strVal.includes('T') ? strVal : `${strVal}T10:00`;
-            }
-            if (strVal.startsWith('http')) {
-              reference_url = strVal;
-            }
-          });
-
-          items.push({
-            id: `cnt-${Date.now()}-${index}`,
-            team_id: 'team-1',
-            campaign_id: campaigns[0]?.id || 'camp-1',
-            creator_id: 'user-2',
-            title,
-            caption,
-            platform,
-            group,
-            status: 'draft',
-            publish_date,
-            media_url,
-            reference_url,
-            performance: { views: 0, likes: 0, comments: 0, shares: 0, ctr: 0 }
-          });
         });
 
-        setParsedBulkItems(items);
+        const worksheet = workbook.Sheets[chosenSheetName];
+        processSheetData(worksheet, chosenSheetName);
         setShowBulkPasteModal(true);
+
       } catch (err) {
         console.error('Error reading Excel file:', err);
+        alert('เกิดข้อผิดพลาดในการอ่านไฟล์ Excel: ' + err.message);
+      } finally {
+        if (fileInputRef.current) {
+          fileInputRef.current.value = '';
+        }
       }
     };
 
-    reader.readAsBinaryString(file);
+    reader.readAsArrayBuffer(file);
   };
 
   // Export Content Items to Excel File (.xlsx)
   const handleExportToExcel = () => {
     const exportData = filteredContent.map((item, idx) => ({
       '#': idx + 1,
-      'ชื่อคอนเทนต์ (Title)': item.title,
-      'รายละเอียดแคปชัน (Caption)': item.caption || '',
-      'กลุ่มคอนเทนต์ (Group)': item.group || '',
-      'แพลตฟอร์ม (Platform)': item.platform || '',
+      'หัวข้อคอนเทนต์ (Title)': item.title || '',
+      'หมวดหมู่ (Pillar)': item.group || '',
+      'หมวดหมู่ย่อย (Sub-Category)': item.subCategory || '',
+      'รูปแบบ & ไอเดียภาพ (Visual)': item.visual_concept || '',
+      'ไอเดีย Copywriting / แคปชัน (Caption)': item.caption || '',
+      'แพลตฟอร์มเผยแพร่ (Platform)': item.platform || '',
       'สถานะ (Status)': item.status || '',
-      'กำหนดการโพสต์ (Publish Date)': item.publish_date || '',
       'ลิงก์อ้างอิง (Reference Link)': item.reference_url || ''
     }));
 
@@ -353,17 +968,17 @@ export default function ContentPlanModule({
     return { bg: 'bg-rose-500 border-rose-500', border: 'border-rose-400' };
   };
 
-  // Google Calendar style group checkbox toggle
+  // Google Calendar style group checkbox toggle (Fixed uncheck behavior 100%)
   const toggleGroupSelection = (groupName) => {
-    const allGroupNames = contentGroups.map(g => g.name);
+    const allGroupNames = effectiveContentGroups.map(g => g.name);
 
     if (selectedGroupNames.length === 0) {
       setSelectedGroupNames(allGroupNames.filter(n => n !== groupName));
     } else if (selectedGroupNames.includes(groupName)) {
       const updated = selectedGroupNames.filter(n => n !== groupName);
-      setSelectedGroupNames(updated);
+      setSelectedGroupNames(updated.length === 0 ? ['__NONE__'] : updated);
     } else {
-      const updated = [...selectedGroupNames, groupName];
+      const updated = selectedGroupNames.filter(n => n !== '__NONE__').concat(groupName);
       if (updated.length === allGroupNames.length) {
         setSelectedGroupNames([]);
       } else {
@@ -373,7 +988,38 @@ export default function ContentPlanModule({
   };
 
   const isGroupChecked = (groupName) => {
-    return selectedGroupNames.length === 0 || selectedGroupNames.includes(groupName);
+    if (selectedGroupNames.length === 0) return true;
+    if (selectedGroupNames.includes('__NONE__')) return false;
+    return selectedGroupNames.includes(groupName);
+  };
+
+  // Dynamically calculate sub-categories belonging to currently CHECKED main groups
+  const activeCheckedGroups = effectiveContentGroups.filter(g => isGroupChecked(g.name));
+  const availableSubCategories = activeCheckedGroups.flatMap(g => 
+    (g.subCategories || []).map(s => ({ groupName: g.name, subName: s }))
+  );
+
+  const toggleSubCategorySelection = (subName) => {
+    const allSubNames = availableSubCategories.map(s => s.subName);
+    if (selectedSubCategories.length === 0) {
+      setSelectedSubCategories(allSubNames.filter(s => s !== subName));
+    } else if (selectedSubCategories.includes(subName)) {
+      const updated = selectedSubCategories.filter(s => s !== subName);
+      setSelectedSubCategories(updated.length === 0 ? ['__NONE__'] : updated);
+    } else {
+      const updated = selectedSubCategories.filter(s => s !== '__NONE__').concat(subName);
+      if (updated.length === allSubNames.length) {
+        setSelectedSubCategories([]);
+      } else {
+        setSelectedSubCategories(updated);
+      }
+    }
+  };
+
+  const isSubCategoryChecked = (subName) => {
+    if (selectedSubCategories.length === 0) return true;
+    if (selectedSubCategories.includes('__NONE__')) return false;
+    return selectedSubCategories.includes(subName);
   };
 
   const handleSelectAllGroups = () => {
@@ -399,8 +1045,8 @@ export default function ContentPlanModule({
     });
   };
 
-  // Column keys mapping for spreadsheet grid paste
-  const GRID_COLUMN_KEYS = ['title', 'caption', 'group', 'platform', 'status', 'publish_date', 'reference_url'];
+  // Column keys mapping for spreadsheet grid paste matching exact user spreadsheet layout
+  const GRID_COLUMN_KEYS = ['title', 'group', 'visual_concept', 'caption', 'platform', 'status', 'publish_date', 'media_url'];
 
   // Spreadsheet Paste Handler (Multi-cell, multi-row, tab & newline split)
   const handleGridCellPaste = (e, startRowIdx = 0, startColIdx = 0) => {
@@ -514,10 +1160,10 @@ export default function ContentPlanModule({
       title: '',
       caption: '',
       platform: 'tiktok',
-      group: contentGroups[0]?.name || 'Promotion (โปรโมชัน)',
+      group: effectiveContentGroups[0]?.name || 'Product Plan & Campaign',
       status: 'draft',
-      publish_date: '2026-08-20T10:00',
-      media_url: 'https://images.unsplash.com/photo-1620916566398-39f1143ab7be?auto=format&fit=crop&w=600&q=80',
+      publish_date: '2026-08-20',
+      media_url: '',
       reference_url: '',
       performance: { views: 0, likes: 0, comments: 0, shares: 0, ctr: 0 }
     };
@@ -530,83 +1176,43 @@ export default function ContentPlanModule({
   // Bulk Table Parser logic for Google Sheets / Excel Paste
   const handleParseBulkText = (textToParse) => {
     setBulkRawText(textToParse);
-    if (!textToParse.trim()) {
+    if (!textToParse || !textToParse.trim()) {
       setParsedBulkItems([]);
       return;
     }
 
-    const lines = textToParse.trim().split(/\r?\n/);
-    const items = [];
-
-    lines.forEach((line, index) => {
-      if (!line.trim()) return;
-      
-      let cols = line.split('\t');
-      if (cols.length === 1 && line.includes(',')) {
-        cols = line.split(',');
-      }
-
-      cols = cols.map(c => c.trim().replace(/^["']|["']$/g, ''));
-
-      if (index === 0 && (
-        cols[0].toLowerCase().includes('title') || 
-        cols[0].toLowerCase().includes('ชื่อ') || 
-        cols[0].toLowerCase().includes('หัวข้อ') ||
-        cols[0].toLowerCase().includes('topic')
-      )) {
-        return;
-      }
-
-      const title = cols[0] || `[Content #${index + 1}]`;
-      const caption = cols[1] || '';
-      
-      let platform = 'tiktok';
-      let group = contentGroups[0]?.name || 'Promotion (โปรโมชัน)';
-      let publish_date = '2026-08-20T10:00';
-      let media_url = 'https://images.unsplash.com/photo-1620916566398-39f1143ab7be?auto=format&fit=crop&w=600&q=80';
-      let reference_url = '';
-
-      cols.forEach((col, cIdx) => {
-        if (cIdx === 0 || cIdx === 1) return;
-        const lower = col.toLowerCase();
-        
-        if (['tiktok', 'facebook', 'instagram', 'line_oa', 'youtube'].includes(lower)) {
-          platform = lower;
-        }
-        const matchedGrp = contentGroups.find(g => g.name.toLowerCase().includes(lower) || lower.includes(g.name.toLowerCase()));
-        if (matchedGrp) {
-          group = matchedGrp.name;
-        }
-        if (col.includes('2026') || col.includes('2025') || col.match(/\d{2}\/\d{2}/)) {
-          if (col.includes('T')) {
-            publish_date = col;
-          } else {
-            publish_date = `${col}T10:00`;
-          }
-        }
-        if (col.startsWith('http')) {
-          reference_url = col;
-        }
-      });
-
-      items.push({
-        id: `cnt-${Date.now()}-${index}`,
-        team_id: 'team-1',
-        campaign_id: campaigns[0]?.id || 'camp-1',
-        creator_id: 'user-2',
-        title,
-        caption,
-        platform,
-        group,
-        status: 'draft',
-        publish_date,
-        media_url,
-        reference_url,
-        performance: { views: 0, likes: 0, comments: 0, shares: 0, ctr: 0 }
-      });
-    });
-
+    const rows = parseTSVTextToRows(textToParse);
+    const items = processTableRows(rows);
     setParsedBulkItems(items);
+  };
+
+  // Groq AI Smart Table Parser Trigger with Smart Local Fallback
+  const handleGroqAiParseTable = async () => {
+    if (!bulkRawText || !bulkRawText.trim()) {
+      alert('⚠️ ไม่พบข้อมูลข้อความตารางสำหรับให้ AI อ่าน กรุณาเลือกไฟล์ Excel หรือวางข้อมูลก่อน');
+      return;
+    }
+
+    setIsParsingWithAi(true);
+    try {
+      const aiParsedItems = await parseExcelWithGroqAi(bulkRawText);
+      if (aiParsedItems && aiParsedItems.length > 0) {
+        setParsedBulkItems(aiParsedItems);
+      } else {
+        // Fallback to local parsing algorithm if Groq API is rate-limited (HTTP 429)
+        const rows = parseTSVTextToRows(bulkRawText);
+        const fallbackItems = processTableRows(rows);
+        setParsedBulkItems(fallbackItems);
+        alert('ℹ️ Groq API ติดโควต้าชั่วคราว (HTTP 429) ระบบได้ใช้อัลกอริทึมจัดตารางในเครื่องให้แทนโดยอัตโนมัติเรียบร้อยแล้วครับ');
+      }
+    } catch (e) {
+      console.warn('Groq AI parse fallback error:', e);
+      const rows = parseTSVTextToRows(bulkRawText);
+      const fallbackItems = processTableRows(rows);
+      setParsedBulkItems(fallbackItems);
+    } finally {
+      setIsParsingWithAi(false);
+    }
   };
 
   const handleConfirmBulkImport = () => {
@@ -617,6 +1223,15 @@ export default function ContentPlanModule({
     setBulkRawText('');
     setParsedBulkItems([]);
     setShowBulkPasteModal(false);
+  };
+
+  // Confirm Clear All Content Handler
+  const handleConfirmClearAllContent = () => {
+    if (window.confirm('⚠️ คุณแน่ใจหรือไม่ว่าต้องการล้างรายการคอนเทนต์ทั้งหมดในตาราง? (การกระทำนี้จะลบข้อมูลคอนเทนต์เดิมทั้งหมดเพื่อเตรียมพร้อมสำหรับนำเข้าไฟล์ใหม่)')) {
+      if (onClearAllContent) {
+        onClearAllContent();
+      }
+    }
   };
 
   // Sample Table text for demo
@@ -634,9 +1249,20 @@ export default function ContentPlanModule({
     
     setEditTitle(item.title || '');
     setEditCaption(item.caption || '');
-    setEditPlatform(item.platform || 'tiktok');
+    setEditVisualConcept(item.visual_concept || '');
+
+    const rawPlats = item.platform;
+    let parsedPlats = ['facebook'];
+    if (Array.isArray(rawPlats)) {
+      parsedPlats = rawPlats;
+    } else if (typeof rawPlats === 'string') {
+      parsedPlats = parsePlatformString(rawPlats);
+    }
+    setEditPlatforms(parsedPlats);
+
     setEditGroup(item.group || contentGroups[0]?.name || 'Promotion (โปรโมชัน)');
-    setEditPublishDate(item.publish_date ? item.publish_date.substring(0, 16) : '2026-08-20T10:00');
+    setEditSubCategory(item.subCategory || '');
+    setEditPublishDate(item.publish_date ? item.publish_date.substring(0, 10) : '2026-08-20');
     setEditMediaUrl(item.media_url || '');
     setEditReferenceUrl(item.reference_url || '');
     setEditStatus(item.status || 'draft');
@@ -648,12 +1274,19 @@ export default function ContentPlanModule({
     e.preventDefault();
     if (!selectedDetailContent) return;
 
+    if (!editGroup || !editGroup.trim()) {
+      alert('⚠️ กรุณาเลือกกลุ่มคอนเทนต์ (Group / Pillar) ก่อนทำการบันทึกทุกครั้ง');
+      return;
+    }
+
     const updatedItem = {
       ...selectedDetailContent,
       title: editTitle,
       caption: editCaption,
-      platform: editPlatform,
+      visual_concept: editVisualConcept,
+      platform: editPlatforms.length > 0 ? editPlatforms : ['facebook'],
       group: editGroup,
+      subCategory: editSubCategory,
       publish_date: editPublishDate,
       media_url: editMediaUrl,
       reference_url: editReferenceUrl,
@@ -687,17 +1320,31 @@ export default function ContentPlanModule({
 
   // Filter content
   const filteredContent = contentItems.filter(item => {
-    const matchesPlatform = selectedPlatform === 'all' || item.platform === selectedPlatform;
+    let matchesPlatform = selectedPlatform === 'all';
+    if (!matchesPlatform) {
+      if (Array.isArray(item.platform)) {
+        matchesPlatform = item.platform.includes(selectedPlatform);
+      } else if (typeof item.platform === 'string') {
+        matchesPlatform = item.platform.toLowerCase().includes(selectedPlatform);
+      }
+    }
+
     const matchesStatus = selectedStatus === 'all' || item.status === selectedStatus;
     const matchesGroup = isGroupChecked(item.group);
+    const matchesSubCategory = !item.subCategory || isSubCategoryChecked(item.subCategory);
     const matchesSearch = item.title.toLowerCase().includes(searchQuery.toLowerCase()) || 
                           item.caption.toLowerCase().includes(searchQuery.toLowerCase());
-    return matchesPlatform && matchesStatus && matchesGroup && matchesSearch;
+    return matchesPlatform && matchesStatus && matchesGroup && matchesSubCategory && matchesSearch;
   });
 
   const handleCreateContent = (e) => {
     e.preventDefault();
     if (!newTitle.trim()) return;
+
+    if (!newGroup || !newGroup.trim()) {
+      alert('⚠️ กรุณาเลือกกลุ่มคอนเทนต์ (Group / Pillar) ก่อนทำการบันทึกทุกครั้ง');
+      return;
+    }
 
     const newItem = {
       id: `cnt-${Date.now()}`,
@@ -706,8 +1353,10 @@ export default function ContentPlanModule({
       creator_id: 'user-2',
       title: newTitle,
       caption: newCaption,
-      platform: newPlatform,
-      group: newGroup || contentGroups[0]?.name || 'Promotion (โปรโมชัน)',
+      visual_concept: newVisualConcept,
+      platform: newPlatforms.length > 0 ? newPlatforms : ['facebook'],
+      group: newGroup,
+      subCategory: newSubCategory || '',
       status: 'draft',
       publish_date: newPublishDate,
       media_url: newMediaUrl,
@@ -718,6 +1367,7 @@ export default function ContentPlanModule({
     onAddContentItem(newItem);
     setNewTitle('');
     setNewCaption('');
+    setNewVisualConcept('');
     setNewReferenceUrl('');
     setShowAddContentModal(false);
   };
@@ -743,19 +1393,58 @@ export default function ContentPlanModule({
     setShowAddIdeaModal(false);
   };
 
-  const getPlatformBadge = (platform) => {
-    switch (platform) {
-      case 'tiktok':
-        return <span className="px-2 py-0.5 rounded-full text-[10px] font-medium badge-platform-tiktok flex items-center gap-1"><Video className="w-3 h-3" /> TikTok</span>;
-      case 'facebook':
-        return <span className="px-2 py-0.5 rounded-full text-[10px] font-medium badge-platform-facebook flex items-center gap-1"><Facebook className="w-3 h-3" /> Facebook</span>;
-      case 'instagram':
-        return <span className="px-2 py-0.5 rounded-full text-[10px] font-medium badge-platform-instagram flex items-center gap-1"><Camera className="w-3 h-3" /> Instagram</span>;
-      case 'line_oa':
-        return <span className="px-2 py-0.5 rounded-full text-[10px] font-medium badge-platform-line flex items-center gap-1"><MessageSquare className="w-3 h-3" /> LINE OA</span>;
-      default:
-        return <span className="bg-pink-50 text-rose-700 px-2 py-0.5 rounded-full text-[10px] font-medium">{platform}</span>;
+  const renderSinglePlatformBadge = (platKey) => {
+    const key = String(platKey || '').toLowerCase().trim();
+    
+    // Look up in platformsList
+    const matched = platformsList.find(p => 
+      p.id === key || p.name.toLowerCase() === key || key.includes(p.id) || key.includes(p.name.toLowerCase())
+    );
+
+    if (matched) {
+      return (
+        <span key={matched.id} className={`px-2 py-0.5 rounded-full text-[10px] font-extrabold border inline-flex items-center gap-1 ${matched.color}`}>
+          <span>{matched.icon}</span> <span>{matched.name}</span>
+        </span>
+      );
     }
+
+    if (key.includes('tiktok')) {
+      return <span key="tiktok" className="px-2 py-0.5 rounded-full text-[10px] font-semibold badge-platform-tiktok inline-flex items-center gap-1"><Video className="w-3 h-3" /> TikTok</span>;
+    }
+    if (key.includes('facebook') || key === 'fb') {
+      return <span key="facebook" className="px-2 py-0.5 rounded-full text-[10px] font-semibold badge-platform-facebook inline-flex items-center gap-1"><Facebook className="w-3 h-3" /> Facebook</span>;
+    }
+    if (key.includes('instagram') || key === 'ig') {
+      return <span key="instagram" className="px-2 py-0.5 rounded-full text-[10px] font-semibold badge-platform-instagram inline-flex items-center gap-1"><Camera className="w-3 h-3" /> Instagram</span>;
+    }
+    if (key.includes('line')) {
+      return <span key="line_oa" className="px-2 py-0.5 rounded-full text-[10px] font-semibold badge-platform-line inline-flex items-center gap-1"><MessageSquare className="w-3 h-3" /> LINE OA</span>;
+    }
+    if (key.includes('youtube') || key === 'yt') {
+      return <span key="youtube" className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-red-50 text-red-700 border border-red-200 inline-flex items-center gap-1"><Video className="w-3 h-3 text-red-500" /> YouTube</span>;
+    }
+    return <span key={key} className="bg-pink-50 text-rose-800 px-2 py-0.5 rounded-full text-[10px] font-semibold border border-pink-200">{platKey}</span>;
+  };
+
+  const getPlatformBadge = (platformInput) => {
+    if (!platformInput) return renderSinglePlatformBadge('facebook');
+
+    let plats = [];
+    if (Array.isArray(platformInput)) {
+      plats = platformInput;
+    } else if (typeof platformInput === 'string') {
+      plats = platformInput.split(/[\s,]+/);
+    }
+
+    const uniquePlats = [...new Set(plats.map(p => p.trim()).filter(Boolean))];
+    if (uniquePlats.length === 0) return renderSinglePlatformBadge('facebook');
+
+    return (
+      <div className="flex items-center gap-1 flex-wrap">
+        {uniquePlats.map(plat => renderSinglePlatformBadge(plat))}
+      </div>
+    );
   };
 
   const getStatusBadge = (status) => {
@@ -804,7 +1493,7 @@ export default function ContentPlanModule({
       <input
         type="file"
         ref={fileInputRef}
-        onChange={handleExcelFileUpload}
+        onChange={handleFileUpload}
         accept=".xlsx, .xls, .csv"
         className="hidden"
       />
@@ -898,17 +1587,29 @@ export default function ContentPlanModule({
               </div>
 
               {/* Platform Filter */}
-              <select
-                value={selectedPlatform}
-                onChange={(e) => setSelectedPlatform(e.target.value)}
-                className="bg-white border border-pink-200 text-rose-900 text-xs py-2 px-3 rounded-xl focus:outline-none focus:border-pink-400 cursor-pointer shadow-sm font-semibold"
-              >
-                <option value="all">ทุกแพลตฟอร์ม</option>
-                <option value="tiktok">TikTok</option>
-                <option value="facebook">Facebook</option>
-                <option value="instagram">Instagram</option>
-                <option value="line_oa">LINE OA</option>
-              </select>
+              <div className="flex items-center gap-1">
+                <select
+                  value={selectedPlatform}
+                  onChange={(e) => setSelectedPlatform(e.target.value)}
+                  className="bg-white border border-pink-200 text-rose-900 text-xs py-2 px-3 rounded-xl focus:outline-none focus:border-pink-400 cursor-pointer shadow-sm font-semibold"
+                >
+                  <option value="all">🌐 ทุกแพลตฟอร์ม</option>
+                  {platformsList.map(p => (
+                    <option key={p.id} value={p.id}>
+                      {p.icon} {p.name}
+                    </option>
+                  ))}
+                </select>
+
+                <button
+                  type="button"
+                  onClick={() => setShowManagePlatformsModal(true)}
+                  className="p-2 bg-white hover:bg-pink-50 text-rose-700 border border-pink-200 rounded-xl text-xs font-bold transition cursor-pointer shadow-xs flex items-center gap-1"
+                  title="เพิ่ม/ลบ/จัดการแพลตฟอร์ม"
+                >
+                  <Settings className="w-3.5 h-3.5 text-pink-500" />
+                </button>
+              </div>
 
               {/* Category / Content Group Filter */}
               <select
@@ -997,6 +1698,18 @@ export default function ContentPlanModule({
                 <span>ส่งออก Excel</span>
               </button>
 
+              {/* CLEAR ALL CONTENT BUTTON */}
+              {contentItems.length > 0 && (
+                <button
+                  onClick={handleConfirmClearAllContent}
+                  className="px-3.5 py-2.5 bg-rose-50 hover:bg-rose-100 text-rose-800 border border-rose-200/90 font-bold rounded-xl text-xs transition flex items-center justify-center gap-1.5 cursor-pointer shadow-sm"
+                  title="ล้างรายการคอนเทนต์ทั้งหมดในปฏิทินเพื่อเตรียมนำเข้าไฟล์ใหม่"
+                >
+                  <Trash2 className="w-4 h-4 text-rose-500" />
+                  <span>ล้างตารางคอนเทนต์ ({contentItems.length})</span>
+                </button>
+              )}
+
               <button
                 onClick={() => setShowAddContentModal(true)}
                 className="px-4 py-2.5 bg-gradient-to-r from-[#F0E6F5] via-[#FFEBF3] to-[#E6F2FF] hover:opacity-90 text-purple-950 font-bold rounded-xl text-xs transition flex items-center justify-center gap-2 cursor-pointer shadow-xs border border-[#E2D2EA]"
@@ -1012,137 +1725,282 @@ export default function ContentPlanModule({
             
             {/* GOOGLE CALENDAR STYLE NARROWER SIDEBAR */}
             {isSidebarVisible && (
-              <div className="w-full lg:w-56 shrink-0 glass-panel p-3.5 space-y-3.5 text-xs font-medium sticky top-24 transition-all duration-300">
+              <div className="w-full lg:w-56 shrink-0 space-y-3 sticky top-24 transition-all duration-300">
                 
-                {/* Accordion Header */}
-                <div className="flex items-center justify-between font-bold text-rose-950 border-b border-pink-100 pb-2.5">
-                  <div className="flex items-center gap-1.5 text-xs">
-                    <SlidersHorizontal className="w-3.5 h-3.5 text-pink-500" />
-                    <span>ปฏิทินของฉัน</span>
+                {/* Card 1: Main Category Groups */}
+                <div className="glass-panel p-3.5 space-y-3.5 text-xs font-medium">
+                  {/* Accordion Header */}
+                  <div className="flex items-center justify-between font-bold text-rose-950 border-b border-pink-100 pb-2.5">
+                    <div className="flex items-center gap-1.5 text-xs">
+                      <SlidersHorizontal className="w-3.5 h-3.5 text-pink-500" />
+                      <span>ปฏิทินของฉัน</span>
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <button 
+                        onClick={() => setGroupsCollapsed(!groupsCollapsed)}
+                        className="p-1 text-rose-500 hover:bg-pink-50 rounded-lg transition cursor-pointer"
+                        title="ซ่อน/แสดง รายการ"
+                      >
+                        {groupsCollapsed ? <ChevronDown className="w-3.5 h-3.5" /> : <ChevronUp className="w-3.5 h-3.5" />}
+                      </button>
+                      <button 
+                        onClick={() => setIsSidebarVisible(false)}
+                        className="p-1 text-rose-400 hover:text-rose-600 hover:bg-pink-50 rounded-lg transition cursor-pointer"
+                        title="ซ่อนแถบข้าง"
+                      >
+                        <ChevronLeft className="w-4 h-4" />
+                      </button>
+                    </div>
                   </div>
-                  <div className="flex items-center gap-1">
-                    <button 
-                      onClick={() => setGroupsCollapsed(!groupsCollapsed)}
-                      className="p-1 text-rose-500 hover:bg-pink-50 rounded-lg transition cursor-pointer"
-                      title="ซ่อน/แสดง รายการ"
-                    >
-                      {groupsCollapsed ? <ChevronDown className="w-3.5 h-3.5" /> : <ChevronUp className="w-3.5 h-3.5" />}
-                    </button>
-                    <button 
-                      onClick={() => setIsSidebarVisible(false)}
-                      className="p-1 text-rose-400 hover:text-rose-600 hover:bg-pink-50 rounded-lg transition cursor-pointer"
-                      title="ซ่อนแถบข้าง"
-                    >
-                      <ChevronLeft className="w-4 h-4" />
-                    </button>
-                  </div>
+
+                  {!groupsCollapsed && (
+                    <div className="space-y-2.5">
+                      
+                      {/* Select All / Clear All Row */}
+                      <div className="flex items-center justify-between text-[10px] font-semibold text-rose-600 px-1">
+                        <button 
+                          onClick={handleSelectAllGroups}
+                          className="hover:underline hover:text-pink-600 cursor-pointer"
+                        >
+                          เลือกทั้งหมด
+                        </button>
+                        <button 
+                          onClick={handleClearAllGroups}
+                          className="hover:underline hover:text-rose-700 cursor-pointer"
+                        >
+                          ล้างการเลือก
+                        </button>
+                      </div>
+
+                      {/* Group Items Checklist */}
+                      <div className="space-y-1.5 max-h-[420px] overflow-y-auto pr-0.5">
+                        {effectiveContentGroups.map(grp => {
+                          const checked = isGroupChecked(grp.name);
+                          const colorOpts = getGroupCheckboxColor(grp.color);
+
+                          return (
+                            <div key={grp.id} className="space-y-1">
+                              <div 
+                                onClick={() => toggleGroupSelection(grp.name)}
+                                className={`flex items-center justify-between p-2 rounded-xl transition-all cursor-pointer group/row relative ${
+                                  checked ? 'bg-pink-50/70 border border-pink-200/80 shadow-xs' : 'bg-white hover:bg-pink-50/30 border border-transparent'
+                                }`}
+                              >
+                                <div className="flex items-center gap-2 flex-1 min-w-0">
+                                  {/* Custom Google Calendar Checkbox Box */}
+                                  <div className={`w-3.5 h-3.5 rounded-[4px] flex items-center justify-center transition-colors border shrink-0 ${
+                                    checked ? `${colorOpts.bg} text-white shadow-xs` : `${colorOpts.border} bg-white`
+                                  }`}>
+                                    {checked && <Check className="w-2.5 h-2.5 stroke-[3]" />}
+                                  </div>
+
+                                  {/* Label */}
+                                  <span className={`truncate text-[11px] ${
+                                    checked ? 'font-bold text-rose-950' : 'font-medium text-rose-800'
+                                  }`}>
+                                    {grp.name}
+                                  </span>
+                                </div>
+
+                                {/* 3-Dots Options Menu Button */}
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setActiveGroupOptions(activeGroupOptions === grp.id ? null : grp.id);
+                                  }}
+                                  className="p-1 rounded-lg text-rose-400 hover:text-rose-700 opacity-0 group-hover/row:opacity-100 transition cursor-pointer shrink-0"
+                                  title="ตัวเลือกหมวดหมู่"
+                                >
+                                  <MoreVertical className="w-3.5 h-3.5" />
+                                </button>
+
+                                {/* Group Options Popover Menu */}
+                                {activeGroupOptions === grp.id && (
+                                  <div 
+                                    onClick={(e) => e.stopPropagation()}
+                                    className="absolute right-2 top-8 z-30 bg-white border border-pink-200 rounded-2xl shadow-xl p-1.5 text-[11px] w-36 space-y-1 animate-in fade-in duration-150"
+                                  >
+                                    <button
+                                      onClick={() => {
+                                        setActiveGroupOptions(null);
+                                        setShowManageGroupsModal(true);
+                                      }}
+                                      className="w-full text-left px-2 py-1.5 hover:bg-pink-50 text-rose-800 rounded-lg font-semibold flex items-center gap-1.5"
+                                    >
+                                      <Edit3 className="w-3 h-3 text-pink-500" />
+                                      <span>แก้ไขกลุ่ม</span>
+                                    </button>
+                                    <button
+                                      onClick={() => {
+                                        setActiveGroupOptions(null);
+                                        if (onDeleteContentGroup) onDeleteContentGroup(grp.id);
+                                      }}
+                                      className="w-full text-left px-2 py-1.5 hover:bg-rose-50 text-rose-600 rounded-lg font-semibold flex items-center gap-1.5"
+                                    >
+                                      <Trash2 className="w-3 h-3" />
+                                      <span>ลบหมวดหมู่นี้</span>
+                                    </button>
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+
+                      {/* Add New Group Button */}
+                      <button
+                        onClick={() => setShowManageGroupsModal(true)}
+                        className="w-full mt-2 py-1.5 px-2.5 rounded-xl border border-dashed border-pink-300 text-rose-700 hover:bg-pink-50 transition font-semibold text-[11px] flex items-center justify-center gap-1 cursor-pointer shadow-xs"
+                      >
+                        <Plus className="w-3.5 h-3.5 text-pink-500" />
+                        <span>+ เพิ่มหมวดหมู่ใหม่</span>
+                      </button>
+
+                    </div>
+                  )}
                 </div>
 
-                {!groupsCollapsed && (
-                  <div className="space-y-2.5">
-                    
-                    {/* Select All / Clear All Row */}
-                    <div className="flex items-center justify-between text-[10px] font-semibold text-rose-600 px-1">
+                {/* Card 2: Sub-Categories Card Box (Appears dynamically when main groups are checked) */}
+                {availableSubCategories.length > 0 && (
+                  <div className="glass-panel p-3.5 space-y-3 border-amber-200/90 shadow-sm bg-gradient-to-b from-white via-amber-50/20 to-purple-50/20 rounded-2xl animate-in fade-in duration-200 text-xs font-medium">
+                    {/* Card Header */}
+                    <div className="flex items-center justify-between font-bold text-purple-950 border-b border-amber-200/80 pb-2">
+                      <div className="flex items-center gap-1.5 text-xs">
+                        <Tag className="w-3.5 h-3.5 text-amber-500" />
+                        <span>หมวดหมู่ย่อย ({availableSubCategories.length})</span>
+                      </div>
                       <button 
-                        onClick={handleSelectAllGroups}
-                        className="hover:underline hover:text-pink-600 cursor-pointer"
+                        onClick={() => setSubCategoryCardCollapsed(!subCategoryCardCollapsed)}
+                        className="p-1 text-purple-700 hover:bg-amber-100/50 rounded-lg transition cursor-pointer"
+                        title="ซ่อน/แสดง หมวดหมู่ย่อย"
                       >
-                        เลือกทั้งหมด
-                      </button>
-                      <button 
-                        onClick={handleClearAllGroups}
-                        className="hover:underline hover:text-rose-700 cursor-pointer"
-                      >
-                        ล้างการเลือก
+                        {subCategoryCardCollapsed ? <ChevronDown className="w-3.5 h-3.5" /> : <ChevronUp className="w-3.5 h-3.5" />}
                       </button>
                     </div>
 
-                    {/* Group Items Checklist */}
-                    <div className="space-y-1 max-h-[420px] overflow-y-auto pr-0.5">
-                      {effectiveContentGroups.map(grp => {
-                        const checked = isGroupChecked(grp.name);
-                        const colorOpts = getGroupCheckboxColor(grp.color);
-
-                        return (
-                          <div 
-                            key={grp.id}
-                            onClick={() => toggleGroupSelection(grp.name)}
-                            className={`flex items-center justify-between p-1.5 rounded-xl transition-all cursor-pointer group/row ${
-                              checked ? 'bg-pink-50/70 border border-pink-200/80 shadow-xs' : 'bg-white hover:bg-pink-50/30 border border-transparent'
-                            }`}
+                    {!subCategoryCardCollapsed && (
+                      <div className="space-y-2">
+                        {/* Select All / Clear All Sub-Categories */}
+                        <div className="flex items-center justify-between text-[10px] font-semibold text-purple-800 px-1">
+                          <button 
+                            onClick={() => setSelectedSubCategories([])}
+                            className="hover:underline hover:text-amber-700 cursor-pointer"
                           >
-                            <div className="flex items-center gap-2 flex-1 min-w-0">
-                              
-                              {/* Custom Google Calendar Checkbox Box */}
-                              <div className={`w-3.5 h-3.5 rounded-[4px] flex items-center justify-center transition-colors border shrink-0 ${
-                                checked ? `${colorOpts.bg} text-white shadow-xs` : `${colorOpts.border} bg-white`
-                              }`}>
-                                {checked && <Check className="w-2.5 h-2.5 stroke-[3]" />}
-                              </div>
+                            เลือกย่อยทั้งหมด
+                          </button>
+                          <button 
+                            onClick={() => setSelectedSubCategories(['__NONE__'])}
+                            className="hover:underline hover:text-rose-700 cursor-pointer"
+                          >
+                            ล้างการเลือกย่อย
+                          </button>
+                        </div>
 
-                              {/* Label */}
-                              <span className={`truncate text-[11px] ${
-                                checked ? 'font-bold text-rose-950' : 'font-medium text-rose-800'
-                              }`}>
-                                {grp.name}
-                              </span>
-                            </div>
+                        {/* Sub-Category Checklist Items */}
+                        <div className="space-y-1 max-h-[260px] overflow-y-auto pr-0.5">
+                          {availableSubCategories.map((item, idx) => {
+                            const checked = isSubCategoryChecked(item.subName);
+                            const isEditingThis = editingSubCategory?.groupId === item.groupId && editingSubCategory?.oldName === item.subName;
 
-                            {/* 3-Dots Options Menu Button */}
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                setActiveGroupOptions(activeGroupOptions === grp.id ? null : grp.id);
-                              }}
-                              className="p-1 rounded-lg text-rose-400 hover:text-rose-700 opacity-0 group-hover/row:opacity-100 transition cursor-pointer relative shrink-0"
-                              title="ตัวเลือกหมวดหมู่"
-                            >
-                              <MoreVertical className="w-3.5 h-3.5" />
-                            </button>
+                            if (isEditingThis) {
+                              return (
+                                <div key={idx} className="flex items-center gap-1 bg-white border border-amber-400 rounded-xl p-1 text-[11px] shadow-xs">
+                                  <input
+                                    type="text"
+                                    autoFocus
+                                    value={editingSubCategory.name}
+                                    onChange={(e) => setEditingSubCategory({ ...editingSubCategory, name: e.target.value })}
+                                    onKeyDown={(e) => {
+                                      if (e.key === 'Enter') handleEditSubCategory(item.groupId, item.subName, editingSubCategory.name);
+                                      if (e.key === 'Escape') setEditingSubCategory(null);
+                                    }}
+                                    className="flex-1 min-w-0 bg-amber-50/50 border border-amber-200 text-purple-950 px-1.5 py-0.5 rounded-md font-semibold text-[11px] focus:outline-none"
+                                  />
+                                  <button
+                                    type="button"
+                                    onClick={() => handleEditSubCategory(item.groupId, item.subName, editingSubCategory.name)}
+                                    className="p-0.5 text-emerald-600 hover:bg-emerald-50 rounded cursor-pointer shrink-0"
+                                    title="บันทึก"
+                                  >
+                                    <Check className="w-3.5 h-3.5 stroke-[3]" />
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => setEditingSubCategory(null)}
+                                    className="p-0.5 text-rose-500 hover:bg-rose-50 rounded cursor-pointer shrink-0"
+                                    title="ยกเลิก"
+                                  >
+                                    <X className="w-3.5 h-3.5" />
+                                  </button>
+                                </div>
+                              );
+                            }
 
-                            {/* Group Options Popover Menu */}
-                            {activeGroupOptions === grp.id && (
+                            return (
                               <div 
-                                onClick={(e) => e.stopPropagation()}
-                                className="absolute right-2 top-8 z-30 bg-white border border-pink-200 rounded-2xl shadow-xl p-1.5 text-[11px] w-36 space-y-1 animate-in fade-in duration-150"
+                                key={idx}
+                                className={`flex items-center justify-between p-1.5 rounded-xl transition-all group/subitem ${
+                                  checked ? 'bg-amber-100/80 border border-amber-300/80 shadow-2xs' : 'bg-white hover:bg-amber-50/40 border border-transparent'
+                                }`}
                               >
-                                <button
-                                  onClick={() => {
-                                    setActiveGroupOptions(null);
-                                    setShowManageGroupsModal(true);
-                                  }}
-                                  className="w-full text-left px-2 py-1.5 hover:bg-pink-50 text-rose-800 rounded-lg font-semibold flex items-center gap-1.5"
+                                <div 
+                                  onClick={() => toggleSubCategorySelection(item.subName)}
+                                  className="flex items-center gap-2 flex-1 min-w-0 cursor-pointer"
                                 >
-                                  <Edit3 className="w-3 h-3 text-pink-500" />
-                                  <span>แก้ไขกลุ่ม</span>
-                                </button>
-                                <button
-                                  onClick={() => {
-                                    setActiveGroupOptions(null);
-                                    if (onDeleteContentGroup) onDeleteContentGroup(grp.id);
-                                  }}
-                                  className="w-full text-left px-2 py-1.5 hover:bg-rose-50 text-rose-600 rounded-lg font-semibold flex items-center gap-1.5"
-                                >
-                                  <Trash2 className="w-3 h-3" />
-                                  <span>ลบหมวดหมู่นี้</span>
-                                </button>
+                                  <div className={`w-3.5 h-3.5 rounded-[4px] flex items-center justify-center transition-colors border shrink-0 ${
+                                    checked ? 'bg-amber-500 border-amber-500 text-white shadow-2xs' : 'border-amber-400 bg-white'
+                                  }`}>
+                                    {checked && <Check className="w-2.5 h-2.5 stroke-[3]" />}
+                                  </div>
+                                  <span className={`truncate text-[11px] ${
+                                    checked ? 'font-bold text-purple-950' : 'font-medium text-purple-900/70'
+                                  }`}>
+                                    {item.subName}
+                                  </span>
+                                </div>
+
+                                {/* Quick Action Icons on Hover */}
+                                <div className="flex items-center gap-0.5 opacity-0 group-hover/subitem:opacity-100 transition shrink-0 pl-1">
+                                  <button
+                                    type="button"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      setEditingSubCategory({ groupId: item.groupId, oldName: item.subName, name: item.subName });
+                                    }}
+                                    className="p-1 rounded text-purple-700 hover:bg-amber-200/60 transition cursor-pointer"
+                                    title="แก้ไขชื่อหมวดหมู่ย่อย"
+                                  >
+                                    <Edit3 className="w-3 h-3" />
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      handleDeleteSubCategory(item.groupId, item.subName);
+                                    }}
+                                    className="p-1 rounded text-rose-500 hover:bg-rose-100 transition cursor-pointer"
+                                    title="ลบหมวดหมู่ย่อยนี้"
+                                  >
+                                    <Trash2 className="w-3 h-3" />
+                                  </button>
+                                </div>
                               </div>
-                            )}
+                            );
+                          })}
+                        </div>
 
-                          </div>
-                        );
-                      })}
-                    </div>
-
-                    {/* Add New Group Button */}
-                    <button
-                      onClick={() => setShowManageGroupsModal(true)}
-                      className="w-full mt-2 py-1.5 px-2.5 rounded-xl border border-dashed border-pink-300 text-rose-700 hover:bg-pink-50 transition font-semibold text-[11px] flex items-center justify-center gap-1 cursor-pointer shadow-xs"
-                    >
-                      <Plus className="w-3.5 h-3.5 text-pink-500" />
-                      <span>+ เพิ่มหมวดหมู่ใหม่</span>
-                    </button>
-
+                        {/* Button to open Manage Sub-Categories Modal */}
+                        <button
+                          type="button"
+                          onClick={() => setShowManageGroupsModal(true)}
+                          className="w-full mt-2 py-1.5 px-2 rounded-xl border border-dashed border-amber-300 text-purple-900 hover:bg-amber-100/50 transition font-semibold text-[10px] flex items-center justify-center gap-1 cursor-pointer shadow-2xs"
+                        >
+                          <Plus className="w-3 h-3 text-amber-600" />
+                          <span>+ จัดการ/เพิ่มหมวดหมู่ย่อยเพิ่มเติม</span>
+                        </button>
+                      </div>
+                    )}
                   </div>
                 )}
 
@@ -1503,7 +2361,7 @@ export default function ContentPlanModule({
                               <span className="flex items-center gap-1"><CheckCircle2 className="w-3.5 h-3.5 text-pink-500" /> สถานะ</span>
                             </th>
                             <th className="p-3 min-w-[140px]">
-                              <span className="flex items-center gap-1"><Clock className="w-3.5 h-3.5 text-pink-500" /> กำหนดโพสต์</span>
+                              <span className="flex items-center gap-1"><Clock className="w-3.5 h-3.5 text-pink-500" /> กำหนดวันโพสต์</span>
                             </th>
                             <th className="p-3 min-w-[140px]">
                               <span className="flex items-center gap-1"><LinkIcon className="w-3.5 h-3.5 text-pink-500" /> ลิงก์อ้างอิง</span>
@@ -1916,6 +2774,20 @@ export default function ContentPlanModule({
                 </div>
 
                 <div>
+                  <label className="block text-rose-800 font-bold mb-1 flex items-center gap-1.5">
+                    <ImageIcon className="w-4 h-4 text-pink-500" />
+                    <span>รูปแบบ & ไอเดียภาพ / Visual Concept</span>
+                  </label>
+                  <textarea
+                    rows={2}
+                    placeholder="เช่น สไลด์ภาพ 5 หน้า Before & After, VDO สั้น 15s..."
+                    value={editVisualConcept}
+                    onChange={(e) => setEditVisualConcept(e.target.value)}
+                    className="w-full bg-pink-50/40 border border-pink-200 text-rose-950 p-2.5 rounded-xl focus:outline-none focus:border-pink-400 font-medium leading-relaxed"
+                  />
+                </div>
+
+                <div>
                   <label className="block text-rose-800 font-bold mb-1">รายละเอียดแคปชัน & ข้อความโปรโมต / Caption</label>
                   <textarea
                     rows={4}
@@ -1926,19 +2798,24 @@ export default function ContentPlanModule({
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                  <div>
-                    <label className="block text-rose-800 font-bold mb-1">แพลตฟอร์มสื่อสาร</label>
-                    <select
-                      value={editPlatform}
-                      onChange={(e) => setEditPlatform(e.target.value)}
-                      className="w-full bg-pink-50/40 border border-pink-200 text-rose-950 p-2.5 rounded-xl font-medium cursor-pointer"
-                    >
-                      <option value="tiktok">TikTok</option>
-                      <option value="facebook">Facebook</option>
-                      <option value="instagram">Instagram</option>
-                      <option value="line_oa">LINE OA</option>
-                      <option value="youtube">YouTube</option>
-                    </select>
+                  <div className="sm:col-span-3">
+                    <div className="flex items-center justify-between mb-1.5">
+                      <label className="block text-rose-800 font-bold">แพลตฟอร์มสื่อสาร (เลือกหลายช่องทางได้)</label>
+                      <button
+                        type="button"
+                        onClick={() => setShowManagePlatformsModal(true)}
+                        className="text-[10px] font-bold text-pink-600 hover:underline cursor-pointer"
+                      >
+                        + จัดการแพลตฟอร์ม
+                      </button>
+                    </div>
+                    <MultiPlatformSelectDropdown
+                      platformsList={platformsList}
+                      selectedPlatforms={editPlatforms}
+                      onChange={setEditPlatforms}
+                      onOpenManage={() => setShowManagePlatformsModal(true)}
+                      renderPlatformIcon={renderPlatformIcon}
+                    />
                   </div>
 
                   <div>
@@ -1957,10 +2834,10 @@ export default function ContentPlanModule({
                   </div>
 
                   <div>
-                    <label className="block text-rose-800 font-bold mb-1">กำหนดการโพสต์ (Date & Time)</label>
+                    <label className="block text-rose-800 font-bold mb-1">กำหนดวันโพสต์ (Publish Date)</label>
                     <input
-                      type="datetime-local"
-                      value={editPublishDate}
+                      type="date"
+                      value={editPublishDate ? editPublishDate.substring(0, 10) : ''}
                       onChange={(e) => setEditPublishDate(e.target.value)}
                       className="w-full bg-pink-50/40 border border-pink-200 text-rose-950 p-2 rounded-xl font-medium"
                     />
@@ -2097,6 +2974,19 @@ export default function ContentPlanModule({
                   </div>
                 </div>
 
+                {/* Visual Concept Box */}
+                {selectedDetailContent.visual_concept && (
+                  <div className="space-y-1.5">
+                    <label className="font-bold text-rose-950 text-xs flex items-center gap-1.5">
+                      <ImageIcon className="w-4 h-4 text-pink-500" />
+                      <span>รูปแบบ & ไอเดียภาพ (Visual / Visual Concept)</span>
+                    </label>
+                    <div className="p-3.5 rounded-2xl bg-amber-50/50 border border-amber-200/80 text-rose-950 leading-relaxed font-semibold whitespace-pre-wrap">
+                      {selectedDetailContent.visual_concept}
+                    </div>
+                  </div>
+                )}
+
                 {/* Caption Box */}
                 <div className="space-y-1.5">
                   <label className="font-bold text-rose-950 text-xs flex items-center gap-1.5">
@@ -2206,23 +3096,23 @@ export default function ContentPlanModule({
 
       {/* MODAL 2: BULK TABLE PASTE / IMPORT MODAL */}
       {showBulkPasteModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/30 backdrop-blur-sm p-4 animate-in fade-in">
-          <div className="w-full max-w-3xl bg-white border border-pink-100 rounded-3xl p-6 shadow-2xl space-y-4 max-h-[92vh] flex flex-col">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/50 backdrop-blur-md p-2 sm:p-4 animate-in fade-in">
+          <div className="w-[96vw] max-w-[96vw] bg-white border border-pink-100 rounded-3xl p-5 sm:p-6 shadow-2xl space-y-4 max-h-[96vh] flex flex-col">
             
             {/* Header */}
-            <div className="flex items-center justify-between border-b border-pink-100 pb-3">
+            <div className="flex items-center justify-between border-b border-pink-100 pb-3.5">
               <div className="flex items-center gap-3">
-                <div className="p-2 rounded-2xl bg-emerald-50 text-emerald-600 border border-emerald-200">
-                  <FileSpreadsheet className="w-5 h-5" />
+                <div className="p-2.5 rounded-2xl bg-emerald-50 text-emerald-600 border border-emerald-200 shadow-xs">
+                  <FileSpreadsheet className="w-6 h-6 stroke-[2.2]" />
                 </div>
                 <div>
-                  <h3 className="text-base font-bold text-rose-950">นำเข้าคอนเทนต์ทีละหลายรายการ (Excel / Sheets Bulk Import)</h3>
-                  <p className="text-xs text-rose-700/80 font-medium">นำเข้าจากไฟล์ Excel (.xlsx / .csv) หรือคัดลอกตารางมาวางเพื่อเพิ่มพร้อมกันทีเดียว</p>
+                  <h3 className="text-lg font-extrabold text-slate-900">นำเข้าคอนเทนต์ทีละหลายรายการ (Excel / Sheets Bulk Import)</h3>
+                  <p className="text-xs text-slate-500 font-medium mt-0.5">นำเข้าจากไฟล์ Excel (.xlsx / .csv) หรือคัดลอกตารางมาวางเพื่อเพิ่มพร้อมกันทีเดียว</p>
                 </div>
               </div>
               <button
                 onClick={() => setShowBulkPasteModal(false)}
-                className="p-1 rounded-xl text-rose-400 hover:bg-pink-50 cursor-pointer"
+                className="p-2 rounded-xl text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition cursor-pointer"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -2230,35 +3120,86 @@ export default function ContentPlanModule({
 
             {/* Content Body */}
             <div className="overflow-y-auto space-y-4 flex-1 pr-1 text-xs">
+
+              {/* Uploaded File Info & Sheet Switcher */}
+              {uploadedFileName && (
+                <div className="flex items-center justify-between bg-emerald-50 text-emerald-950 border border-emerald-200 p-3 rounded-2xl text-xs font-bold shadow-2xs flex-wrap gap-2">
+                  <div className="flex items-center gap-2">
+                    <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                    <span>อ่านข้อมูลสำเร็จจากไฟล์: <strong className="text-emerald-900 font-extrabold text-sm underline decoration-emerald-300">{uploadedFileName}</strong> ({parsedBulkItems.length} รายการ)</span>
+                  </div>
+                  {availableSheets.length > 1 && (
+                    <div className="flex items-center gap-2">
+                      <span className="text-[11px] text-emerald-800 font-bold">สลับ Sheet ตาราง:</span>
+                      <select
+                        value={selectedSheetName}
+                        onChange={(e) => handleSwitchSheet(e.target.value)}
+                        className="bg-white border border-emerald-300 text-emerald-950 font-bold text-xs py-1 px-3 rounded-xl cursor-pointer shadow-xs focus:ring-2 focus:ring-emerald-400"
+                      >
+                        {availableSheets.map(sName => (
+                          <option key={sName} value={sName}>Sheet: {sName}</option>
+                        ))}
+                      </select>
+                    </div>
+                  )}
+                </div>
+              )}
               
               {/* Presets & Help Bar */}
               <div className="flex items-center justify-between gap-2 bg-pink-50/50 p-3 rounded-2xl border border-pink-100 flex-wrap">
-                <div className="text-[11px] text-rose-800 font-medium flex items-center gap-1.5">
-                  <ClipboardPaste className="w-4 h-4 text-pink-500" />
-                  <span>เลือกไฟล์ Excel หรือวางข้อความตาราง (คอลัมน์: ชื่อคอนเทนต์ | แคปชัน | แพลตฟอร์ม | กลุ่ม | วันที่)</span>
+                <div className="text-[11px] text-slate-700 font-medium flex items-center gap-1.5">
+                  <ClipboardPaste className="w-4 h-4 text-pink-500 shrink-0" />
+                  <span>วางตารางจาก Google Sheets / Excel (คอลัมน์: 1. Title | 2. Pillar | 3. Visual | 4. Caption | 5. Platform | 6. Status | 7. Date)</span>
                 </div>
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 flex-wrap">
+                  {/* Groq AI Table Parser Button */}
+                  <button
+                    type="button"
+                    onClick={handleGroqAiParseTable}
+                    disabled={isParsingWithAi || !bulkRawText.trim()}
+                    className={`px-3.5 py-1.5 rounded-xl text-xs font-extrabold transition shadow-sm flex items-center gap-1.5 cursor-pointer ${
+                      isParsingWithAi
+                        ? 'bg-purple-200 text-purple-700 animate-pulse cursor-wait'
+                        : 'bg-gradient-to-r from-purple-600 via-pink-600 to-rose-600 hover:opacity-95 text-white border border-purple-500 shadow-purple-500/20'
+                    }`}
+                    title="ใช้ Groq AI อ่านและสกัดโครงสร้างตารางให้อัตโนมัติ"
+                  >
+                    {isParsingWithAi ? (
+                      <>
+                        <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                        <span>Groq AI กำลังอ่านตาราง...</span>
+                      </>
+                    ) : (
+                      <>
+                        <Sparkles className="w-3.5 h-3.5 text-amber-300 fill-amber-300" />
+                        <span>🤖 ให้ AI ช่วยอ่านจัดตาราง</span>
+                      </>
+                    )}
+                  </button>
+
                   <button
                     type="button"
                     onClick={() => fileInputRef.current?.click()}
-                    className="px-3 py-1 bg-emerald-500 hover:bg-emerald-600 text-white border border-emerald-600 rounded-lg text-[11px] font-bold transition cursor-pointer shadow-xs flex items-center gap-1"
+                    className="px-3 py-1.5 bg-emerald-500 hover:bg-emerald-600 text-white border border-emerald-600 rounded-xl text-xs font-bold transition cursor-pointer shadow-xs flex items-center gap-1"
                   >
                     <FileSpreadsheet className="w-3.5 h-3.5" />
-                    <span>เลือกไฟล์ Excel</span>
+                    <span>เลือกไฟล์ Excel ใหม่</span>
                   </button>
                   <button
                     type="button"
                     onClick={handlePasteSampleTable}
-                    className="px-2.5 py-1 bg-white hover:bg-pink-100 text-pink-700 border border-pink-200 rounded-lg text-[11px] font-semibold transition cursor-pointer shadow-xs"
+                    className="px-3 py-1.5 bg-white hover:bg-pink-100 text-pink-700 border border-pink-200 rounded-xl text-xs font-bold transition cursor-pointer shadow-xs"
                   >
                     วางตารางตัวอย่าง
                   </button>
                   <button
                     type="button"
-                    onClick={() => handleParseBulkText('')}
-                    className="px-2.5 py-1 bg-white hover:bg-rose-50 text-rose-600 border border-pink-200 rounded-lg text-[11px] font-semibold transition cursor-pointer shadow-xs"
+                    onClick={handleResetBulkImport}
+                    className="px-3 py-1.5 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 rounded-xl text-xs font-bold transition cursor-pointer shadow-xs flex items-center gap-1.5"
+                    title="ล้างข้อมูลและรีเฟรช input พร้อมสำหรับการนำเข้าใหม่"
                   >
-                    ล้างข้อมูล
+                    <RotateCcw className="w-3.5 h-3.5 text-rose-500" />
+                    <span>🔄 ล้างข้อมูล / รีเฟรชใหม่</span>
                   </button>
                 </div>
               </div>
@@ -2266,50 +3207,63 @@ export default function ContentPlanModule({
               {/* Raw Textarea input */}
               <div>
                 <textarea
-                  rows={4}
+                  rows={3}
                   placeholder={`คัดลอกแถวตารางจาก Google Sheets / Excel แล้วกด Ctrl+V หรือ Cmd+V วางลงที่นี่...
 ตัวอย่าง:
-[TikTok VDO] เผยผิวฉ่ำใน 7 วัน	กู้ผิวหมองคล้ำเร่งด่วน!	tiktok	Lutein (ลูทีน / สินค้า)	2026-08-22T10:00
-[IG Photo] 5 เคล็ดลับทากันแดด	สไลด์ขวาเพื่อดูวิธีดูแลผิว	instagram	Educational	2026-08-24T14:30`}
+สุนทรียภาพแห่งการสกัดหยดแรก\tBrand Vibe\tVDO สั้น 15s แสงแดดตกกระทบบาริสต้า\tThe art of extraction ☕🖤 สัมผัสความพิถีพิถัน...\tFacebook, TikTok\tDraft\t03/08/26 09:00`}
                   value={bulkRawText}
                   onChange={(e) => handleParseBulkText(e.target.value)}
-                  className="w-full bg-pink-50/30 border border-pink-200 text-rose-950 p-3 rounded-2xl font-mono text-[11px] focus:outline-none focus:border-pink-400 leading-relaxed shadow-inner"
+                  className="w-full bg-slate-50/70 border border-slate-200 text-slate-900 p-3 rounded-2xl font-mono text-[11px] focus:outline-none focus:border-pink-500 focus:bg-white leading-relaxed shadow-inner"
                 />
               </div>
 
               {/* Parsed Live Preview Table */}
               {parsedBulkItems.length > 0 && (
-                <div className="space-y-2 pt-2 border-t border-pink-100">
-                  <div className="flex items-center justify-between text-xs font-bold text-rose-950">
+                <div className="space-y-2 pt-1 border-t border-pink-100">
+                  <div className="flex items-center justify-between text-xs font-bold text-slate-900">
                     <span className="flex items-center gap-1.5">
                       <CheckCircle2 className="w-4 h-4 text-emerald-500" />
                       <span>พบรายการที่จะนำเข้า ({parsedBulkItems.length} รายการ):</span>
                     </span>
+                    <button
+                      type="button"
+                      onClick={handleResetBulkImport}
+                      className="text-[11px] font-bold text-rose-600 hover:text-rose-700 hover:bg-rose-50 px-2.5 py-1 rounded-lg border border-rose-200 transition flex items-center gap-1 cursor-pointer"
+                    >
+                      <RotateCcw className="w-3 h-3 text-rose-500" />
+                      <span>หากข้อมูลไม่ถูกต้อง กดรีเฟรชข้อมูลที่นี่</span>
+                    </button>
                   </div>
 
-                  <div className="border border-pink-200 rounded-2xl overflow-hidden shadow-xs max-h-56 overflow-y-auto">
-                    <table className="w-full text-left text-[11px] text-rose-900">
-                      <thead className="bg-pink-100/70 text-rose-950 uppercase font-bold text-[10px] border-b border-pink-200 sticky top-0">
+                  <div className="border border-pink-200 rounded-2xl overflow-x-auto shadow-xs max-h-[50vh] overflow-y-auto bg-white">
+                    <table className="w-full text-left text-xs border-collapse select-none min-w-full">
+                      <thead className="bg-pink-100/90 text-slate-900 uppercase font-bold text-[10px] border-b border-pink-200 sticky top-0 z-10">
                         <tr>
-                          <th className="p-2.5">#</th>
-                          <th className="p-2.5">ชื่อคอนเทนต์ (Title)</th>
-                          <th className="p-2.5">แคปชัน (Caption)</th>
-                          <th className="p-2.5">แพลตฟอร์ม</th>
-                          <th className="p-2.5">กลุ่มคอนเทนต์</th>
-                          <th className="p-2.5">กำหนดการโพสต์</th>
+                          <th className="p-3 w-10 text-center text-rose-400">#</th>
+                          <th className="p-3 w-[15%] min-w-[140px]">หัวข้อคอนเทนต์ (Title)</th>
+                          <th className="p-3 w-[13%] min-w-[130px]">หมวดหมู่ / Pillar</th>
+                          <th className="p-3 w-[18%] min-w-[150px]">รูปแบบ & ไอเดียภาพ (Visual)</th>
+                          <th className="p-3 w-[28%] min-w-[220px] text-pink-700">ไอเดีย Copywriting / แคปชัน (Caption)</th>
+                          <th className="p-3 w-[10%] min-w-[100px]">แพลตฟอร์ม</th>
+                          <th className="p-3 w-[8%] min-w-[80px]">สถานะ</th>
+                          <th className="p-3 w-[10%] min-w-[110px]">กำหนดวันโพสต์</th>
+                          <th className="p-3 w-[8%] min-w-[90px]">ลิงก์ภาพ</th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-pink-100 font-medium bg-white">
                         {parsedBulkItems.map((item, idx) => (
                           <tr key={idx} className="hover:bg-pink-50/50 transition">
-                            <td className="p-2.5 text-rose-400 font-bold">{idx + 1}</td>
-                            <td className="p-2.5 font-bold text-rose-950 line-clamp-1">{item.title}</td>
-                            <td className="p-2.5 text-rose-800 line-clamp-1">{item.caption || '-'}</td>
-                            <td className="p-2.5">{getPlatformBadge(item.platform)}</td>
-                            <td className="p-2.5">{getGroupBadge(item.group)}</td>
-                            <td className="p-2.5 font-bold text-rose-700">
-                              {new Date(item.publish_date).toLocaleString('th-TH', { dateStyle: 'short', timeStyle: 'short' })}
+                            <td className="p-3 text-center text-rose-400 font-bold">{idx + 1}</td>
+                            <td className="p-3 font-bold text-slate-900 leading-snug">{item.title}</td>
+                            <td className="p-3">{getGroupBadge(item.group)}</td>
+                            <td className="p-3 text-slate-700 leading-snug">{item.visual_concept || '-'}</td>
+                            <td className="p-3 text-slate-800 font-normal leading-relaxed whitespace-pre-line">{item.caption || '-'}</td>
+                            <td className="p-3">{getPlatformBadge(item.platform)}</td>
+                            <td className="p-3">{getStatusBadge(item.status || 'draft')}</td>
+                            <td className="p-3 font-bold text-rose-700 whitespace-nowrap">
+                              {formatDisplayDate(item.publish_date)}
                             </td>
+                            <td className="p-3 font-mono text-[10px] text-pink-600 truncate max-w-[100px]">{item.media_url || '-'}</td>
                           </tr>
                         ))}
                       </tbody>
@@ -2322,13 +3276,24 @@ export default function ContentPlanModule({
 
             {/* Modal Footer */}
             <div className="p-3.5 bg-pink-50/60 border-t border-pink-100 flex items-center justify-between">
-              <button
-                type="button"
-                onClick={() => setShowBulkPasteModal(false)}
-                className="px-4 py-2 bg-white text-rose-800 border border-pink-200 rounded-xl font-bold hover:bg-pink-50 transition cursor-pointer"
-              >
-                ยกเลิก
-              </button>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => setShowBulkPasteModal(false)}
+                  className="px-4 py-2 bg-white text-rose-800 border border-pink-200 rounded-xl font-bold hover:bg-pink-50 transition cursor-pointer"
+                >
+                  ยกเลิก
+                </button>
+                <button
+                  type="button"
+                  onClick={handleResetBulkImport}
+                  className="px-3.5 py-2 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 rounded-xl text-xs font-bold transition cursor-pointer flex items-center gap-1.5 shadow-xs"
+                >
+                  <RotateCcw className="w-3.5 h-3.5 text-rose-500" />
+                  <span>🔄 รีเฟรช / อัปโหลดใหม่ (Reset)</span>
+                </button>
+              </div>
+
               <button
                 type="button"
                 onClick={handleConfirmBulkImport}
@@ -2336,11 +3301,11 @@ export default function ContentPlanModule({
                 className={`px-5 py-2 rounded-xl text-xs font-bold transition flex items-center gap-2 cursor-pointer shadow-md ${
                   parsedBulkItems.length === 0
                     ? 'bg-pink-100 text-pink-300 cursor-not-allowed border border-pink-200'
-                    : 'bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white shadow-emerald-500/20'
+                    : 'bg-gradient-to-r from-emerald-500 to-teal-600 hover:opacity-90 text-white border border-emerald-600'
                 }`}
               >
-                <Upload className="w-4 h-4" />
-                <span>ยืนยันนำเข้า ({parsedBulkItems.length} รายการ)</span>
+                <CheckCircle2 className="w-4 h-4" />
+                <span>ตกลงบันทึก ({parsedBulkItems.length} รายการ)</span>
               </button>
             </div>
 
@@ -2348,60 +3313,122 @@ export default function ContentPlanModule({
         </div>
       )}
 
-      {/* MODAL 3: CREATE CONTENT ITEM (SINGLE) */}
+      {/* MODAL 3: CREATE CONTENT ITEM (SINGLE - ULTRA PREMIUM EXTRA WIDE MODAL) */}
       {showAddContentModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/30 backdrop-blur-sm p-4 animate-in fade-in">
-          <div className="w-full max-w-lg bg-white border border-pink-100 rounded-3xl p-6 shadow-xl space-y-4 max-h-[90vh] overflow-y-auto">
-            <h3 className="text-lg font-bold text-rose-950">สร้างรายการคอนเทนต์ใหม่</h3>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-md p-4 sm:p-6 animate-in fade-in duration-200">
+          <div className="w-[95vw] max-w-6xl bg-white border border-rose-100/80 rounded-3xl p-6 sm:p-8 shadow-2xl space-y-6 max-h-[92vh] overflow-y-auto">
             
-            <form onSubmit={handleCreateContent} className="space-y-3 text-xs">
-              <div>
-                <label className="block text-rose-800 font-semibold mb-1">หัวข้อคอนเทนต์ / Title</label>
-                <input
-                  type="text"
-                  required
-                  placeholder="เช่น [TikTok VDO] เผยผิวฉ่ำวาวใน 7 วัน"
-                  value={newTitle}
-                  onChange={(e) => setNewTitle(e.target.value)}
-                  className="w-full bg-pink-50/40 border border-pink-200 text-rose-950 p-2.5 rounded-xl focus:outline-none focus:border-pink-400 font-semibold"
-                />
-              </div>
-
-              <div>
-                <label className="block text-rose-800 font-semibold mb-1">แคปชัน / Caption</label>
-                <textarea
-                  rows={3}
-                  placeholder="ใส่รายละเอียดแคปชัน แฮชแท็ก หรือโปรโมชัน..."
-                  value={newCaption}
-                  onChange={(e) => setNewCaption(e.target.value)}
-                  className="w-full bg-pink-50/40 border border-pink-200 text-rose-950 p-2.5 rounded-xl focus:outline-none focus:border-pink-400 font-medium"
-                />
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            {/* Modal Header Bar */}
+            <div className="flex items-center justify-between border-b border-slate-100 pb-4">
+              <div className="flex items-center gap-3">
+                <div className="p-3 rounded-2xl bg-gradient-to-tr from-pink-500 to-rose-500 text-white shadow-md shadow-pink-500/20">
+                  <Plus className="w-5 h-5 stroke-[2.5]" />
+                </div>
                 <div>
-                  <label className="block text-rose-800 font-semibold mb-1">แพลตฟอร์ม</label>
-                  <select
-                    value={newPlatform}
-                    onChange={(e) => setNewPlatform(e.target.value)}
-                    className="w-full bg-pink-50/40 border border-pink-200 text-rose-950 p-2.5 rounded-xl font-medium cursor-pointer"
-                  >
-                    <option value="tiktok">TikTok</option>
-                    <option value="facebook">Facebook</option>
-                    <option value="instagram">Instagram</option>
-                    <option value="line_oa">LINE OA</option>
-                    <option value="youtube">YouTube</option>
-                  </select>
+                  <h3 className="text-xl font-extrabold text-slate-900 tracking-tight">สร้างรายการคอนเทนต์ใหม่</h3>
+                  <p className="text-xs text-slate-500 font-medium mt-0.5">วางแผนรายละเอียดคอนเทนต์ และเลือกหมวดหมู่กลยุทธ์ลงปฏิทิน</p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowAddContentModal(false)}
+                className="p-2 rounded-xl text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            
+            <form onSubmit={handleCreateContent} className="space-y-6 text-xs">
+              
+              {/* Row 1: Title (2 Cols) & Platform (1 Col) */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+                <div className="md:col-span-2">
+                  <label className="block text-xs font-bold text-slate-700 mb-1.5 flex items-center gap-1">
+                    <span>หัวข้อคอนเทนต์ / Title</span>
+                    <span className="text-rose-500">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="เช่น [TikTok VDO] เผยผิวฉ่ำวาวใน 7 วัน ด้วยกลูต้าเซรั่ม"
+                    value={newTitle}
+                    onChange={(e) => setNewTitle(e.target.value)}
+                    className="w-full bg-slate-50/80 border border-slate-200 focus:bg-white focus:border-pink-500 focus:ring-4 focus:ring-pink-500/10 text-slate-900 font-semibold text-sm p-3.5 rounded-2xl transition shadow-xs placeholder:text-slate-400"
+                  />
                 </div>
 
                 <div>
-                  <label className="block text-rose-800 font-semibold mb-1">กลุ่มคอนเทนต์ (Group)</label>
+                  <div className="flex items-center justify-between mb-1.5">
+                    <label className="block text-xs font-bold text-slate-700">
+                      แพลตฟอร์มเผยแพร่ (เลือกหลายช่องทางได้)
+                    </label>
+                    <button
+                      type="button"
+                      onClick={() => setShowManagePlatformsModal(true)}
+                      className="text-[10px] font-bold text-pink-600 hover:text-pink-700 underline cursor-pointer"
+                    >
+                      + จัดการแพลตฟอร์ม
+                    </button>
+                  </div>
+                  <MultiPlatformSelectDropdown
+                    platformsList={platformsList}
+                    selectedPlatforms={newPlatforms}
+                    onChange={setNewPlatforms}
+                    onOpenManage={() => setShowManagePlatformsModal(true)}
+                    renderPlatformIcon={renderPlatformIcon}
+                  />
+                </div>
+              </div>
+
+              {/* Row 2: Visual Concept & Caption (Multi-Column) */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1.5 flex items-center gap-1.5">
+                    <ImageIcon className="w-4 h-4 text-pink-500" />
+                    <span>รูปแบบ & ไอเดียภาพ (Visual / Visual Concept)</span>
+                  </label>
+                  <textarea
+                    rows={4}
+                    placeholder="เช่น สไลด์ภาพ 5 หน้า Before & After, VDO สั้น 15s ทดลองเนื้อสัมผัสเซรั่ม..."
+                    value={newVisualConcept}
+                    onChange={(e) => setNewVisualConcept(e.target.value)}
+                    className="w-full bg-slate-50/80 border border-slate-200 focus:bg-white focus:border-pink-500 focus:ring-4 focus:ring-pink-500/10 text-slate-900 font-medium p-3.5 rounded-2xl transition shadow-xs leading-relaxed placeholder:text-slate-400"
+                  />
+                </div>
+
+                <div className="md:col-span-2">
+                  <label className="block text-xs font-bold text-slate-700 mb-1.5 flex items-center gap-1.5">
+                    <FileText className="w-4 h-4 text-pink-500" />
+                    <span>รายละเอียดแคปชัน & ไอเดีย Copywriting (Caption)</span>
+                  </label>
+                  <textarea
+                    rows={4}
+                    placeholder="ใส่รายละเอียดแคปชัน แฮชแท็ก สิทธิพิเศษ หรือ Script ข้อความโฆษณา..."
+                    value={newCaption}
+                    onChange={(e) => setNewCaption(e.target.value)}
+                    className="w-full bg-slate-50/80 border border-slate-200 focus:bg-white focus:border-pink-500 focus:ring-4 focus:ring-pink-500/10 text-slate-900 font-medium p-3.5 rounded-2xl transition shadow-xs leading-relaxed placeholder:text-slate-400"
+                  />
+                </div>
+              </div>
+
+              {/* Row 3: Strategic Groups (Pillar) & Schedule Time (3 Cols Grid Card) */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 p-5 rounded-2xl bg-gradient-to-r from-pink-50/60 via-purple-50/40 to-amber-50/50 border border-pink-100/90 shadow-xs">
+                <div>
+                  <label className="block text-xs font-bold text-slate-800 mb-1.5 flex items-center gap-1">
+                    <span>กลุ่มคอนเทนต์ (Group / Pillar)</span>
+                    <span className="text-rose-500 font-bold">* ต้องเลือก</span>
+                  </label>
                   <select
                     value={newGroup}
-                    onChange={(e) => setNewGroup(e.target.value)}
-                    className="w-full bg-pink-50/40 border border-pink-200 text-rose-950 p-2.5 rounded-xl font-medium cursor-pointer"
+                    onChange={(e) => {
+                      const selectedG = e.target.value;
+                      setNewGroup(selectedG);
+                      const gObj = effectiveContentGroups.find(g => g.name === selectedG);
+                      setNewSubCategory(gObj?.subCategories?.[0] || '');
+                    }}
+                    className="w-full bg-white border border-pink-200 text-slate-900 p-3 rounded-xl font-bold cursor-pointer focus:ring-2 focus:ring-pink-400 transition shadow-2xs"
                   >
-                    {contentGroups.map(g => (
+                    {effectiveContentGroups.map(g => (
                       <option key={g.id} value={g.name}>
                         {g.name}
                       </option>
@@ -2409,54 +3436,101 @@ export default function ContentPlanModule({
                   </select>
                 </div>
 
+                {/* Sub-Category Dropdown */}
                 <div>
-                  <label className="block text-rose-800 font-semibold mb-1">วันที่และเวลาโพสต์</label>
+                  <label className="block text-xs font-bold text-amber-950 mb-1.5">หมวดหมู่ย่อย (Sub-Category)</label>
+                  {(() => {
+                    const selectedGObj = effectiveContentGroups.find(g => g.name === newGroup);
+                    const subCats = selectedGObj?.subCategories || [];
+
+                    return (
+                      <select
+                        value={newSubCategory}
+                        onChange={(e) => setNewSubCategory(e.target.value)}
+                        className="w-full bg-white border border-amber-300 text-amber-950 p-3 rounded-xl font-bold cursor-pointer focus:ring-2 focus:ring-amber-400 transition shadow-2xs"
+                      >
+                        <option value="">-- ไม่ระบุหมวดหมู่ย่อย --</option>
+                        {subCats.map((sub, sIdx) => (
+                          <option key={sIdx} value={sub}>{sub}</option>
+                        ))}
+                      </select>
+                    );
+                  })()}
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-800 mb-1.5">กำหนดวันโพสต์ (Publish Date)</label>
                   <input
-                    type="datetime-local"
-                    value={newPublishDate}
+                    type="date"
+                    value={newPublishDate ? newPublishDate.substring(0, 10) : ''}
                     onChange={(e) => setNewPublishDate(e.target.value)}
-                    className="w-full bg-pink-50/40 border border-pink-200 text-rose-950 p-2 rounded-xl font-medium"
+                    className="w-full bg-white border border-slate-200 text-slate-900 p-3 rounded-xl font-bold focus:ring-2 focus:ring-pink-400 transition shadow-2xs"
                   />
                 </div>
               </div>
 
-              {/* Attach Media Image URL */}
-              <div>
-                <label className="block text-rose-800 font-semibold mb-1">แนบลิงก์รูปภาพประกอบ (Image URL)</label>
-                <input
-                  type="url"
-                  placeholder="https://images.unsplash.com/..."
-                  value={newMediaUrl}
-                  onChange={(e) => setNewMediaUrl(e.target.value)}
-                  className="w-full bg-pink-50/40 border border-pink-200 text-rose-950 p-2.5 rounded-xl font-mono text-[11px]"
-                />
+              {/* Row 4: Image & Reference URL Links (2 Cols Grid) */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                {/* Attach Media Image URL */}
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1.5 flex items-center gap-1.5">
+                    <ImageIcon className="w-4 h-4 text-pink-500" />
+                    <span>แนบลิงก์รูปภาพประกอบ (Image URL)</span>
+                  </label>
+                  <input
+                    type="url"
+                    placeholder="https://images.unsplash.com/... (เริ่มต้นเป็นว่างเปล่า)"
+                    value={newMediaUrl}
+                    onChange={(e) => setNewMediaUrl(e.target.value)}
+                    className="w-full bg-slate-50/80 border border-slate-200 focus:bg-white focus:border-pink-500 text-slate-900 font-mono text-xs p-3 rounded-2xl transition shadow-xs"
+                  />
+                  {/* Image Sample Presets */}
+                  <div className="flex items-center gap-1.5 flex-wrap pt-2">
+                    <span className="text-[11px] text-slate-500 font-bold">หรือเลือกรูปตัวอย่าง:</span>
+                    {SAMPLE_IMAGES.map((sample, i) => (
+                      <button
+                        key={i}
+                        type="button"
+                        onClick={() => setNewMediaUrl(sample.url)}
+                        className="px-2.5 py-1 rounded-xl bg-pink-50 hover:bg-pink-500 hover:text-white text-pink-700 text-[11px] font-bold transition border border-pink-200/80 cursor-pointer shadow-2xs"
+                      >
+                        {sample.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Attach External Reference URL */}
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1.5 flex items-center gap-1.5">
+                    <LinkIcon className="w-4 h-4 text-pink-500" />
+                    <span>แนบลิงก์อ้างอิง / เอกสาร (Canva, Drive, Notion)</span>
+                  </label>
+                  <input
+                    type="url"
+                    placeholder="https://canva.com/... หรือ https://drive.google.com/..."
+                    value={newReferenceUrl}
+                    onChange={(e) => setNewReferenceUrl(e.target.value)}
+                    className="w-full bg-slate-50/80 border border-slate-200 focus:bg-white focus:border-pink-500 text-slate-900 font-mono text-xs p-3 rounded-2xl transition shadow-xs"
+                  />
+                </div>
               </div>
 
-              {/* Attach External Reference URL */}
-              <div>
-                <label className="block text-rose-800 font-semibold mb-1">แนบลิงก์อ้างอิง / เอกสาร (เช่น Drive, Canva)</label>
-                <input
-                  type="url"
-                  placeholder="https://canva.com/... หรือ https://drive.google.com/..."
-                  value={newReferenceUrl}
-                  onChange={(e) => setNewReferenceUrl(e.target.value)}
-                  className="w-full bg-pink-50/40 border border-pink-200 text-rose-950 p-2.5 rounded-xl font-mono text-[11px]"
-                />
-              </div>
-
-              <div className="flex justify-end gap-2 pt-3 border-t border-pink-100">
+              {/* Action Buttons */}
+              <div className="flex justify-end items-center gap-3 pt-5 border-t border-slate-100">
                 <button
                   type="button"
                   onClick={() => setShowAddContentModal(false)}
-                  className="px-4 py-2 bg-pink-50 text-rose-800 rounded-xl hover:bg-pink-100 font-semibold cursor-pointer"
+                  className="px-6 py-3 rounded-2xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold transition text-xs cursor-pointer"
                 >
                   ยกเลิก
                 </button>
                 <button
                   type="submit"
-                  className="px-5 py-2 bg-gradient-to-r from-[#F0E6F5] via-[#FFEBF3] to-[#E6F2FF] hover:opacity-90 text-purple-950 font-bold rounded-xl shadow-xs border border-[#E2D2EA] cursor-pointer"
+                  className="px-7 py-3 rounded-2xl bg-gradient-to-r from-pink-500 via-rose-500 to-purple-600 hover:from-pink-600 hover:to-purple-700 text-white font-extrabold shadow-lg shadow-pink-500/25 hover:shadow-pink-500/40 transition flex items-center gap-2 text-xs cursor-pointer"
                 >
-                  บันทึกคอนเทนต์
+                  <Save className="w-4 h-4 text-white" />
+                  <span>บันทึกคอนเทนต์ลงปฏิทิน</span>
                 </button>
               </div>
             </form>
@@ -2464,86 +3538,211 @@ export default function ContentPlanModule({
         </div>
       )}
 
-      {/* MODAL 4: MANAGE CONTENT GROUPS MODAL */}
+      {/* MODAL 4: MANAGE CONTENT GROUPS & SUB-CATEGORIES MODAL */}
       {showManageGroupsModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/30 backdrop-blur-sm p-4 animate-in fade-in">
-          <div className="w-full max-w-md bg-white border border-pink-100 rounded-3xl p-6 shadow-xl space-y-4">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#12072B]/60 backdrop-blur-md p-4 animate-in fade-in">
+          <div className="w-full max-w-2xl bg-white border border-[#E2D2EA] rounded-3xl p-6 shadow-2xl space-y-5 max-h-[90vh] overflow-y-auto">
+            
+            {/* Header */}
             <div className="flex items-center justify-between border-b border-pink-100 pb-3">
-              <div className="flex items-center gap-2">
-                <FolderPlus className="w-5 h-5 text-pink-500" />
-                <h3 className="text-base font-bold text-rose-950">จัดการกลุ่มคอนเทนต์ (Manage Content Groups)</h3>
+              <div className="flex items-center gap-2.5">
+                <div className="p-2 rounded-xl bg-pink-100/70 border border-pink-200">
+                  <FolderPlus className="w-5 h-5 text-rose-700" />
+                </div>
+                <div>
+                  <h3 className="text-base font-bold text-rose-950">จัดการกลุ่มคอนเทนต์ & หมวดหมู่ย่อย</h3>
+                  <p className="text-[11px] text-rose-700/80 font-medium">เพิ่ม แก้ไข หรือลบ ทั้งกลุ่มหลักและหมวดหมู่ย่อย (Sub-Categories)</p>
+                </div>
               </div>
               <button
+                type="button"
                 onClick={() => setShowManageGroupsModal(false)}
-                className="p-1 rounded-xl text-rose-400 hover:bg-pink-50 cursor-pointer"
+                className="p-1.5 rounded-xl text-rose-400 hover:text-rose-700 hover:bg-pink-50 transition cursor-pointer"
               >
                 <X className="w-5 h-5" />
               </button>
             </div>
 
-            {/* List of Existing Groups */}
-            <div className="space-y-2 max-h-56 overflow-y-auto pr-1">
-              <label className="text-xs font-semibold text-rose-900 block">รายการกลุ่มปัจจุบัน ({contentGroups.length}):</label>
-              {contentGroups.map(grp => (
-                <div key={grp.id} className="p-2.5 rounded-xl bg-pink-50/40 border border-pink-100 flex items-center justify-between text-xs">
-                  <span className={`px-2.5 py-0.5 rounded-full text-xs font-medium border ${grp.color}`}>
-                    {grp.name}
-                  </span>
-                  <button
-                    onClick={() => onDeleteContentGroup && onDeleteContentGroup(grp.id)}
-                    className="p-1 text-rose-400 hover:text-rose-600 transition cursor-pointer"
-                    title="ลบกลุ่มนี้"
-                  >
-                    <Trash2 className="w-3.5 h-3.5" />
-                  </button>
-                </div>
-              ))}
+            {/* List of Existing Groups with Nested Sub-Categories */}
+            <div className="space-y-3 max-h-[380px] overflow-y-auto pr-1">
+              <label className="text-xs font-bold text-rose-950 block">รายการกลุ่มและหมวดหมู่ย่อยปัจจุบัน ({effectiveContentGroups.length} กลุ่ม):</label>
+              
+              {effectiveContentGroups.map(grp => {
+                const subCats = grp.subCategories || [];
+
+                return (
+                  <div key={grp.id} className="p-3.5 rounded-2xl bg-pink-50/40 border border-pink-100 space-y-2.5 shadow-2xs">
+                    {/* Main Group Header Row */}
+                    <div className="flex items-center justify-between gap-2">
+                      <div className="flex items-center gap-2">
+                        <span className={`px-3 py-1 rounded-full text-xs font-bold border ${grp.color}`}>
+                          {grp.name}
+                        </span>
+                        <span className="text-[10px] text-purple-900/60 font-semibold">({subCats.length} หมวดย่อย)</span>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => onDeleteContentGroup && onDeleteContentGroup(grp.id)}
+                        className="p-1 text-rose-400 hover:text-rose-600 hover:bg-rose-100/50 rounded-lg transition cursor-pointer"
+                        title="ลบกลุ่มหลักนี้"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
+
+                    {/* Sub-Categories Chip List */}
+                    <div className="pl-3 border-l-2 border-amber-300 space-y-2">
+                      <div className="flex items-center justify-between text-[11px] font-bold text-purple-950">
+                        <span>🏷️ หมวดหมู่ย่อยใต้ {grp.name}:</span>
+                      </div>
+
+                      <div className="flex flex-wrap gap-1.5 items-center">
+                        {subCats.map((sub, sIdx) => {
+                          const isEditingThis = editingSubCategory?.groupId === grp.id && editingSubCategory?.oldName === sub;
+
+                          if (isEditingThis) {
+                            return (
+                              <div key={sIdx} className="flex items-center gap-1 bg-white border border-amber-400 rounded-xl px-2 py-1 text-xs shadow-xs">
+                                <input
+                                  type="text"
+                                  autoFocus
+                                  value={editingSubCategory.name}
+                                  onChange={(e) => setEditingSubCategory({ ...editingSubCategory, name: e.target.value })}
+                                  onKeyDown={(e) => {
+                                    if (e.key === 'Enter') handleEditSubCategory(grp.id, sub, editingSubCategory.name);
+                                    if (e.key === 'Escape') setEditingSubCategory(null);
+                                  }}
+                                  className="w-36 bg-amber-50/50 border border-amber-200 text-purple-950 px-1.5 py-0.5 rounded-md font-semibold text-xs focus:outline-none"
+                                />
+                                <button
+                                  type="button"
+                                  onClick={() => handleEditSubCategory(grp.id, sub, editingSubCategory.name)}
+                                  className="p-1 text-emerald-600 hover:bg-emerald-50 rounded cursor-pointer"
+                                  title="บันทึก"
+                                >
+                                  <Check className="w-3.5 h-3.5 stroke-[3]" />
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => setEditingSubCategory(null)}
+                                  className="p-1 text-rose-500 hover:bg-rose-50 rounded cursor-pointer"
+                                  title="ยกเลิก"
+                                >
+                                  <X className="w-3.5 h-3.5" />
+                                </button>
+                              </div>
+                            );
+                          }
+
+                          return (
+                            <div
+                              key={sIdx}
+                              className="group/sub flex items-center gap-1.5 bg-white border border-amber-200/90 text-purple-950 px-2.5 py-1 rounded-xl text-xs font-semibold shadow-2xs hover:border-amber-400 transition"
+                            >
+                              <span>{sub}</span>
+                              <div className="flex items-center gap-0.5 opacity-60 group-hover/sub:opacity-100 transition">
+                                <button
+                                  type="button"
+                                  onClick={() => setEditingSubCategory({ groupId: grp.id, oldName: sub, name: sub })}
+                                  className="p-0.5 text-purple-600 hover:text-purple-900 rounded cursor-pointer"
+                                  title="แก้ไขชื่อหมวดหมู่ย่อย"
+                                >
+                                  <Edit3 className="w-3 h-3" />
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => handleDeleteSubCategory(grp.id, sub)}
+                                  className="p-0.5 text-rose-400 hover:text-rose-700 rounded cursor-pointer"
+                                  title="ลบหมวดหมู่ย่อยนี้"
+                                >
+                                  <Trash2 className="w-3 h-3" />
+                                </button>
+                              </div>
+                            </div>
+                          );
+                        })}
+
+                        {subCats.length === 0 && (
+                          <span className="text-[11px] text-purple-800/50 italic">(ยังไม่มีหมวดหมู่ย่อย)</span>
+                        )}
+                      </div>
+
+                      {/* Quick Add Sub-Category Input under this Group */}
+                      <div className="flex items-center gap-2 pt-1">
+                        <input
+                          type="text"
+                          placeholder={`+ เพิ่มหมวดหมู่ย่อยใต้ ${grp.name}...`}
+                          value={newSubCategoryInput[grp.id] || ''}
+                          onChange={(e) => setNewSubCategoryInput({ ...newSubCategoryInput, [grp.id]: e.target.value })}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter') {
+                              e.preventDefault();
+                              handleAddSubCategory(grp.id);
+                            }
+                          }}
+                          className="flex-1 bg-white border border-pink-200 text-rose-950 px-2.5 py-1.5 rounded-xl text-xs font-medium focus:outline-none focus:border-pink-400"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => handleAddSubCategory(grp.id)}
+                          className="px-3.5 py-1.5 bg-amber-500 hover:bg-amber-600 text-white rounded-xl text-xs font-bold transition flex items-center gap-1 cursor-pointer shadow-2xs"
+                        >
+                          <Plus className="w-3.5 h-3.5" />
+                          <span>เพิ่มย่อย</span>
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
             </div>
 
             {/* Add New Group Form */}
             <form onSubmit={handleCreateGroup} className="space-y-3 pt-3 border-t border-pink-100 text-xs">
-              <label className="text-xs font-semibold text-rose-950 block">เพิ่มกลุ่มคอนเทนต์ใหม่:</label>
-              <div>
-                <label className="block text-rose-800 font-semibold mb-1">ชื่อกลุ่ม (Group Name)</label>
-                <input
-                  type="text"
-                  required
-                  placeholder="เช่น Promotion 9.9, Lutein Skincare, Branding"
-                  value={newGroupName}
-                  onChange={(e) => setNewGroupName(e.target.value)}
-                  className="w-full bg-pink-50/40 border border-pink-200 text-rose-950 p-2.5 rounded-xl font-semibold"
-                />
+              <label className="text-xs font-bold text-rose-950 block">➕ เพิ่มกลุ่มคอนเทนต์หลักใหม่:</label>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-rose-800 font-semibold mb-1">ชื่อกลุ่ม (Group Name)</label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="เช่น Promotion 9.9, Brand Story"
+                    value={newGroupName}
+                    onChange={(e) => setNewGroupName(e.target.value)}
+                    className="w-full bg-pink-50/40 border border-pink-200 text-rose-950 p-2.5 rounded-xl font-semibold"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-rose-800 font-semibold mb-1">เลือกโทนสีประจำกลุ่ม</label>
+                  <select
+                    value={newGroupColor}
+                    onChange={(e) => setNewGroupColor(e.target.value)}
+                    className="w-full bg-pink-50/40 border border-pink-200 text-rose-950 p-2.5 rounded-xl font-medium cursor-pointer"
+                  >
+                    {GROUP_COLORS.map(c => (
+                      <option key={c.value} value={c.value}>
+                        {c.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
               </div>
 
-              <div>
-                <label className="block text-rose-800 font-semibold mb-1">เลือกโทนสีประจำกลุ่ม</label>
-                <select
-                  value={newGroupColor}
-                  onChange={(e) => setNewGroupColor(e.target.value)}
-                  className="w-full bg-pink-50/40 border border-pink-200 text-rose-950 p-2.5 rounded-xl font-medium cursor-pointer"
-                >
-                  {GROUP_COLORS.map(c => (
-                    <option key={c.value} value={c.value}>
-                      {c.label}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div className="flex justify-end gap-2 pt-2">
+              <div className="flex justify-end gap-2 pt-2 border-t border-pink-100">
                 <button
                   type="button"
                   onClick={() => setShowManageGroupsModal(false)}
-                  className="px-4 py-2 bg-pink-50 text-rose-800 rounded-xl font-semibold"
+                  className="px-4 py-2 bg-pink-50 text-rose-800 rounded-xl font-bold transition cursor-pointer"
                 >
-                  ปิด
+                  ปิดหน้าต่าง
                 </button>
                 <button
                   type="submit"
-                  className="px-5 py-2 bg-gradient-to-r from-[#F0E6F5] via-[#FFEBF3] to-[#E6F2FF] hover:opacity-90 text-purple-950 font-bold rounded-xl shadow-xs border border-[#E2D2EA] cursor-pointer flex items-center gap-1"
+                  className="px-5 py-2 bg-gradient-to-r from-purple-950 via-pink-900 to-purple-900 hover:opacity-95 text-white font-bold rounded-xl shadow-xs cursor-pointer flex items-center gap-1.5"
                 >
-                  <Plus className="w-3.5 h-3.5" />
-                  <span>เพิ่มกลุ่ม</span>
+                  <Plus className="w-4 h-4 text-pink-300" />
+                  <span>เพิ่มกลุ่มหลักใหม่</span>
                 </button>
               </div>
             </form>
@@ -2608,6 +3807,133 @@ export default function ContentPlanModule({
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL 6: MANAGE PLATFORMS (ADD, EDIT, DELETE CUSTOM PLATFORMS) */}
+      {showManagePlatformsModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-md p-4 animate-in fade-in">
+          <div className="w-full max-w-lg bg-white border border-rose-100/80 rounded-3xl p-6 shadow-2xl space-y-5 max-h-[90vh] flex flex-col">
+            
+            {/* Modal Header */}
+            <div className="flex items-center justify-between border-b border-slate-100 pb-3.5">
+              <div className="flex items-center gap-3">
+                <div className="p-2.5 rounded-2xl bg-gradient-to-tr from-pink-500 to-rose-500 text-white shadow-md shadow-pink-500/20">
+                  <Settings className="w-5 h-5 stroke-[2.5]" />
+                </div>
+                <div>
+                  <h3 className="text-base font-extrabold text-slate-900">จัดการแพลตฟอร์ม (Manage Platforms)</h3>
+                  <p className="text-xs text-slate-500 font-medium mt-0.5">เพิ่ม ลบ หรือแก้ไขแพลตฟอร์มเผยแพร่คอนเทนต์</p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowManagePlatformsModal(false)}
+                className="p-1.5 rounded-xl text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Form to Add New Platform */}
+            <form onSubmit={handleAddPlatform} className="p-4 rounded-2xl bg-pink-50/50 border border-pink-100 space-y-3">
+              <label className="block text-xs font-bold text-slate-800">
+                + เพิ่มแพลตฟอร์มใหม่
+              </label>
+              <div className="flex items-center gap-2">
+                <input
+                  type="text"
+                  placeholder="พิมพ์ชื่อแพลตฟอร์มใหม่ เช่น Shopee Video, Blockdit..."
+                  value={newCustomPlatformName}
+                  onChange={(e) => setNewCustomPlatformName(e.target.value)}
+                  className="flex-1 bg-white border border-slate-200 focus:border-pink-500 text-slate-900 font-semibold text-xs p-2.5 rounded-xl transition shadow-xs placeholder:text-slate-400"
+                />
+
+                <button
+                  type="submit"
+                  disabled={!newCustomPlatformName.trim()}
+                  className={`px-4 py-2.5 rounded-xl text-xs font-extrabold transition shadow-sm cursor-pointer ${
+                    newCustomPlatformName.trim()
+                      ? 'bg-rose-500 hover:bg-rose-600 text-white'
+                      : 'bg-slate-100 text-slate-400 cursor-not-allowed'
+                  }`}
+                >
+                  + เพิ่ม
+                </button>
+              </div>
+            </form>
+
+            {/* Existing Platforms List */}
+            <div className="space-y-2 flex-1 overflow-y-auto pr-1">
+              <label className="block text-xs font-bold text-slate-700">
+                แพลตฟอร์มในระบบทั้งหมด ({platformsList.length} แพลตฟอร์ม):
+              </label>
+
+              <div className="space-y-2">
+                {platformsList.map(plat => (
+                  <div key={plat.id} className="flex items-center justify-between p-3 rounded-2xl bg-slate-50/80 border border-slate-200/80 hover:bg-white transition group">
+                    <div className="flex items-center gap-2.5">
+                      {renderPlatformIcon(plat.id)}
+                      {editingPlatformId === plat.id ? (
+                        <div className="flex items-center gap-1.5">
+                          <input
+                            type="text"
+                            value={editPlatformNameInput}
+                            onChange={(e) => setEditPlatformNameInput(e.target.value)}
+                            className="p-1.5 bg-white border border-pink-400 rounded-lg text-xs font-bold text-slate-900"
+                            autoFocus
+                          />
+                          <button
+                            type="button"
+                            onClick={() => handleEditPlatform(plat.id)}
+                            className="px-2 py-1 bg-emerald-500 text-white rounded-lg text-[10px] font-bold"
+                          >
+                            บันทึก
+                          </button>
+                        </div>
+                      ) : (
+                        <span className="font-extrabold text-slate-900 text-xs">{plat.name}</span>
+                      )}
+                    </div>
+
+                    <div className="flex items-center gap-1">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setEditingPlatformId(plat.id);
+                          setEditPlatformNameInput(plat.name);
+                        }}
+                        className="p-1.5 text-slate-400 hover:text-pink-600 transition cursor-pointer"
+                        title="แก้ไขชื่อ"
+                      >
+                        <Edit3 className="w-3.5 h-3.5" />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleDeletePlatform(plat.id)}
+                        className="p-1.5 text-slate-400 hover:text-rose-600 transition cursor-pointer"
+                        title="ลบแพลตฟอร์ม"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Modal Footer */}
+            <div className="pt-3 border-t border-slate-100 flex justify-end">
+              <button
+                type="button"
+                onClick={() => setShowManagePlatformsModal(false)}
+                className="px-5 py-2.5 bg-slate-900 hover:bg-slate-800 text-white font-bold rounded-xl text-xs transition cursor-pointer shadow-sm"
+              >
+                เสร็จสิ้น
+              </button>
+            </div>
+
           </div>
         </div>
       )}

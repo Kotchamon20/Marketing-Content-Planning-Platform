@@ -313,3 +313,23 @@ CREATE POLICY "Allow public all access on notification_rules" ON notification_ru
 
 DROP POLICY IF EXISTS "Allow public all access on notification_logs" ON notification_logs;
 CREATE POLICY "Allow public all access on notification_logs" ON notification_logs FOR ALL USING (true);
+
+-- 17. CUSTOM PLATFORMS (Dynamic User Platform CRUD)
+CREATE TABLE IF NOT EXISTS custom_platforms (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    team_id UUID REFERENCES teams(id) ON DELETE CASCADE,
+    platform_key VARCHAR(100) NOT NULL UNIQUE,
+    name VARCHAR(255) NOT NULL,
+    icon VARCHAR(50) DEFAULT '📱',
+    color VARCHAR(255) DEFAULT 'bg-pink-50 text-rose-800 border-pink-200',
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- MIGRATIONS FOR CONTENT ITEMS (Visual Concept & Multi-Platforms)
+ALTER TABLE content_items ADD COLUMN IF NOT EXISTS visual_concept TEXT;
+ALTER TABLE content_items ADD COLUMN IF NOT EXISTS platforms TEXT[];
+ALTER TABLE content_items ALTER COLUMN platform TYPE TEXT USING platform::text;
+
+ALTER TABLE custom_platforms DISABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Allow public all access on custom_platforms" ON custom_platforms;
+CREATE POLICY "Allow public all access on custom_platforms" ON custom_platforms FOR ALL USING (true);

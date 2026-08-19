@@ -143,6 +143,12 @@ export default function App() {
     showSaveToast('ลบคอนเทนต์เรียบร้อยแล้ว!');
   };
 
+  const handleClearAllContent = () => {
+    setContentItems([]);
+    localStorage.removeItem('nitan_contentItems');
+    showSaveToast('ล้างรายการคอนเทนต์ทั้งหมดเรียบร้อยแล้ว!');
+  };
+
   const handleAddContentGroup = (newGroup) => {
     setContentGroups(prev => [...prev, newGroup]);
     showSaveToast('บันทึกกลุ่มคอนเทนต์ใหม่เรียบร้อยแล้ว!');
@@ -151,6 +157,11 @@ export default function App() {
   const handleDeleteContentGroup = (groupId) => {
     setContentGroups(prev => prev.filter(g => g.id !== groupId));
     showSaveToast('ลบกลุ่มคอนเทนต์เรียบร้อยแล้ว!');
+  };
+
+  const handleUpdateContentGroups = (updatedGroups) => {
+    setContentGroups(updatedGroups);
+    showSaveToast('บันทึกการเปลี่ยนแปลงหมวดหมู่เรียบร้อยแล้ว!');
   };
 
   const handleAddVaultIdea = (newIdea) => {
@@ -268,8 +279,10 @@ export default function App() {
               onUpdateContentStatus={handleUpdateContentStatus}
               onEditContentItem={handleEditContentItem}
               onDeleteContentItem={handleDeleteContentItem}
+              onClearAllContent={handleClearAllContent}
               onAddContentGroup={handleAddContentGroup}
               onDeleteContentGroup={handleDeleteContentGroup}
+              onUpdateContentGroups={handleUpdateContentGroups}
               onAddVaultIdea={handleAddVaultIdea}
               onConvertVaultIdeaToContent={handleConvertVaultIdeaToContent}
             />

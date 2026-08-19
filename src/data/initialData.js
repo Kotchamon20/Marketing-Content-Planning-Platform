@@ -75,22 +75,46 @@ export const INITIAL_CONTENT_GROUPS = [
   {
     id: 'grp-product-plan',
     name: 'Product Plan & Campaign',
-    color: 'bg-purple-50 text-purple-900 border-purple-200'
+    color: 'bg-purple-50 text-purple-900 border-purple-200',
+    subCategories: [
+      'เปิดตัวสินค้าใหม่ (New Product Launch)',
+      'พรีออเดอร์ (Pre-Order)',
+      'จุดเด่นสเปกสินค้า (Product Highlights)',
+      'แคมเปญใหญ่ประจำไตรมาส (Mega Campaign)'
+    ]
   },
   {
     id: 'grp-promo-plan',
     name: 'แผนโปรโมท (Promotion Plan)',
-    color: 'bg-rose-50 text-rose-900 border-rose-200'
+    color: 'bg-rose-50 text-rose-900 border-rose-200',
+    subCategories: [
+      'โปรโมชัน Double Day (เช่น 8.8 / 9.9)',
+      'คูปองส่วนลดพิเศษ (Special Coupon)',
+      'แฟลชเซลล์ Flash Sale',
+      'ของแถมพิเศษ (Gift With Purchase)'
+    ]
   },
   {
     id: 'grp-always-on',
     name: 'คอนเทนต์ประจำ (Always-On)',
-    color: 'bg-amber-50 text-amber-900 border-amber-200'
+    color: 'bg-amber-50 text-amber-900 border-amber-200',
+    subCategories: [
+      '⭐ รีวิวจากผู้ใช้จริง (Customer Reviews & Testimonials)',
+      '🧪 เกร็ดความรู้ส่วนผสม (Skincare Knowledge & Tips)',
+      '✨ สไลด์ Before & After',
+      '🎬 เบื้องหลังแบรนด์ (Behind The Scenes)',
+      '💬 Q&A ตอบคำถามลูกค้ายอดฮิต (FAQ)'
+    ]
   },
   {
     id: 'grp-general-mkt',
     name: 'การตลาดทั่วไป (General Marketing)',
-    color: 'bg-sky-50 text-sky-900 border-sky-200'
+    color: 'bg-sky-50 text-sky-900 border-sky-200',
+    subCategories: [
+      'ข่าวสารแบรนด์ & PR',
+      'กิจกรรมแจกรางวัล (Giveaway & Contest)',
+      'คอนเทนต์ไวรัลตามเทรนด์ (Trending & Viral Content)'
+    ]
   }
 ];
 

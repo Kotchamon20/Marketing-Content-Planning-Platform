@@ -6,49 +6,48 @@
 
 export const GROQ_API_KEY = import.meta.env.VITE_GROQ_API_KEY || '';
 
-/**
- * Call Groq AI API endpoint
- */
-async function callGroqAi(messages, model = 'openai/gpt-oss-120b', temperature = 0.7) {
-  try {
-    const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${GROQ_API_KEY}`
-      },
-      body: JSON.stringify({
-        model: model,
-        messages: messages,
-        temperature: temperature,
-        max_tokens: 1500
-      })
-    });
+const GROQ_MODELS = [
+  'llama-3.3-70b-versatile',
+  'llama-3.1-8b-instant',
+  'gemma2-9b-it',
+  'mixtral-8x7b-32768'
+];
 
-    if (!response.ok) {
-      const fallbackResponse = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+/**
+ * Call Groq AI API endpoint with multi-model fallback on 429 Rate Limits
+ */
+async function callGroqAi(messages, preferredModel = 'llama-3.3-70b-versatile', temperature = 0.3) {
+  const modelsToTry = [preferredModel, ...GROQ_MODELS.filter(m => m !== preferredModel)];
+
+  for (const model of modelsToTry) {
+    try {
+      const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${GROQ_API_KEY}`
         },
         body: JSON.stringify({
-          model: 'groq/compound',
+          model: model,
           messages: messages,
           temperature: temperature,
-          max_tokens: 1500
+          max_tokens: 2000
         })
       });
-      const fallbackData = await fallbackResponse.json();
-      return fallbackData.choices?.[0]?.message?.content || 'ไม่สามารถวิเคราะห์ข้อมูลได้ในขณะนี้';
-    }
 
-    const data = await response.json();
-    return data.choices?.[0]?.message?.content || 'ไม่พบผลการวิเคราะห์จาก AI';
-  } catch (error) {
-    console.error('Groq AI Call Error:', error);
-    return `เกิดข้อผิดพลาดในการเชื่อมต่อ Groq AI: ${error.message}`;
+      if (response.ok) {
+        const data = await response.json();
+        const content = data.choices?.[0]?.message?.content;
+        if (content) return content;
+      } else if (response.status === 429) {
+        console.warn(`Groq model ${model} rate-limited (HTTP 429), trying next model...`);
+      }
+    } catch (err) {
+      console.warn(`Groq API error on model ${model}:`, err);
+    }
   }
+
+  return null;
 }
 
 /**
@@ -198,4 +197,83 @@ ${itemsStr}
     { role: 'system', content: 'คุณเป็น AI Data Analyst & Paid Media Director เชี่ยวชาญการวิเคราะห์ผลการยิงโฆษณา Google Ads, Facebook Ads และ TikTok Ads' },
     { role: 'user', content: prompt }
   ]);
+}
+
+/**
+ * Smart AI Content Table Parser: Analyzes raw spreadsheet text or Excel rows using Groq AI
+ * Converts any messy/non-standard Excel format into clean Content Plan objects!
+ */
+export async function parseExcelWithGroqAi(rawText = '') {
+  if (!rawText || !rawText.trim()) return [];
+
+  const prompt = `คุณคือ Groq AI Content Table Parser สำหรับระบบวางแผนคอนเทนต์ Nitan
+หน้าที่ของคุณคืออ่านข้อมูลตารางดิบ (Excel / Google Sheets) ต่อไปนี้ แล้วสกัดโครงสร้างคอนเทนต์ให้ออกมาเป็น JSON Array ภาษาไทย 100%:
+
+ข้อมูลตารางดิบที่ต้องอ่าน:
+\`\`\`
+${rawText.slice(0, 5000)}
+\`\`\`
+
+ข้อกำหนดในการวิเคราะห์:
+1. ระบุคอลัมน์ให้อย่างถูกต้อง:
+   - title: หัวข้อคอนเทนต์ / Title
+   - group: หมวดหมู่หลัก / Pillar (เช่น Brand Vibe (Atmosphere), Educational, Promotion, Product)
+   - visual_concept: รูปแบบ & ไอเดียภาพ / Visual Concept (เช่น VDO สั้น 15s, ภาพนิ่ง POV)
+   - caption: ไอเดีย Copywriting / แคปชันโปรโมต
+   - platform: แพลตฟอร์มเผยแพร่ (คืนค่าเป็น Array เช่น ["facebook", "instagram", "tiktok", "line_oa", "youtube"])
+   - status: สถานะ (draft, scheduled, published)
+   - publish_date: กำหนดวันโพสต์ รูปแบบ ISO YYYY-MM-DD เท่านั้น (ห้ามมีเวลา เช่น 2026-08-20, หากเป็น พ.ศ. 2569 ให้เปลี่ยนเป็น ค.ศ. 2026)
+   - media_url: ลิงก์รูปภาพประกอบ (ถ้ามี)
+
+2. หากหัวข้อ (Title) ว่างเปล่า ให้สร้างชื่อสั้นๆ จากแคปชันหรือไอเดียภาพ ห้ามข้ามข้อมูลเด็ดขาด!
+3. คืนค่ากลับเฉพาะ JSON Array ด้านล่างเท่านั้น ห้ามมีข้อความเกริ่นหรือคำอธิบายเพิ่มเติม:
+[
+  {
+    "title": "...",
+    "group": "...",
+    "visual_concept": "...",
+    "caption": "...",
+    "platform": ["facebook", "instagram"],
+    "status": "draft",
+    "publish_date": "2026-08-20",
+    "media_url": ""
+  }
+]`;
+
+  try {
+    const rawAiText = await callGroqAi([
+      { role: 'system', content: 'คุณเป็น AI JSON Content Parser ตอบกลับเฉพาะ Valid JSON Array เท่านั้น' },
+      { role: 'user', content: prompt }
+    ], 'llama-3.3-70b-versatile', 0.2);
+
+    if (rawAiText) {
+      const jsonMatch = rawAiText.match(/\[[\s\S]*\]/);
+      if (jsonMatch) {
+        const parsed = JSON.parse(jsonMatch[0]);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          return parsed.map((item, idx) => ({
+            id: `cnt-ai-${Date.now()}-${idx}`,
+            team_id: 'team-1',
+            campaign_id: 'camp-1',
+            creator_id: 'user-2',
+            title: item.title || `[Content #${idx + 1}]`,
+            caption: item.caption || '',
+            visual_concept: item.visual_concept || '',
+            platform: Array.isArray(item.platform) && item.platform.length > 0 ? item.platform : ['facebook'],
+            group: item.group || 'Brand Vibe (Atmosphere)',
+            subCategory: '',
+            status: ['draft', 'scheduled', 'published'].includes(item.status) ? item.status : 'draft',
+            publish_date: item.publish_date ? item.publish_date.split('T')[0].split(' ')[0] : '2026-08-20',
+            media_url: item.media_url || '',
+            reference_url: '',
+            performance: { views: 0, likes: 0, comments: 0, shares: 0, ctr: 0 }
+          }));
+        }
+      }
+    }
+  } catch (err) {
+    console.warn('Groq AI Excel Parse error:', err);
+  }
+
+  return [];
 }

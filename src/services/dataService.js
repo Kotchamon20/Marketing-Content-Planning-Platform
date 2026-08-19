@@ -30,10 +30,20 @@ export async function fetchContentItemsFromSupabase() {
 
 export async function upsertContentItemToSupabase(contentItem) {
   try {
+    const rawPlat = contentItem.platform;
+    let platformsArr = ['facebook'];
+    if (Array.isArray(rawPlat)) {
+      platformsArr = rawPlat;
+    } else if (typeof rawPlat === 'string') {
+      platformsArr = rawPlat.split(/[\s,]+/);
+    }
+
     const payload = {
       title: contentItem.title,
       caption: contentItem.caption || '',
-      platform: (contentItem.platform || 'tiktok').toLowerCase(),
+      visual_concept: contentItem.visual_concept || '',
+      platform: Array.isArray(contentItem.platform) ? contentItem.platform.join(', ') : (contentItem.platform || 'facebook'),
+      platforms: platformsArr,
       status: contentItem.status || 'draft',
       publish_date: contentItem.publish_date || new Date().toISOString(),
       media_url: contentItem.media_url || '',
