@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import confetti from 'canvas-confetti';
+import { CheckCircle2 } from 'lucide-react';
 import NavigationHeader from './components/NavigationHeader';
 import DashboardOverview from './components/DashboardOverview';
 import ContentPlanModule from './components/ContentPlanModule';
@@ -101,11 +102,23 @@ export default function App() {
   const currentTeamRules = notificationRules.filter(r => r.team_id === activeTeamId);
   const currentTeamLogs = notificationLogs.filter(l => l.team_id === activeTeamId);
 
+  // Global Auto-Save UX Notification Toast State
+  const [saveToast, setSaveToast] = useState(null);
+
+  const showSaveToast = (message, type = 'success') => {
+    const id = Date.now();
+    setSaveToast({ id, message, type });
+    setTimeout(() => {
+      setSaveToast(prev => (prev?.id === id ? null : prev));
+    }, 3500);
+  };
+
   // Handlers for Module 1: Content Plan
   const handleAddContentItem = (newItem) => {
     setContentItems(prev => [newItem, ...prev]);
     upsertContentItemToSupabase(newItem);
     confetti({ particleCount: 50, spread: 60, origin: { y: 0.8 } });
+    showSaveToast('บันทึกเพิ่มคอนเทนต์ใหม่ลง DB และ LocalStorage เรียบร้อยแล้ว!');
   };
 
   const handleUpdateContentStatus = (id, newStatus) => {
@@ -115,28 +128,34 @@ export default function App() {
       if (targetItem) upsertContentItemToSupabase(targetItem);
       return updated;
     });
+    showSaveToast('อัปเดตสถานะคอนเทนต์ลง DB เรียบร้อยแล้ว!');
   };
 
   const handleEditContentItem = (updatedItem) => {
     setContentItems(prev => prev.map(item => item.id === updatedItem.id ? { ...item, ...updatedItem } : item));
     upsertContentItemToSupabase(updatedItem);
+    showSaveToast('บันทึกการแก้ไขคอนเทนต์เรียบร้อยแล้ว!');
   };
 
   const handleDeleteContentItem = (id) => {
     setContentItems(prev => prev.filter(item => item.id !== id));
     deleteContentItemFromSupabase(id);
+    showSaveToast('ลบคอนเทนต์เรียบร้อยแล้ว!');
   };
 
   const handleAddContentGroup = (newGroup) => {
     setContentGroups(prev => [...prev, newGroup]);
+    showSaveToast('บันทึกกลุ่มคอนเทนต์ใหม่เรียบร้อยแล้ว!');
   };
 
   const handleDeleteContentGroup = (groupId) => {
     setContentGroups(prev => prev.filter(g => g.id !== groupId));
+    showSaveToast('ลบกลุ่มคอนเทนต์เรียบร้อยแล้ว!');
   };
 
   const handleAddVaultIdea = (newIdea) => {
     setIdeaVault(prev => [newIdea, ...prev]);
+    showSaveToast('บันทึกไอเดียลง คลังไอเดีย (Idea Vault) เรียบร้อยแล้ว!');
   };
 
   const handleConvertVaultIdeaToContent = (idea) => {
@@ -157,11 +176,13 @@ export default function App() {
     setContentItems(prev => [newContent, ...prev]);
     setIdeaVault(prev => prev.filter(v => v.id !== idea.id));
     confetti({ particleCount: 60, spread: 70, origin: { y: 0.7 } });
+    showSaveToast('ย้ายไอเดียเป็นแผนคอนเทนต์และบันทึกเรียบร้อยแล้ว!');
   };
 
   // Handlers for Module 3: Marketing Plan
   const handleUpdateStrategyCanvas = (planId, updatedFields) => {
     setMarketingPlans(prev => prev.map(m => m.id === planId ? { ...m, ...updatedFields } : m));
+    showSaveToast('บันทึกกรอบกลยุทธ์การตลาด (Strategy Canvas) เรียบร้อยแล้ว!');
   };
 
   const handleUpvoteIdea = (ideaId) => {
@@ -171,6 +192,7 @@ export default function App() {
   const handleAddCampaignIdea = (newIdea) => {
     setCampaignIdeas(prev => [newIdea, ...prev]);
     confetti({ particleCount: 40, spread: 50, origin: { y: 0.8 } });
+    showSaveToast('บันทึกไอเดียแคมเปญใหม่เรียบร้อยแล้ว!');
   };
 
   // Handlers for Module 2: Product Plan
@@ -186,14 +208,18 @@ export default function App() {
         };
         return { ...s, checklist: updatedChecklist };
       });
-      return { ...c, stages: updatedStages };
+      const updatedCampaign = { ...c, stages: updatedStages };
+      upsertCampaignToSupabase(updatedCampaign);
+      return updatedCampaign;
     }));
+    showSaveToast('บันทึกสถานะ Checklist สินค้าลง DB เรียบร้อยแล้ว!');
   };
 
   const handleAddCampaign = (newCampaign) => {
     setCampaigns(prev => [newCampaign, ...prev]);
     upsertCampaignToSupabase(newCampaign);
-    confetti({ particleCount: 70, spread: 80, origin: { y: 0.7 } });
+    confetti({ particleCount: 50, spread: 60, origin: { y: 0.8 } });
+    showSaveToast('บันทึกเพิ่มแคมเปญสินค้าใหม่ลง DB เรียบร้อยแล้ว!');
   };
 
   // Notification Engine Triggering Simulation
@@ -274,6 +300,7 @@ export default function App() {
               products={currentTeamProducts}
               campaigns={currentTeamCampaigns}
               onTriggerNotification={handleTriggerNotification}
+              onShowSaveToast={showSaveToast}
             />
           )}
 
@@ -281,6 +308,7 @@ export default function App() {
             <TodoListModule
               users={users}
               onTriggerNotification={handleTriggerNotification}
+              onShowSaveToast={showSaveToast}
             />
           )}
 
@@ -288,11 +316,30 @@ export default function App() {
             <KpiAnalyticsModule
               campaigns={currentTeamCampaigns}
               products={currentTeamProducts}
+              onShowSaveToast={showSaveToast}
             />
           )}
 
         </main>
       </div>
+
+      {/* Global Floating Auto-Save UX Toast Notification */}
+      {saveToast && (
+        <div className="fixed bottom-6 right-6 z-50 animate-in slide-in-from-bottom-5 fade-in duration-300 pointer-events-none">
+          <div className="px-4 py-3 bg-gradient-to-r from-purple-950 via-purple-900 to-pink-950 text-white rounded-2xl shadow-2xl border border-pink-400/40 flex items-center gap-3 font-bold text-xs backdrop-blur-md">
+            <div className="w-8 h-8 rounded-xl bg-emerald-500/20 text-emerald-300 flex items-center justify-center border border-emerald-400/40 shrink-0">
+              <CheckCircle2 className="w-4.5 h-4.5 text-emerald-400" />
+            </div>
+            <div>
+              <span className="flex items-center gap-1 text-[10px] text-pink-300 font-extrabold uppercase tracking-wider">
+                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping inline-block" />
+                💾 AUTO-SAVE SUPABASE & LOCAL STORAGE
+              </span>
+              <span className="text-white text-xs block font-semibold">{saveToast.message}</span>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Database Schema Modal */}
       <SchemaViewerModal

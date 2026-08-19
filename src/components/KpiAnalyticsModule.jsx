@@ -30,7 +30,7 @@ import {
 } from 'lucide-react';
 import { analyzeKpiWithGroqAi } from '../services/groqAiService';
 
-export default function KpiAnalyticsModule({ campaigns = [], products = [] }) {
+export default function KpiAnalyticsModule({ campaigns = [], products = [], onShowSaveToast }) {
   // Groq AI KPI Analytics Modal States
   const [showGroqAiKpiModal, setShowGroqAiKpiModal] = useState(false);
   const [isAnalyzingGroqAiKpi, setIsAnalyzingGroqAiKpi] = useState(false);
@@ -161,6 +161,7 @@ export default function KpiAnalyticsModule({ campaigns = [], products = [] }) {
     setKpiItems(prev => [newItem, ...prev]);
     setShowAddKpiModal(false);
     setNewKpiTitle('');
+    onShowSaveToast?.('บันทึกเป้าหมาย KPI & ผลการยิง Ads ลง DB เรียบร้อยแล้ว!');
   };
 
   // Filter Items

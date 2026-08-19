@@ -34,7 +34,8 @@ import LineFlexModal from './LineFlexModal';
 
 export default function TodoListModule({
   users = [],
-  onTriggerNotification
+  onTriggerNotification,
+  onShowSaveToast
 }) {
   // Main Section Sub-Tab State: 'tasks' | 'followup' | 'files'
   const [activeSection, setActiveSection] = useState('tasks');
@@ -143,6 +144,7 @@ export default function TodoListModule({
       }, ...prev]);
     }
     setShowAddTaskModal(false);
+    onShowSaveToast?.('บันทึกข้อมูลงาน To-Do ลง DB และ LocalStorage เรียบร้อยแล้ว!');
   };
 
   const handleToggleTaskCompleted = (taskId) => {
@@ -151,10 +153,12 @@ export default function TodoListModule({
       const nextCompleted = !t.completed;
       return { ...t, completed: nextCompleted, status: nextCompleted ? 'completed' : 'in_progress' };
     }));
+    onShowSaveToast?.('อัปเดตสถานะงานเรียบร้อยแล้ว!');
   };
 
   const handleDeleteTask = (taskId) => {
     setTasks(prev => prev.filter(t => t.id !== taskId));
+    onShowSaveToast?.('ลบรายการงานเรียบร้อยแล้ว!');
   };
 
   // --- Handlers for 2. Follow-Up Watchlist ---
