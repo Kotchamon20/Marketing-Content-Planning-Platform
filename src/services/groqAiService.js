@@ -169,21 +169,33 @@ export async function parseFullSheetWithGroqAi(filename = '') {
 }
 
 /**
- * AI Performance & KPI Analytics Advisor (Module 4)
+ * AI Performance & KPI Analytics Advisor (Module 6)
+ * Supports 'ecommerce', 'content', and 'ads' (Paid Ads Spend & ROI Analysis)
  */
 export async function analyzeKpiWithGroqAi(kpiItems, mode = 'ecommerce') {
-  const itemsStr = kpiItems.map(i => `- ${i.title} (กลุ่ม: ${i.subGroup}): Target ฿${i.targetRevenue?.toLocaleString()} vs Actual ฿${i.actualRevenue?.toLocaleString()} (ROAS: ${i.roas || '-'}x, CPA: ฿${i.cpa || '-'})`).join('\n');
+  let modeTitle = 'E-Commerce Sales';
+  if (mode === 'content') modeTitle = 'Social Post & Content Organic';
+  if (mode === 'ads') modeTitle = 'Paid Ads Performance & Ad Spend ROI (วิเคราะห์ผลการยิง Ads)';
 
-  const prompt = `วิเคราะห์ผลงาน KPI การตลาด Nitan (${mode === 'ecommerce' ? 'E-Commerce Sales' : 'Social Post & Content Organic'}):
+  const itemsStr = kpiItems.map(i => {
+    const adsText = i.isAdsRunning 
+      ? `[ยิง Ads 🟢]: งบ Ads ฿${i.adsBudget?.toLocaleString() || 0} (จ่ายจริง ฿${i.actualAdsSpend?.toLocaleString() || 0}), ROAS: ${i.adsRoas || i.roas || '-'}x, CPA: ฿${i.adsCpa || i.cpa || '-'}, ช่องทาง: ${i.adsChannel || 'Online Ads'}`
+      : `[Organic ⚪]: ไม่ได้ยิง Ads`;
+    
+    return `- ${i.title} (กลุ่ม: ${i.subGroup}): ยอดขายเป้าหมาย ฿${i.targetRevenue?.toLocaleString()} vs ทำได้จริง ฿${i.actualRevenue?.toLocaleString()} | ${adsText}`;
+  }).join('\n');
+
+  const prompt = `วิเคราะห์ผลงาน KPI การตลาด Nitan โหมด: ${modeTitle}:
 ${itemsStr}
 
-กรุณาตอบเป็น Markdown:
-1. 📈 **สรุปภาพรวมผลงาน (Achievement rate & Highlights)**
-2. ⚠️ **จุดที่ต้องเร่งปรับปรุง (Pain points / CPA สูง)**
-3. 🎯 **ข้อเสนอแนะ 3 ข้อเพื่อเพิ่มยอดขายและ ROAS ในแคมเปญถัดไป**`;
+กรุณาประมวลผลวิเคราะห์เชิงลึกและตอบเป็น Markdown ภาษาไทย:
+1. 📊 **สรุปภาพรวมความคุ้มค่าของการยิง Ads (Profitability & Overall ROAS vs CPA)**
+2. 🎯 **แคมเปญที่ยิง Ads ได้ผลลัพธ์ปังและคืนทุนสูงสุด (Top High-ROI Paid Campaigns)**
+3. ⚠️ **จุดที่ต้นทุนค่า Ads สูงเกินไป หรือ งบกระจุกตัว (High CPA & Wasteful Ad Spend Alert)**
+4. 💡 **คำแนะนำ 3 ข้อในการปรับเกลี่ยงบโฆษณา (Ad Budget Re-allocation & Optimization Advice)**`;
 
   return await callGroqAi([
-    { role: 'system', content: 'คุณเป็น AI Data Analyst ด้านการตลาดออนไลน์ E-Commerce' },
+    { role: 'system', content: 'คุณเป็น AI Data Analyst & Paid Media Director เชี่ยวชาญการวิเคราะห์ผลการยิงโฆษณา Google Ads, Facebook Ads และ TikTok Ads' },
     { role: 'user', content: prompt }
   ]);
 }
