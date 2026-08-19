@@ -377,7 +377,30 @@ export default function ContentPlanModule({
     }
   };
 
-  // Edit Content State inside Detail Modal
+  // ช่วยบันทึกหมวดหมู่ย่อยใหม่เข้าในกลุ่มคอนเทนต์ (Group) โดยอัตโนมัติหากยังไม่มีในระบบ
+  const ensureSubCategoryRegistered = (groupName, subCatName) => {
+    if (!subCatName || !subCatName.trim()) return;
+    const trimmedSub = subCatName.trim();
+    const grpObj = effectiveContentGroups.find(g => g.name === groupName);
+    if (!grpObj) return;
+
+    const existingSubs = grpObj.subCategories || [];
+    const exists = existingSubs.some(s => s.toLowerCase() === trimmedSub.toLowerCase());
+    if (!exists) {
+      const updatedGroups = effectiveContentGroups.map(g => {
+        if (g.name === groupName) {
+          return {
+            ...g,
+            subCategories: [...(g.subCategories || []), trimmedSub]
+          };
+        }
+        return g;
+      });
+      if (onUpdateContentGroups) {
+        onUpdateContentGroups(updatedGroups);
+      }
+    }
+  };
   const [editTitle, setEditTitle] = useState('');
   const [editCaption, setEditCaption] = useState('');
   const [editVisualConcept, setEditVisualConcept] = useState('');
@@ -1299,9 +1322,26 @@ export default function ContentPlanModule({
       };
     });
 
+    let groupsAcc = effectiveContentGroups;
     itemsToImport.forEach(item => {
+      if (item.subCategory && item.subCategory.trim()) {
+        const targetG = item.group;
+        const sub = item.subCategory.trim();
+        const gObj = groupsAcc.find(g => g.name === targetG);
+        if (gObj) {
+          const subs = gObj.subCategories || [];
+          if (!subs.some(s => s.toLowerCase() === sub.toLowerCase())) {
+            groupsAcc = groupsAcc.map(g => g.name === targetG ? { ...g, subCategories: [...(g.subCategories || []), sub] } : g);
+          }
+        }
+      }
       onAddContentItem(item);
     });
+
+    if (onUpdateContentGroups && groupsAcc !== effectiveContentGroups) {
+      onUpdateContentGroups(groupsAcc);
+    }
+
     setBulkRawText('');
     setParsedBulkItems([]);
     setShowBulkPasteModal(false);
@@ -1375,6 +1415,10 @@ export default function ContentPlanModule({
       status: editStatus,
       campaign_id: editCampaignId
     };
+
+    if (editSubCategory && editSubCategory.trim()) {
+      ensureSubCategoryRegistered(editGroup, editSubCategory.trim());
+    }
 
     if (onEditContentItem) {
       onEditContentItem(updatedItem);
@@ -1460,11 +1504,16 @@ export default function ContentPlanModule({
       performance: { views: 0, likes: 0, comments: 0, shares: 0, ctr: 0 }
     };
 
+    if (newSubCategory && newSubCategory.trim()) {
+      ensureSubCategoryRegistered(newGroup, newSubCategory.trim());
+    }
+
     onAddContentItem(newItem);
     setNewTitle('');
     setNewCaption('');
     setNewVisualConcept('');
     setNewReferenceUrl('');
+    setNewSubCategory('');
     setShowAddContentModal(false);
   };
 
@@ -2928,23 +2977,33 @@ export default function ContentPlanModule({
                     </select>
                   </div>
 
-                  {/* Sub-Category Dropdown — linked to selected group's subCategories */}
+                  {/* Sub-Category Input with Datalist in Edit Modal */}
                   <div>
-                    <label className="block text-amber-800 font-bold mb-1">หมวดหมู่ย่อย (Sub-Category)</label>
+                    <label className="block text-amber-800 font-bold mb-1 flex items-center justify-between text-xs">
+                      <span>หมวดหมู่ย่อย (Sub-Category)</span>
+                      <span className="text-[10px] text-amber-700/80 font-normal">* เลือกหรือพิมพ์ใหม่ได้</span>
+                    </label>
                     {(() => {
                       const editGObj = effectiveContentGroups.find(g => g.name === editGroup);
                       const editSubCats = editGObj?.subCategories || [];
+                      const editListId = "edit-sub-category-list";
+
                       return (
-                        <select
-                          value={editSubCategory}
-                          onChange={(e) => setEditSubCategory(e.target.value)}
-                          className="w-full bg-amber-50/60 border border-amber-300 text-amber-950 p-2.5 rounded-xl font-medium cursor-pointer"
-                        >
-                          <option value="">-- ไม่ระบุหมวดหมู่ย่อย --</option>
-                          {editSubCats.map((sub, sIdx) => (
-                            <option key={sIdx} value={sub}>{sub}</option>
-                          ))}
-                        </select>
+                        <div className="relative">
+                          <input
+                            type="text"
+                            list={editListId}
+                            placeholder="เลือกหรือพิมพ์หมวดหมู่ย่อย..."
+                            value={editSubCategory}
+                            onChange={(e) => setEditSubCategory(e.target.value)}
+                            className="w-full bg-amber-50/60 border border-amber-300 text-amber-950 p-2.5 rounded-xl font-semibold cursor-text text-xs focus:outline-none focus:border-amber-500 shadow-2xs"
+                          />
+                          <datalist id={editListId}>
+                            {editSubCats.map((sub, sIdx) => (
+                              <option key={sIdx} value={sub} />
+                            ))}
+                          </datalist>
+                        </div>
                       );
                     })()}
                   </div>
@@ -3584,24 +3643,33 @@ export default function ContentPlanModule({
                   </select>
                 </div>
 
-                {/* Sub-Category Dropdown */}
+                {/* Sub-Category Input with Datalist in Create Modal */}
                 <div>
-                  <label className="block text-xs font-bold text-amber-950 mb-1.5">หมวดหมู่ย่อย (Sub-Category)</label>
+                  <label className="block text-xs font-bold text-amber-950 mb-1.5 flex items-center justify-between">
+                    <span>หมวดหมู่ย่อย (Sub-Category)</span>
+                    <span className="text-[10px] text-amber-700/80 font-normal">* เลือกหรือพิมพ์ใหม่ได้</span>
+                  </label>
                   {(() => {
                     const selectedGObj = effectiveContentGroups.find(g => g.name === newGroup);
                     const subCats = selectedGObj?.subCategories || [];
+                    const listId = "new-sub-category-list";
 
                     return (
-                      <select
-                        value={newSubCategory}
-                        onChange={(e) => setNewSubCategory(e.target.value)}
-                        className="w-full bg-white border border-amber-300 text-amber-950 p-3 rounded-xl font-bold cursor-pointer focus:ring-2 focus:ring-amber-400 transition shadow-2xs"
-                      >
-                        <option value="">-- ไม่ระบุหมวดหมู่ย่อย --</option>
-                        {subCats.map((sub, sIdx) => (
-                          <option key={sIdx} value={sub}>{sub}</option>
-                        ))}
-                      </select>
+                      <div className="relative">
+                        <input
+                          type="text"
+                          list={listId}
+                          placeholder="เลือกหรือพิมพ์หมวดหมู่ย่อยใหม่..."
+                          value={newSubCategory}
+                          onChange={(e) => setNewSubCategory(e.target.value)}
+                          className="w-full bg-white border border-amber-300 text-amber-950 p-3 rounded-xl font-bold cursor-text focus:ring-2 focus:ring-amber-400 transition shadow-2xs text-xs"
+                        />
+                        <datalist id={listId}>
+                          {subCats.map((sub, sIdx) => (
+                            <option key={sIdx} value={sub} />
+                          ))}
+                        </datalist>
+                      </div>
                     );
                   })()}
                 </div>
