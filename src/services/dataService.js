@@ -55,72 +55,118 @@ export function subscribeToContentItems(onDataChanged) {
 
 const isUuid = (str) => typeof str === 'string' && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(str);
 
+// Helper to format date string cleanly for PostgreSQL TIMESTAMP / DATE
+function formatIsoDateForDb(rawVal) {
+  if (!rawVal) return '2026-08-20';
+  const str = String(rawVal).trim();
+  if (str.match(/^\d{4}-\d{2}-\d{2}/)) {
+    return str.substring(0, 10);
+  }
+  const dateMatch = str.match(/(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{2,4})/);
+  if (dateMatch) {
+    let day = dateMatch[1].padStart(2, '0');
+    let month = dateMatch[2].padStart(2, '0');
+    let year = parseInt(dateMatch[3], 10);
+    if (year > 2500) year -= 543;
+    if (year < 100) year += 2000;
+    return `${year}-${month}-${day}`;
+  }
+  const parsed = new Date(str);
+  if (!isNaN(parsed.getTime())) {
+    return parsed.toISOString().substring(0, 10);
+  }
+  return '2026-08-20';
+}
+
 export async function upsertContentItemToSupabase(contentItem) {
   try {
     const rawPlat = contentItem.platform;
     let platformsArr = ['facebook'];
-    if (Array.isArray(rawPlat)) {
+    if (Array.isArray(rawPlat) && rawPlat.length > 0) {
       platformsArr = rawPlat;
-    } else if (typeof rawPlat === 'string') {
-      platformsArr = rawPlat.split(/[\s,]+/);
+    } else if (typeof rawPlat === 'string' && rawPlat.trim()) {
+      platformsArr = rawPlat.split(/[\s,]+/).filter(Boolean);
     }
 
-    const payload = {
-      title: contentItem.title,
+    // Always pick a single valid enum string for platform column compatibility
+    const singlePlatform = platformsArr[0] || 'facebook';
+    const cleanPublishDate = formatIsoDateForDb(contentItem.publish_date);
+
+    // Attempt 1: Full Payload with new columns
+    const fullPayload = {
+      title: contentItem.title || '[Untitled Content]',
       caption: contentItem.caption || '',
       visual_concept: contentItem.visual_concept || '',
-      platform: Array.isArray(contentItem.platform) ? contentItem.platform.join(', ') : (contentItem.platform || 'facebook'),
+      platform: singlePlatform,
       platforms: platformsArr,
-      status: contentItem.status || 'draft',
-      publish_date: contentItem.publish_date ? contentItem.publish_date.split('T')[0] : new Date().toISOString().split('T')[0],
+      status: ['draft', 'scheduled', 'published'].includes(contentItem.status) ? contentItem.status : 'draft',
+      publish_date: cleanPublishDate,
       media_url: contentItem.media_url || '',
       reference_url: contentItem.reference_url || '',
       content_group: contentItem.group || ''
     };
+    if (isUuid(contentItem.id)) fullPayload.id = contentItem.id;
 
-    // Only include foreign keys and ID if they are valid UUIDs
-    if (isUuid(contentItem.id)) payload.id = contentItem.id;
-    if (isUuid(contentItem.team_id)) payload.team_id = contentItem.team_id;
-    if (isUuid(contentItem.campaign_id)) payload.campaign_id = contentItem.campaign_id;
-    if (isUuid(contentItem.creator_id)) payload.creator_id = contentItem.creator_id;
-
-    // First attempt: full payload with new columns
     let { data, error } = await supabase
       .from('content_items')
-      .upsert([payload])
+      .upsert([fullPayload])
       .select();
 
-    if (error) {
-      console.warn('Supabase full upsert warning:', error.message);
+    if (!error) {
+      console.log('✅ Supabase upsert successful (Full Payload):', data);
+      return data;
+    }
 
-      // Fallback attempt: core columns only (if DB schema hasn't executed ALTER TABLE yet)
-      const corePayload = {
-        title: contentItem.title,
-        caption: contentItem.caption || '',
-        platform: Array.isArray(contentItem.platform) ? contentItem.platform.join(', ') : (contentItem.platform || 'facebook'),
-        status: contentItem.status || 'draft',
-        publish_date: contentItem.publish_date ? contentItem.publish_date.split('T')[0] : new Date().toISOString().split('T')[0],
-        media_url: contentItem.media_url || '',
-        reference_url: contentItem.reference_url || ''
-      };
-      if (isUuid(contentItem.id)) corePayload.id = contentItem.id;
-      if (isUuid(contentItem.team_id)) corePayload.team_id = contentItem.team_id;
+    console.warn('⚠️ Supabase full upsert warning:', error.message, error.details || '');
 
-      const fallbackRes = await supabase
-        .from('content_items')
-        .upsert([corePayload])
-        .select();
+    // Attempt 2: Core Payload (standard columns only)
+    const corePayload = {
+      title: contentItem.title || '[Untitled Content]',
+      caption: contentItem.caption || '',
+      platform: singlePlatform,
+      status: ['draft', 'scheduled', 'published'].includes(contentItem.status) ? contentItem.status : 'draft',
+      publish_date: cleanPublishDate,
+      media_url: contentItem.media_url || '',
+      reference_url: contentItem.reference_url || ''
+    };
+    if (isUuid(contentItem.id)) corePayload.id = contentItem.id;
 
-      if (fallbackRes.error) {
-        console.error('Supabase fallback upsert error:', fallbackRes.error.message);
-        return null;
-      }
+    const fallbackRes = await supabase
+      .from('content_items')
+      .upsert([corePayload])
+      .select();
+
+    if (!fallbackRes.error) {
+      console.log('✅ Supabase upsert successful (Core Fallback):', fallbackRes.data);
       return fallbackRes.data;
     }
 
-    return data;
+    console.warn('⚠️ Supabase core upsert warning:', fallbackRes.error.message);
+
+    // Attempt 3: Bare Essential Payload
+    const minimalPayload = {
+      title: contentItem.title || '[Untitled Content]',
+      caption: contentItem.caption || '',
+      platform: 'facebook',
+      status: 'draft',
+      publish_date: cleanPublishDate
+    };
+    if (isUuid(contentItem.id)) minimalPayload.id = contentItem.id;
+
+    const minRes = await supabase
+      .from('content_items')
+      .upsert([minimalPayload])
+      .select();
+
+    if (minRes.error) {
+      console.error('❌ Supabase minimal upsert failed:', minRes.error.message, minRes.error.details || '');
+      return null;
+    }
+
+    console.log('✅ Supabase upsert successful (Minimal Fallback):', minRes.data);
+    return minRes.data;
   } catch (err) {
-    console.error('Supabase upsertContentItem catch:', err);
+    console.error('❌ Supabase upsertContentItem catch:', err);
     return null;
   }
 }
