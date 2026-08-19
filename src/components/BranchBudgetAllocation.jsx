@@ -31,16 +31,23 @@ import {
   Check
 } from 'lucide-react';
 import { parseFullSheetWithGroqAi } from '../services/groqAiService';
+import { upsertBranchBudgetToSupabase } from '../services/dataService';
 
 export default function BranchBudgetAllocation() {
   const [mktPercentRate, setMktPercentRate] = useState(2.0); // Default MKT 2%
 
   // Calculation Mode: 'auto' (MKT 2% Auto Calculate) | 'manual' (User Custom Full Budget Input)
-  const [budgetCalcMode, setBudgetCalcMode] = useState('manual'); // Default 'manual' matching user's exact sheet numbers
+  const [budgetCalcMode, setBudgetCalcMode] = useState('manual');
 
   // Month & Year Filter States
   const [selectedMonth, setSelectedMonth] = useState('08');
   const [selectedYear, setSelectedYear] = useState('2026');
+
+  // Save Status UX State
+  const [saveStatus, setSaveStatus] = useState('saved'); // 'saved' | 'saving'
+  const [lastSavedTime, setLastSavedTime] = useState(() => {
+    return new Date().toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' });
+  });
 
   // Google Search Sub-Campaign Breakdown State (Supports % OR Baht ฿ input for every item)
   const [googleSearchBreakdown, setGoogleSearchBreakdown] = useState({
@@ -98,17 +105,29 @@ export default function BranchBudgetAllocation() {
     branches: []
   });
 
-  // Monthly Budgets Data Map with localStorage Persistence
+  // Monthly Budgets Data Map with localStorage & Supabase Persistence
   const [monthlyBudgetsData, setMonthlyBudgetsData] = useState(() => {
     const saved = localStorage.getItem('nitan_monthly_budgets_data');
     return saved ? JSON.parse(saved) : {};
   });
 
-  React.useEffect(() => {
-    localStorage.setItem('nitan_monthly_budgets_data', JSON.stringify(monthlyBudgetsData));
-  }, [monthlyBudgetsData]);
-
   const currentMonthKey = `${selectedYear}-${selectedMonth}`;
+
+  React.useEffect(() => {
+    setSaveStatus('saving');
+    localStorage.setItem('nitan_monthly_budgets_data', JSON.stringify(monthlyBudgetsData));
+
+    const syncTimer = setTimeout(() => {
+      const branchesToSync = monthlyBudgetsData[currentMonthKey] || [];
+      branchesToSync.forEach(b => {
+        upsertBranchBudgetToSupabase(b, currentMonthKey);
+      });
+      setSaveStatus('saved');
+      setLastSavedTime(new Date().toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit', second: '2-digit' }));
+    }, 400);
+
+    return () => clearTimeout(syncTimer);
+  }, [monthlyBudgetsData, googleSearchBreakdown, currentMonthKey]);
 
   // Get current active branches for the selected month (Empty by default)
   const currentBranches = monthlyBudgetsData[currentMonthKey] || [];
@@ -318,9 +337,24 @@ export default function BranchBudgetAllocation() {
               <Calculator className="w-3.5 h-3.5 text-purple-700" />
               <span>การจัดสรรงบประมาณ Marketing (Module 2: Nitan Branch Cards System)</span>
             </div>
-            <h2 className="text-xl font-bold text-purple-950 tracking-tight flex items-center gap-2">
-              <span>จัดสรรงบประมาณการตลาด MKT ประจำเดือน {currentMonthObj.label} {Number(selectedYear) + 543}</span>
-            </h2>
+            <div className="flex items-center gap-3 flex-wrap mt-1">
+              <h2 className="text-xl font-bold text-purple-950 tracking-tight">
+                จัดสรรงบประมาณการตลาด MKT ประจำเดือน {currentMonthObj.label} {Number(selectedYear) + 543}
+              </h2>
+
+              {/* Live Auto-Save UX Status Badge */}
+              {saveStatus === 'saving' ? (
+                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-50 border border-amber-300 text-amber-900 text-xs font-bold shadow-xs animate-pulse">
+                  <RefreshCw className="w-3.5 h-3.5 text-amber-600 animate-spin" />
+                  <span>💾 กำลังบันทึกข้อมูล...</span>
+                </span>
+              ) : (
+                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-50 border border-emerald-300 text-emerald-900 text-xs font-bold shadow-xs transition-all animate-in fade-in duration-200">
+                  <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+                  <span>✅ บันทึกลง DB สำเร็จแล้ว {lastSavedTime && `(${lastSavedTime} น.)`}</span>
+                </span>
+              )}
+            </div>
             <p className="text-xs text-purple-800/80 font-medium mt-1">
               จัดสรรงบประมาณแยกตามสาขาในรูปแบบการ์ด พร้อมระบบแยกงบย่อย Google Ads (Google Search Breakdown)
             </p>
