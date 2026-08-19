@@ -92,179 +92,19 @@ export default function BranchBudgetAllocation() {
   const [isScanningImage, setIsScanningImage] = useState(false);
   const [groqAiScanNote, setGroqAiScanNote] = useState('');
 
-  // Scanned Multi-Branch Array State
+  // Scanned Multi-Branch Array State (Initialized empty for user real data)
   const [scannedSheetResult, setScannedSheetResult] = useState({
-    sheetTitle: 'งบ Marketing ประจำเดือน ส.ค. 69',
-    branches: [
-      {
-        name: 'NITAN หลัก (สำนักงานใหญ่)',
-        manualFullBudget: 117000,
-        previousSales: 5750000.00,
-        influencerPromo: 0,
-        eventPromo: 0,
-        lineOaPromo: 2000,
-        googleAdsAmount: 34500,
-        fbAdsAmount: 34500,
-        tiktokAmount: 11500,
-        igAmount: 11500,
-        lazadaAmount: 0,
-        shopeeAmount: 11500,
-        grabAmount: 11500
-      },
-      {
-        name: 'NITAN เขาพระตำหนัก',
-        manualFullBudget: 20000,
-        previousSales: 1200000.00,
-        influencerPromo: 0,
-        eventPromo: 0,
-        lineOaPromo: 0,
-        googleAdsAmount: 8000,
-        fbAdsAmount: 8000,
-        tiktokAmount: 2000,
-        igAmount: 2000,
-        lazadaAmount: 0,
-        shopeeAmount: 2000,
-        grabAmount: 2000
-      },
-      {
-        name: 'NITAN นาเกลือ',
-        manualFullBudget: 22000,
-        previousSales: 1100000.00,
-        influencerPromo: 0,
-        eventPromo: 0,
-        lineOaPromo: 0,
-        googleAdsAmount: 8000,
-        fbAdsAmount: 8000,
-        tiktokAmount: 2000,
-        igAmount: 0,
-        lazadaAmount: 0,
-        shopeeAmount: 2000,
-        grabAmount: 2000
-      }
-    ]
+    sheetTitle: 'งบ Marketing ประจำเดือน',
+    branches: []
   });
 
-  // Default initial branches data map matching user's exact Google Sheet screenshot
-  const [monthlyBudgetsData, setMonthlyBudgetsData] = useState({
-    '2026-08': [
-      {
-        id: 'hq',
-        name: 'NITAN หลัก',
-        subTitle: 'สำนักงานใหญ่',
-        colorHeader: 'bg-[#FFEBF3] text-purple-950 border-[#E2D2EA]',
-        manualFullBudget: 117000.00,
-        previousSales: 5750000.00,
-        promotions: [
-          { id: 'p1', name: 'Influencer', amount: 0 },
-          { id: 'p2', name: 'Workshop/Event', amount: 0 },
-          { id: 'p3', name: 'Line OA', amount: 2000 }
-        ],
-        channelAllocations: [
-          { id: 'c1', name: 'Google', percent: 30, amount: 34500 },
-          { id: 'c2', name: 'Facebook', percent: 30, amount: 34500 },
-          { id: 'c3', name: 'TikTok', percent: 10, amount: 11500 },
-          { id: 'c4', name: 'Instagram', percent: 10, amount: 11500 },
-          { id: 'c5', name: 'Lazada', percent: 0, amount: 0 },
-          { id: 'c6', name: 'Shopee', percent: 10, amount: 11500 },
-          { id: 'c7', name: 'Grab', percent: 10, amount: 11500 }
-        ]
-      },
-      {
-        id: 'phra-tamnak',
-        name: 'NITAN เขาพระตำหนัก',
-        subTitle: 'เขาพระตำหนัก พัทยา',
-        colorHeader: 'bg-[#E6F2FF] text-purple-950 border-[#E2D2EA]',
-        manualFullBudget: 20000.00,
-        previousSales: 1200000.00,
-        promotions: [
-          { id: 'p1', name: 'Influencer', amount: 0 },
-          { id: 'p2', name: 'Workshop/Event', amount: 0 },
-          { id: 'p3', name: 'Line OA', amount: 0 }
-        ],
-        channelAllocations: [
-          { id: 'c1', name: 'Google', percent: 40, amount: 8000 },
-          { id: 'c2', name: 'Facebook', percent: 40, amount: 8000 },
-          { id: 'c3', name: 'TikTok', percent: 10, amount: 2000 },
-          { id: 'c4', name: 'Instagram', percent: 10, amount: 2000 },
-          { id: 'c5', name: 'Lazada', percent: 0, amount: 0 },
-          { id: 'c6', name: 'Shopee', percent: 10, amount: 2000 },
-          { id: 'c7', name: 'Grab', percent: 10, amount: 2000 }
-        ]
-      },
-      {
-        id: 'naklua',
-        name: 'NITAN นาเกลือ',
-        subTitle: 'นาเกลือ พัทยา',
-        colorHeader: 'bg-[#FEF9C3] text-purple-950 border-[#E2D2EA]',
-        manualFullBudget: 22000.00,
-        previousSales: 1100000.00,
-        promotions: [
-          { id: 'p1', name: 'Influencer', amount: 0 },
-          { id: 'p2', name: 'Workshop/Event', amount: 0 },
-          { id: 'p3', name: 'Line OA', amount: 0 }
-        ],
-        channelAllocations: [
-          { id: 'c1', name: 'Google', percent: 40, amount: 8000 },
-          { id: 'c2', name: 'Facebook', percent: 40, amount: 8000 },
-          { id: 'c3', name: 'TikTok', percent: 10, amount: 2000 },
-          { id: 'c4', name: 'Instagram', percent: 0, amount: 0 },
-          { id: 'c5', name: 'Lazada', percent: 0, amount: 0 },
-          { id: 'c6', name: 'Shopee', percent: 10, amount: 2000 },
-          { id: 'c7', name: 'Grab', percent: 10, amount: 2000 }
-        ]
-      }
-    ]
-  });
+  // Monthly Budgets Data Map (Initialized empty for user real data)
+  const [monthlyBudgetsData, setMonthlyBudgetsData] = useState({});
 
   const currentMonthKey = `${selectedYear}-${selectedMonth}`;
 
-  // Get current active branches for the selected month
-  const currentBranches = monthlyBudgetsData[currentMonthKey] || [
-    {
-      id: `hq-${currentMonthKey}`,
-      name: 'NITAN หลัก',
-      subTitle: 'สำนักงานใหญ่',
-      colorHeader: 'bg-[#FFEBF3] text-purple-950 border-[#E2D2EA]',
-      manualFullBudget: 117000.00,
-      previousSales: 5750000.00,
-      promotions: [
-        { id: 'p1', name: 'Influencer', amount: 0 },
-        { id: 'p2', name: 'Workshop/Event', amount: 0 },
-        { id: 'p3', name: 'Line OA', amount: 2000 }
-      ],
-      channelAllocations: [
-        { id: 'c1', name: 'Google', percent: 30, amount: 34500 },
-        { id: 'c2', name: 'Facebook', percent: 30, amount: 34500 },
-        { id: 'c3', name: 'TikTok', percent: 10, amount: 11500 },
-        { id: 'c4', name: 'Instagram', percent: 10, amount: 11500 },
-        { id: 'c5', name: 'Lazada', percent: 0, amount: 0 },
-        { id: 'c6', name: 'Shopee', percent: 10, amount: 11500 },
-        { id: 'c7', name: 'Grab', percent: 10, amount: 11500 }
-      ]
-    },
-    {
-      id: `phra-tamnak-${currentMonthKey}`,
-      name: 'NITAN เขาพระตำหนัก',
-      subTitle: 'เขาพระตำหนัก พัทยา',
-      colorHeader: 'bg-[#E6F2FF] text-purple-950 border-[#E2D2EA]',
-      manualFullBudget: 20000.00,
-      previousSales: 1200000.00,
-      promotions: [
-        { id: 'p1', name: 'Influencer', amount: 0 },
-        { id: 'p2', name: 'Workshop/Event', amount: 0 },
-        { id: 'p3', name: 'Line OA', amount: 0 }
-      ],
-      channelAllocations: [
-        { id: 'c1', name: 'Google', percent: 40, amount: 8000 },
-        { id: 'c2', name: 'Facebook', percent: 40, amount: 8000 },
-        { id: 'c3', name: 'TikTok', percent: 10, amount: 2000 },
-        { id: 'c4', name: 'Instagram', percent: 10, amount: 2000 },
-        { id: 'c5', name: 'Lazada', percent: 0, amount: 0 },
-        { id: 'c6', name: 'Shopee', percent: 10, amount: 2000 },
-        { id: 'c7', name: 'Grab', percent: 10, amount: 2000 }
-      ]
-    }
-  ];
+  // Get current active branches for the selected month (Empty by default)
+  const currentBranches = monthlyBudgetsData[currentMonthKey] || [];
 
   const updateCurrentBranches = (newBranchesOrFn) => {
     setMonthlyBudgetsData(prev => {
@@ -598,8 +438,37 @@ export default function BranchBudgetAllocation() {
       </div>
 
       {/* Dynamic Branch Cards Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-        {currentBranches.map((branch, bIdx) => {
+      {currentBranches.length === 0 ? (
+        <div className="glass-panel p-12 text-center border-[#E2D2EA] space-y-4 my-4">
+          <div className="w-14 h-14 rounded-2xl bg-[#FFEBF3] text-purple-800 flex items-center justify-center border border-[#E2D2EA] mx-auto shadow-xs">
+            <PieChart className="w-7 h-7" />
+          </div>
+          <div className="space-y-1">
+            <h3 className="font-bold text-purple-950 text-base">ยังไม่มีข้อมูลจัดสรรงบประมาณประจำเดือนนี้</h3>
+            <p className="text-xs text-purple-800/80 max-w-md mx-auto">
+              กดปุ่มด้านล่างเพื่อเริ่มเพิ่มสาขาและตั้งงบประมาณรายช่องทางสื่อ หรือสแกนรูปภาพตารางสเปรดชีตด้วย AI
+            </p>
+          </div>
+          <div className="flex flex-wrap items-center justify-center gap-3 pt-2">
+            <button
+              onClick={() => setShowAddBranchModal(true)}
+              className="px-4 py-2.5 bg-gradient-to-r from-purple-950 via-pink-900 to-purple-900 text-white font-bold rounded-xl text-xs shadow-md hover:opacity-95 transition cursor-pointer flex items-center gap-2"
+            >
+              <Plus className="w-4 h-4 text-pink-300" />
+              <span>+ เพิ่มสาขาและจัดสรรงบ</span>
+            </button>
+            <button
+              onClick={() => setShowImageScanModal(true)}
+              className="px-4 py-2.5 bg-white text-purple-950 font-bold rounded-xl text-xs border border-[#E2D2EA] shadow-xs hover:bg-purple-50 transition cursor-pointer flex items-center gap-2"
+            >
+              <Camera className="w-4 h-4 text-purple-700" />
+              <span>สแกนรูปตาราง Excel (Groq AI)</span>
+            </button>
+          </div>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+          {currentBranches.map((branch, bIdx) => {
           const fullBudget = budgetCalcMode === 'auto'
             ? (branch.previousSales * (mktPercentRate / 100))
             : (branch.manualFullBudget || (branch.previousSales * (mktPercentRate / 100)));
@@ -847,6 +716,7 @@ export default function BranchBudgetAllocation() {
           );
         })}
       </div>
+      )}
 
       {/* User Custom Note Footer matching user screenshot text */}
       <div className="p-4 bg-purple-50/60 border border-purple-200 rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
