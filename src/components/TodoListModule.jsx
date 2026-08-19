@@ -98,8 +98,7 @@ export default function TodoListModule({
 
   const [followupFormData, setFollowupFormData] = useState({
     title: '',
-    targetPerson: 'คุณส้ม (ทีมกราฟิก)',
-    nextFollowupDate: new Date().toISOString().split('T')[0],
+    targetPerson: '',
     status: 'following',
     notes: ''
   });
@@ -124,6 +123,20 @@ export default function TodoListModule({
       assignedTo: 'ทีมการตลาด',
       dueDate: new Date(Date.now() + 86400000 * 3).toISOString().split('T')[0],
       description: ''
+    });
+    setShowAddTaskModal(true);
+  };
+
+  const handleOpenEditTask = (task) => {
+    setEditingTask(task);
+    setTaskFormData({
+      title: task.title,
+      category: task.category,
+      priority: task.priority,
+      status: task.status,
+      assignedTo: task.assignedTo,
+      dueDate: task.dueDate,
+      description: task.description || ''
     });
     setShowAddTaskModal(true);
   };
@@ -166,10 +179,20 @@ export default function TodoListModule({
     setEditingFollowup(null);
     setFollowupFormData({
       title: '',
-      targetPerson: 'คุณส้ม (ทีมกราฟิก)',
-      nextFollowupDate: new Date().toISOString().split('T')[0],
+      targetPerson: '',
       status: 'following',
       notes: ''
+    });
+    setShowAddFollowupModal(true);
+  };
+
+  const handleOpenEditFollowup = (followup) => {
+    setEditingFollowup(followup);
+    setFollowupFormData({
+      title: followup.title,
+      targetPerson: followup.targetPerson || '',
+      status: followup.status || 'following',
+      notes: followup.notes || ''
     });
     setShowAddFollowupModal(true);
   };
@@ -205,6 +228,19 @@ export default function TodoListModule({
       driveUrl: '',
       deliveryStatus: 'not_submitted',
       remarks: ''
+    });
+    setShowAddFileModal(true);
+  };
+
+  const handleOpenEditFile = (file) => {
+    setEditingFile(file);
+    setFileFormData({
+      fileName: file.fileName,
+      fileType: file.fileType,
+      assignedCreator: file.assignedCreator,
+      driveUrl: file.driveUrl || '',
+      deliveryStatus: file.deliveryStatus,
+      remarks: file.remarks || ''
     });
     setShowAddFileModal(true);
   };
@@ -483,6 +519,7 @@ export default function TodoListModule({
                 <div key={task.id} className="glass-panel p-4 border border-[#E2D2EA] space-y-3">
                   <div className="flex items-center justify-between">
                     <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-[#FFEBF3] text-purple-950 border border-[#E2D2EA]">{task.category}</span>
+                    <button onClick={() => handleOpenEditTask(task)} className="text-amber-500 hover:bg-amber-50 p-1 rounded"><Edit3 className="w-3.5 h-3.5" /></button>
                     <button onClick={() => handleDeleteTask(task.id)} className="text-rose-500 hover:bg-rose-50 p-1 rounded"><Trash2 className="w-3.5 h-3.5" /></button>
                   </div>
                   <div className="flex items-start gap-2">
@@ -543,6 +580,9 @@ export default function TodoListModule({
                       {item.status === 'following' ? 'กำลังตามงาน' : 'ติดตามเรียบร้อย'}
                     </span>
 
+                    <button onClick={() => handleOpenEditFollowup(item)} className="text-amber-500 hover:bg-amber-50 p-1 rounded">
+                      <Edit3 className="w-3.5 h-3.5" />
+                    </button>
                     <button onClick={() => handleDeleteFollowup(item.id)} className="text-rose-500 hover:bg-rose-50 p-1 rounded">
                       <Trash2 className="w-3.5 h-3.5" />
                     </button>
@@ -553,11 +593,7 @@ export default function TodoListModule({
                   <div className="p-3 bg-purple-50/70 rounded-xl border border-purple-100 text-xs space-y-1.5">
                     <div className="flex items-center justify-between">
                       <span className="text-purple-800 font-medium">ตามงานกับใคร:</span>
-                      <span className="font-bold text-purple-950">{item.targetPerson}</span>
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <span className="text-purple-800 font-medium">วันที่ต้องตามรอบถัดไป:</span>
-                      <span className="font-mono font-bold text-amber-900">{item.nextFollowupDate}</span>
+                      <span className="font-bold text-purple-950">{item.targetPerson || '-'}</span>
                     </div>
                   </div>
 
@@ -570,9 +606,9 @@ export default function TodoListModule({
                       onClick={() => setLineModalItem({
                         id: item.id,
                         title: `[Follow-Up Alert] ตามงาน: ${item.title}`,
-                        platform: item.targetPerson,
-                        publish_date: item.nextFollowupDate,
-                        assigned_to: item.targetPerson,
+                        platform: item.targetPerson || 'ไม่มีผู้รับผิดชอบ',
+                        publish_date: new Date().toISOString().split('T')[0],
+                        assigned_to: item.targetPerson || 'ทีมงาน',
                         status: 'FOLLOW_UP',
                         media_url: 'https://images.unsplash.com/photo-1620916566398-39f1143ab7be?auto=format&fit=crop&w=600&q=80'
                       })}
@@ -657,6 +693,9 @@ export default function TodoListModule({
                           {isSubmitted ? 'เปลี่ยนเป็น: ยังไม่ส่ง' : 'สลับเป็น: ส่งไฟล์แล้ว 🟢'}
                         </button>
 
+                        <button onClick={() => handleOpenEditFile(file)} className="text-amber-500 hover:bg-amber-50 p-1 rounded">
+                          <Edit3 className="w-3.5 h-3.5" />
+                        </button>
                         <button onClick={() => handleDeleteFile(file.id)} className="text-rose-500 hover:bg-rose-50 p-1 rounded">
                           <Trash2 className="w-3.5 h-3.5" />
                         </button>
@@ -777,11 +816,14 @@ export default function TodoListModule({
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="block font-bold mb-1">ตามงานกับใคร</label>
-                  <input type="text" required placeholder="เช่น คุณส้ม ทีมกราฟิก" value={followupFormData.targetPerson} onChange={e => setFollowupFormData({...followupFormData, targetPerson: e.target.value})} className="w-full px-3 py-2 border rounded-xl" />
+                  <input type="text" placeholder="เช่น คุณส้ม ทีมกราฟิก (เว้นว่างได้)" value={followupFormData.targetPerson} onChange={e => setFollowupFormData({...followupFormData, targetPerson: e.target.value})} className="w-full px-3 py-2 border rounded-xl" />
                 </div>
                 <div>
-                  <label className="block font-bold mb-1">วันที่ต้องตามรอบถัดไป</label>
-                  <input type="date" required value={followupFormData.nextFollowupDate} onChange={e => setFollowupFormData({...followupFormData, nextFollowupDate: e.target.value})} className="w-full px-3 py-2 border rounded-xl" />
+                  <label className="block font-bold mb-1">สถานะ</label>
+                  <select value={followupFormData.status} onChange={e => setFollowupFormData({...followupFormData, status: e.target.value})} className="w-full px-3 py-2 border rounded-xl font-bold">
+                    <option value="following">กำลังตามงาน</option>
+                    <option value="completed">ติดตามเรียบร้อย</option>
+                  </select>
                 </div>
               </div>
               <div>
