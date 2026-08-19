@@ -5,6 +5,7 @@ import DashboardOverview from './components/DashboardOverview';
 import ContentPlanModule from './components/ContentPlanModule';
 import MarketingPlanModule from './components/MarketingPlanModule';
 import ProductPlanModule from './components/ProductPlanModule';
+import PromotionPlanModule from './components/PromotionPlanModule';
 import KpiAnalyticsModule from './components/KpiAnalyticsModule';
 import SchemaViewerModal from './components/SchemaViewerModal';
 
@@ -210,6 +211,14 @@ export default function App() {
               onUpdateStrategyCanvas={handleUpdateStrategyCanvas}
               onUpvoteIdea={handleUpvoteIdea}
               onAddCampaignIdea={handleAddCampaignIdea}
+            />
+          )}
+
+          {activeTab === 'promotion-plan' && (
+            <PromotionPlanModule
+              products={currentTeamProducts}
+              campaigns={currentTeamCampaigns}
+              onTriggerNotification={handleTriggerNotification}
             />
           )}
 

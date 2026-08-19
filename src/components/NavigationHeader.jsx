@@ -15,7 +15,8 @@ import {
   Compass,
   Package,
   MessageSquare,
-  BarChart3
+  BarChart3,
+  Megaphone
 } from 'lucide-react';
 
 import LineGroupSettingsModal from './LineGroupSettingsModal';
@@ -45,7 +46,8 @@ export default function NavigationHeader({
     { id: 'content-plan', label: 'Module 1: Content Plan', icon: Calendar },
     { id: 'product-plan', label: 'Module 2: Product Plan & Campaign Readiness', icon: Package },
     { id: 'marketing-plan', label: 'Module 3: Marketing Plan & Brainstorming', icon: Compass },
-    { id: 'kpi-analytics', label: 'Module 4: KPI Analytics', icon: BarChart3 },
+    { id: 'promotion-plan', label: 'Module 4: แผนการโปรโมท (Promotion Plan)', icon: Megaphone },
+    { id: 'kpi-analytics', label: 'Module 5: KPI Analytics', icon: BarChart3 },
   ];
 
   return (
