@@ -344,11 +344,18 @@ export default function ContentPlanModule({
     }
 
     const currentGroups = effectiveContentGroups.map(grp => {
-      if (grp.id === groupId) {
+      if (grp.id === groupId || grp.name === groupId) {
         const existingSubs = grp.subCategories || [];
+        const existingColors = grp.subCategoryColors || {};
+        const newColors = { ...existingColors };
+        if (newColors[oldName]) {
+          newColors[trimmedNew] = newColors[oldName];
+          delete newColors[oldName];
+        }
         return {
           ...grp,
-          subCategories: existingSubs.map(s => s === oldName ? trimmedNew : s)
+          subCategories: existingSubs.map(s => s === oldName ? trimmedNew : s),
+          subCategoryColors: newColors
         };
       }
       return grp;
@@ -362,11 +369,16 @@ export default function ContentPlanModule({
 
   const handleDeleteSubCategory = (groupId, subNameToDelete) => {
     const currentGroups = effectiveContentGroups.map(grp => {
-      if (grp.id === groupId) {
+      if (grp.id === groupId || grp.name === groupId) {
         const existingSubs = grp.subCategories || [];
+        const existingColors = grp.subCategoryColors || {};
+        const newColors = { ...existingColors };
+        delete newColors[subNameToDelete];
+
         return {
           ...grp,
-          subCategories: existingSubs.filter(s => s !== subNameToDelete)
+          subCategories: existingSubs.filter(s => s !== subNameToDelete),
+          subCategoryColors: newColors
         };
       }
       return grp;
@@ -1072,7 +1084,7 @@ export default function ContentPlanModule({
   // Dynamically calculate sub-categories belonging to currently CHECKED main groups
   const activeCheckedGroups = effectiveContentGroups.filter(g => isGroupChecked(g.name));
   const availableSubCategories = activeCheckedGroups.flatMap(g =>
-    (g.subCategories || []).map(s => ({ groupName: g.name, subName: s }))
+    (g.subCategories || []).map(s => ({ groupId: g.id, groupName: g.name, subName: s }))
   );
 
   const toggleSubCategorySelection = (subName) => {
