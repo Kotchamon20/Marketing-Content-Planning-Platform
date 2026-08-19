@@ -46,13 +46,9 @@ export default function PromotionPlanModule({
     { id: 'cat-4', name: 'Seasonal Promo', label: 'โปรโมชันตามเทศกาล (Seasonal)' }
   ]);
 
-  // Dynamic Related Products State (Add, Edit, Delete products)
+  // Dynamic Related Products State (Cleared Mockup Data)
   const [productsList, setProductsList] = useState([
-    { id: 'p-1', name: 'Sunscreen Aqua Gel (กันแดดสูตรน้ำ)' },
-    { id: 'p-2', name: 'Melasma Clear Serum (เซรั่มสลายฝ้า)' },
-    { id: 'p-3', name: 'Radiance C Body Lotion (โลชั่นผิวใส)' },
-    { id: 'p-4', name: 'Nitan Club VIP Pass (บัตรสมาชิก)' },
-    { id: 'p-5', name: 'สินค้าทุกรายการ (All Products)' }
+    { id: 'p-1', name: 'สินค้าทุกรายการ (All Products)' }
   ]);
 
   // Clean Initial Promotion Plans Data State (Cleared Mockup Data)

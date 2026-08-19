@@ -45,41 +45,11 @@ export default function TodoListModule({
   // 1. Tasks State
   const [tasks, setTasks] = useState([]);
 
-  // 2. Follow-Up Watchlist State (บันทึกงานที่ต้องติดตาม)
-  const [followupItems, setFollowupItems] = useState([
-    {
-      id: 'fol-1',
-      title: 'ตามไฟล์วิดีโอ TikTok Promo 9.9 จากทีมเอเจนซี่',
-      targetPerson: 'คุณส้ม (Agency Creative)',
-      nextFollowupDate: '2026-08-21',
-      status: 'following', // following | completed
-      notes: 'บรีฟแก้ไขคัทภาพ 3 วินาทีแรกให้กระชับขึ้น'
-    }
-  ]);
+  // 2. Follow-Up Watchlist State (Cleared Mockup Data)
+  const [followupItems, setFollowupItems] = useState([]);
 
-  // 3. File Submission Tracker State (ติดตามไฟล์งานเพื่อเช็กว่าส่งยัง)
-  const [fileTrackers, setFileTrackers] = useState([
-    {
-      id: 'file-1',
-      fileName: 'ภาพปก Facebook Sunscreen Aqua Gel 1 แถม 1',
-      fileType: 'ภาพกราฟิก AI/PSD',
-      assignedCreator: 'คุณเจนนี่ (Content Creator)',
-      driveUrl: 'https://drive.google.com/',
-      deliveryStatus: 'submitted', // submitted (ส่งแล้ว) | not_submitted (ยังไม่ส่ง)
-      submittedAt: '19 ส.ค. 2026 10:30 น.',
-      remarks: 'ขนาด 1080x1080px พร้อมไฟล์ต้นฉบับ'
-    },
-    {
-      id: 'file-2',
-      fileName: 'คลิป TikTok Review เซรั่ม Melasma Clear 15s',
-      fileType: 'วิดีโอ MP4',
-      assignedCreator: 'ทีมตัดต่อวิดีโอ',
-      driveUrl: '',
-      deliveryStatus: 'not_submitted',
-      submittedAt: 'ยังไม่ส่ง',
-      remarks: 'กำหนดส่งภายในเย็นวันนี้'
-    }
-  ]);
+  // 3. File Submission Tracker State (Cleared Mockup Data)
+  const [fileTrackers, setFileTrackers] = useState([]);
 
   // Filters State
   const [selectedStatus, setSelectedStatus] = useState('all');
