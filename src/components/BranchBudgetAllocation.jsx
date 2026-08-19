@@ -129,12 +129,82 @@ export default function BranchBudgetAllocation() {
     return () => clearTimeout(syncTimer);
   }, [monthlyBudgetsData, googleSearchBreakdown, currentMonthKey]);
 
-  // Get current active branches for the selected month (Empty by default)
-  const currentBranches = monthlyBudgetsData[currentMonthKey] || [];
+  // 3 Standard Default Nitan Branches (Always preset so user never needs to add manually)
+  const DEFAULT_NITAN_BRANCHES = React.useMemo(() => [
+    {
+      id: 'hq',
+      name: 'สำนักงานใหญ่ (NITAN)',
+      colorHeader: 'bg-[#FFEBF3] text-purple-950 border-[#E2D2EA]',
+      manualFullBudget: 117860.64,
+      previousSales: 5893032.00,
+      promotions: [
+        { id: 'p1', name: 'Influencer', amount: 0 },
+        { id: 'p2', name: 'Workshop/Event', amount: 0 },
+        { id: 'p3', name: 'Line OA', amount: 2000 }
+      ],
+      channelAllocations: [
+        { id: 'c1', name: 'Google', percent: 35, amount: 40551.22 },
+        { id: 'c2', name: 'Facebook', percent: 35, amount: 40551.22 },
+        { id: 'c3', name: 'TikTok', percent: 10, amount: 11586.06 },
+        { id: 'c4', name: 'Instagram', percent: 0, amount: 0 },
+        { id: 'c5', name: 'Lazada', percent: 0, amount: 0 },
+        { id: 'c6', name: 'Shopee', percent: 10, amount: 11586.06 },
+        { id: 'c7', name: 'Grab', percent: 10, amount: 11586.06 }
+      ]
+    },
+    {
+      id: 'pratamnak',
+      name: 'สาขาเขาพระตำหนัก',
+      colorHeader: 'bg-[#E6F2FF] text-purple-950 border-[#E2D2EA]',
+      manualFullBudget: 20083.34,
+      previousSales: 1004167.00,
+      promotions: [
+        { id: 'p1', name: 'Influencer', amount: 0 },
+        { id: 'p2', name: 'Workshop/Event', amount: 0 },
+        { id: 'p3', name: 'Line OA', amount: 0 }
+      ],
+      channelAllocations: [
+        { id: 'c1', name: 'Google', percent: 40, amount: 8033.34 },
+        { id: 'c2', name: 'Facebook', percent: 40, amount: 8033.34 },
+        { id: 'c3', name: 'TikTok', percent: 10, amount: 2008.33 },
+        { id: 'c4', name: 'Instagram', percent: 0, amount: 0 },
+        { id: 'c5', name: 'Lazada', percent: 0, amount: 0 },
+        { id: 'c6', name: 'Shopee', percent: 0, amount: 0 },
+        { id: 'c7', name: 'Grab', percent: 10, amount: 2008.33 }
+      ]
+    },
+    {
+      id: 'naklua',
+      name: 'สาขานาเกลือ',
+      colorHeader: 'bg-[#FEF9C3] text-purple-950 border-[#E2D2EA]',
+      manualFullBudget: 22991.24,
+      previousSales: 1149562.00,
+      promotions: [
+        { id: 'p1', name: 'Influencer', amount: 0 },
+        { id: 'p2', name: 'Workshop/Event', amount: 0 },
+        { id: 'p3', name: 'Line OA', amount: 0 }
+      ],
+      channelAllocations: [
+        { id: 'c1', name: 'Google', percent: 40, amount: 9196.50 },
+        { id: 'c2', name: 'Facebook', percent: 40, amount: 9196.50 },
+        { id: 'c3', name: 'TikTok', percent: 10, amount: 2299.12 },
+        { id: 'c4', name: 'Instagram', percent: 0, amount: 0 },
+        { id: 'c5', name: 'Lazada', percent: 0, amount: 0 },
+        { id: 'c6', name: 'Shopee', percent: 0, amount: 0 },
+        { id: 'c7', name: 'Grab', percent: 10, amount: 2299.12 }
+      ]
+    }
+  ], []);
+
+  // Get current active branches for the selected month (Always includes 3 Nitan branches by default)
+  const currentBranches = (monthlyBudgetsData[currentMonthKey] && monthlyBudgetsData[currentMonthKey].length > 0)
+    ? monthlyBudgetsData[currentMonthKey]
+    : DEFAULT_NITAN_BRANCHES;
 
   const updateCurrentBranches = (newBranchesOrFn) => {
     setMonthlyBudgetsData(prev => {
-      const updated = typeof newBranchesOrFn === 'function' ? newBranchesOrFn(currentBranches) : newBranchesOrFn;
+      const activeList = (prev[currentMonthKey] && prev[currentMonthKey].length > 0) ? prev[currentMonthKey] : DEFAULT_NITAN_BRANCHES;
+      const updated = typeof newBranchesOrFn === 'function' ? newBranchesOrFn(activeList) : newBranchesOrFn;
       return { ...prev, [currentMonthKey]: updated };
     });
   };
@@ -419,10 +489,6 @@ export default function BranchBudgetAllocation() {
             <button
               onClick={() => {
                 setShowImageScanModal(true);
-                if (!uploadedImageSrc) {
-                  setUploadedImageSrc('/excel_full_sheet_layout.png');
-                  startGroqAiScanSimulation('excel_full_sheet_layout.png');
-                }
               }}
               className="px-4 py-2.5 bg-gradient-to-r from-purple-950 via-pink-900 to-purple-900 text-white font-bold rounded-xl text-xs transition shadow-md flex items-center gap-2 cursor-pointer hover:opacity-95"
             >
