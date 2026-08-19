@@ -21,7 +21,9 @@ import {
   ArrowUpRight,
   ListTodo,
   TrendingUp,
-  UserCheck
+  UserCheck,
+  LayoutGrid,
+  List
 } from 'lucide-react';
 import LineFlexModal from './LineFlexModal';
 
@@ -87,6 +89,9 @@ export default function TodoListModule({
       completed: false
     }
   ]);
+
+  // View Mode State: 'card' (default) | 'list'
+  const [viewMode, setViewMode] = useState('card');
 
   // Filters State
   const [selectedStatus, setSelectedStatus] = useState('all'); // 'all' | 'pending' | 'in_progress' | 'completed'
@@ -229,7 +234,7 @@ export default function TodoListModule({
               <span>รายการงานที่ต้องทำ (To-Do List & Task Action Items)</span>
             </h2>
             <p className="text-xs text-purple-800/80 font-medium mt-1">
-              ติดตามสถานะงาน มอบหมายผู้รับผิดชอบ กำหนดวันเสร็จสิ้น และแจ้งเตือนผ่าน LINE Group
+              ติดตามสถานะงาน มอบหมายผู้รับผิดชอบ กำหนดวันเสร็จสิ้น สลับโหมด Card View / List View ได้อิสระ
             </p>
           </div>
 
@@ -334,55 +339,190 @@ export default function TodoListModule({
           </div>
         </div>
 
-        {/* Secondary Filter Row */}
-        <div className="flex flex-wrap items-center gap-3 pt-2.5 border-t border-purple-100/60">
-          {/* Priority Filter */}
-          <div className="flex items-center gap-1.5 bg-white px-2.5 py-1 rounded-xl border border-[#E2D2EA]">
-            <Flag className="w-3.5 h-3.5 text-purple-600" />
-            <span className="font-bold text-purple-900">ระดับความด่วน:</span>
-            <select
-              value={selectedPriority}
-              onChange={(e) => setSelectedPriority(e.target.value)}
-              className="bg-transparent font-bold text-purple-950 focus:outline-none text-xs"
-            >
-              <option value="all">ระดับทั้งหมด</option>
-              <option value="high">สูงมาก (High)</option>
-              <option value="medium">ปานกลาง (Medium)</option>
-              <option value="low">ทั่วไป (Low)</option>
-            </select>
+        {/* Secondary Filter Row & Layout Switcher */}
+        <div className="flex flex-wrap items-center justify-between gap-3 pt-2.5 border-t border-purple-100/60">
+          <div className="flex flex-wrap items-center gap-3">
+            {/* Priority Filter */}
+            <div className="flex items-center gap-1.5 bg-white px-2.5 py-1 rounded-xl border border-[#E2D2EA]">
+              <Flag className="w-3.5 h-3.5 text-purple-600" />
+              <span className="font-bold text-purple-900">ระดับความด่วน:</span>
+              <select
+                value={selectedPriority}
+                onChange={(e) => setSelectedPriority(e.target.value)}
+                className="bg-transparent font-bold text-purple-950 focus:outline-none text-xs"
+              >
+                <option value="all">ระดับทั้งหมด</option>
+                <option value="high">สูงมาก (High)</option>
+                <option value="medium">ปานกลาง (Medium)</option>
+                <option value="low">ทั่วไป (Low)</option>
+              </select>
+            </div>
+
+            {/* Category Filter */}
+            <div className="flex items-center gap-1.5 bg-white px-2.5 py-1 rounded-xl border border-[#E2D2EA]">
+              <Tag className="w-3.5 h-3.5 text-purple-600" />
+              <span className="font-bold text-purple-900">หมวดหมู่โมดูล:</span>
+              <select
+                value={selectedCategory}
+                onChange={(e) => setSelectedCategory(e.target.value)}
+                className="bg-transparent font-bold text-purple-950 focus:outline-none text-xs"
+              >
+                <option value="all">ทุกหมวดหมู่</option>
+                <option value="Promotion Plan">แผนโปรโมท (Promotion Plan)</option>
+                <option value="Content Plan">คอนเทนต์ (Content Plan)</option>
+                <option value="Marketing Plan">กลยุทธ์ (Marketing Plan)</option>
+                <option value="Product Campaign">แคมเปญสินค้า (Product Campaign)</option>
+              </select>
+            </div>
           </div>
 
-          {/* Category Filter */}
-          <div className="flex items-center gap-1.5 bg-white px-2.5 py-1 rounded-xl border border-[#E2D2EA]">
-            <Tag className="w-3.5 h-3.5 text-purple-600" />
-            <span className="font-bold text-purple-900">หมวดหมู่โมดูล:</span>
-            <select
-              value={selectedCategory}
-              onChange={(e) => setSelectedCategory(e.target.value)}
-              className="bg-transparent font-bold text-purple-950 focus:outline-none text-xs"
+          {/* View Mode Toggle Controls (Card View vs List View) */}
+          <div className="flex items-center gap-1.5 bg-white p-1 rounded-xl border border-[#E2D2EA] shadow-xs">
+            <button
+              onClick={() => setViewMode('card')}
+              className={`px-3 py-1 rounded-lg font-bold transition flex items-center gap-1.5 cursor-pointer text-xs ${
+                viewMode === 'card'
+                  ? 'bg-purple-950 text-white shadow-xs'
+                  : 'text-purple-900 hover:bg-purple-50'
+              }`}
+              title="แสดงผลรูปแบบ Card Grid"
             >
-              <option value="all">ทุกหมวดหมู่</option>
-              <option value="Promotion Plan">แผนโปรโมท (Promotion Plan)</option>
-              <option value="Content Plan">คอนเทนต์ (Content Plan)</option>
-              <option value="Marketing Plan">กลยุทธ์ (Marketing Plan)</option>
-              <option value="Product Campaign">แคมเปญสินค้า (Product Campaign)</option>
-            </select>
-          </div>
+              <LayoutGrid className="w-3.5 h-3.5" />
+              <span>Card View</span>
+            </button>
 
-          <span className="ml-auto text-purple-700 font-bold text-[11px]">
-            พบ {filteredTasks.length} รายการงาน
-          </span>
+            <button
+              onClick={() => setViewMode('list')}
+              className={`px-3 py-1 rounded-lg font-bold transition flex items-center gap-1.5 cursor-pointer text-xs ${
+                viewMode === 'list'
+                  ? 'bg-purple-950 text-white shadow-xs'
+                  : 'text-purple-900 hover:bg-purple-50'
+              }`}
+              title="แสดงผลรูปแบบ List รายการ"
+            >
+              <List className="w-3.5 h-3.5" />
+              <span>List View</span>
+            </button>
+          </div>
         </div>
       </div>
 
-      {/* Task List Grid */}
-      <div className="space-y-3">
-        {filteredTasks.length === 0 ? (
-          <div className="glass-panel p-10 text-center text-purple-400 font-medium text-xs">
-            ไม่พบรายการงาน To-Do ตามเงื่อนไขที่เลือก
-          </div>
-        ) : (
-          filteredTasks.map(task => (
+      {/* Task Displays Container (Card View vs List View) */}
+      {filteredTasks.length === 0 ? (
+        <div className="glass-panel p-10 text-center text-purple-400 font-medium text-xs">
+          ไม่พบรายการงาน To-Do ตามเงื่อนไขที่เลือก
+        </div>
+      ) : viewMode === 'card' ? (
+        /* CARD VIEW MODE GRID */
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+          {filteredTasks.map(task => (
+            <div
+              key={task.id}
+              className={`glass-panel p-5 border flex flex-col justify-between space-y-4 hover:shadow-md transition ${
+                task.completed
+                  ? 'bg-purple-50/40 border-purple-200 opacity-80'
+                  : 'bg-white border-[#E2D2EA]'
+              }`}
+            >
+              <div>
+                {/* Header Badge Row */}
+                <div className="flex items-center justify-between gap-2 mb-2">
+                  <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold border ${
+                    task.priority === 'high'
+                      ? 'bg-rose-100 text-rose-800 border-rose-200'
+                      : task.priority === 'medium'
+                      ? 'bg-amber-100 text-amber-900 border-amber-200'
+                      : 'bg-slate-100 text-slate-700 border-slate-200'
+                  }`}>
+                    {task.priority === 'high' ? 'ด่วนมาก' : task.priority === 'medium' ? 'ปานกลาง' : 'ทั่วไป'}
+                  </span>
+
+                  <div className="flex items-center gap-1">
+                    <button
+                      onClick={() => handleOpenEditModal(task)}
+                      className="p-1 text-purple-600 hover:bg-purple-50 rounded-lg transition cursor-pointer"
+                      title="แก้ไขงาน"
+                    >
+                      <Edit3 className="w-3.5 h-3.5" />
+                    </button>
+
+                    <button
+                      onClick={() => handleDeleteTask(task.id)}
+                      className="p-1 text-rose-500 hover:bg-rose-50 rounded-lg transition cursor-pointer"
+                      title="ลบงาน"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                </div>
+
+                {/* Checkbox & Task Title */}
+                <div className="flex items-start gap-2.5">
+                  <input
+                    type="checkbox"
+                    checked={task.completed}
+                    onChange={() => handleToggleTaskCompleted(task.id)}
+                    className="mt-1 w-4 h-4 rounded text-purple-950 focus:ring-purple-500 cursor-pointer shrink-0"
+                  />
+                  <h3 className={`font-bold text-base text-purple-950 leading-snug ${task.completed ? 'line-through text-purple-400' : ''}`}>
+                    {task.title}
+                  </h3>
+                </div>
+
+                {/* Description Box */}
+                <p className="mt-2.5 p-3 bg-purple-50/60 rounded-xl border border-purple-100 text-xs text-purple-800/90 font-medium leading-relaxed">
+                  {task.description}
+                </p>
+
+                {/* Metadata Row */}
+                <div className="mt-3 space-y-1.5 text-xs">
+                  <div className="flex items-center justify-between text-[11px]">
+                    <span className="text-purple-800 font-medium flex items-center gap-1">
+                      <User className="w-3.5 h-3.5 text-purple-600" />
+                      <span>มอบหมาย:</span>
+                    </span>
+                    <span className="font-bold text-purple-950">{task.assignedTo}</span>
+                  </div>
+
+                  <div className="flex items-center justify-between text-[11px]">
+                    <span className="text-purple-800 font-medium flex items-center gap-1">
+                      <Calendar className="w-3.5 h-3.5 text-purple-600" />
+                      <span>กำหนดเสร็จ:</span>
+                    </span>
+                    <span className="font-mono font-bold text-purple-950">{task.dueDate}</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Card Footer Actions */}
+              <div className="pt-3 border-t border-purple-100 flex items-center justify-between gap-2 text-xs">
+                <span className="px-2 py-0.5 rounded-md bg-[#FFEBF3] text-purple-950 text-[10px] font-bold border border-[#E2D2EA]">
+                  {task.category}
+                </span>
+
+                <button
+                  onClick={() => setLineModalItem({
+                    id: task.id,
+                    title: `[To-Do Work] ${task.title}`,
+                    platform: task.assignedTo,
+                    publish_date: task.dueDate,
+                    assigned_to: task.assignedTo,
+                    status: task.completed ? 'COMPLETED' : 'IN_PROGRESS',
+                    media_url: 'https://images.unsplash.com/photo-1620916566398-39f1143ab7be?auto=format&fit=crop&w=600&q=80'
+                  })}
+                  className="px-3 py-1.5 bg-[#FFEBF3] hover:bg-pink-200 text-purple-950 font-bold rounded-xl border border-[#E2D2EA] transition flex items-center gap-1.5 text-xs shadow-xs cursor-pointer"
+                >
+                  <Send className="w-3.5 h-3.5 text-purple-700" />
+                  <span>ส่งเข้า LINE</span>
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+      ) : (
+        /* LIST VIEW MODE ROWS */
+        <div className="space-y-3">
+          {filteredTasks.map(task => (
             <div
               key={task.id}
               className={`glass-panel p-4 border transition flex flex-col md:flex-row md:items-center justify-between gap-4 ${
@@ -478,9 +618,9 @@ export default function TodoListModule({
                 </button>
               </div>
             </div>
-          ))
-        )}
-      </div>
+          ))}
+        </div>
+      )}
 
       {/* Add / Edit Task Modal */}
       {showAddModal && (
