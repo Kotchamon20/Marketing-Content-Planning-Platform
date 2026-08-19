@@ -49,7 +49,7 @@ export function subscribeToContentItems(onDataChanged) {
     };
   } catch (e) {
     console.warn('Realtime subscription warning:', e);
-    return () => {};
+    return () => { };
   }
 }
 
@@ -81,12 +81,13 @@ function formatIsoDateForDb(rawVal) {
 export async function upsertContentItemToSupabase(contentItem) {
   try {
     const rawPlat = contentItem.platform;
-    let singlePlatform = 'facebook';
-    if (Array.isArray(rawPlat) && rawPlat.length > 0) {
-      singlePlatform = rawPlat[0];
+    let plats = [];
+    if (Array.isArray(rawPlat)) {
+      plats = rawPlat.map(p => typeof p === 'string' ? p.trim() : p).filter(Boolean);
     } else if (typeof rawPlat === 'string' && rawPlat.trim()) {
-      singlePlatform = rawPlat.split(/[\s,]+/).filter(Boolean)[0] || 'facebook';
+      plats = rawPlat.split(/[\s,]+/).map(p => p.trim()).filter(Boolean);
     }
+    if (plats.length === 0) plats = ['facebook'];
 
     const cleanPublishDate = formatIsoDateForDb(contentItem.publish_date);
 
@@ -95,7 +96,8 @@ export async function upsertContentItemToSupabase(contentItem) {
       title: contentItem.title || '[Untitled Content]',
       caption: contentItem.caption || '',
       visual_concept: contentItem.visual_concept || '',
-      platform: singlePlatform,
+      platform: plats.join(','),
+      platforms: plats,
       status: ['draft', 'scheduled', 'published'].includes(contentItem.status) ? contentItem.status : 'draft',
       publish_date: cleanPublishDate,
       media_url: contentItem.media_url || '',
