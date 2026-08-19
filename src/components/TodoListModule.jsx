@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { fetchTodoFollowupsFromSupabase, saveTodoFollowupToSupabase, deleteTodoFollowupFromSupabase } from '../services/dataService';
 import {
   CheckSquare,
   Plus,
@@ -49,11 +50,16 @@ export default function TodoListModule({
     return saved ? JSON.parse(saved) : [];
   });
 
-  // 2. Follow-Up Watchlist State
-  const [followupItems, setFollowupItems] = useState(() => {
-    const saved = localStorage.getItem('nitan_todo_followup');
-    return saved ? JSON.parse(saved) : [];
-  });
+  const [followupItems, setFollowupItems] = useState([]);
+  
+  // Fetch Follow-ups from DB on mount
+  useEffect(() => {
+    const loadFollowups = async () => {
+      const data = await fetchTodoFollowupsFromSupabase();
+      setFollowupItems(data);
+    };
+    loadFollowups();
+  }, []);
 
   // 3. File Submission Tracker State
   const [fileTrackers, setFileTrackers] = useState(() => {
@@ -63,9 +69,8 @@ export default function TodoListModule({
 
   React.useEffect(() => {
     localStorage.setItem('nitan_todo_tasks', JSON.stringify(tasks));
-    localStorage.setItem('nitan_todo_followup', JSON.stringify(followupItems));
     localStorage.setItem('nitan_todo_files', JSON.stringify(fileTrackers));
-  }, [tasks, followupItems, fileTrackers]);
+  }, [tasks, fileTrackers]);
 
   // Filters State
   const [selectedStatus, setSelectedStatus] = useState('all');
@@ -197,25 +202,34 @@ export default function TodoListModule({
     setShowAddFollowupModal(true);
   };
 
-  const handleSaveFollowup = (e) => {
+  const handleSaveFollowup = async (e) => {
     e.preventDefault();
+    let newItem;
     if (editingFollowup) {
-      setFollowupItems(prev => prev.map(f => f.id === editingFollowup.id ? {
-        ...f,
+      newItem = {
+        ...editingFollowup,
         ...followupFormData
-      } : f));
+      };
+      setFollowupItems(prev => prev.map(f => f.id === editingFollowup.id ? newItem : f));
     } else {
-      setFollowupItems(prev => [{
+      newItem = {
         id: `fol-${Date.now()}`,
         ...followupFormData,
-        createdAt: new Date().toISOString().split('T')[0]
-      }, ...prev]);
+        createdAt: new Date().toISOString()
+      };
+      setFollowupItems(prev => [newItem, ...prev]);
     }
     setShowAddFollowupModal(false);
+    
+    // Save to Supabase
+    await saveTodoFollowupToSupabase(newItem);
+    onShowSaveToast?.('บันทึกงานติดตามลงฐานข้อมูลแล้ว!');
   };
 
-  const handleDeleteFollowup = (id) => {
+  const handleDeleteFollowup = async (id) => {
     setFollowupItems(prev => prev.filter(f => f.id !== id));
+    await deleteTodoFollowupFromSupabase(id);
+    onShowSaveToast?.('ลบงานติดตามเรียบร้อยแล้ว!');
   };
 
   // --- Handlers for 3. File Submission Tracker ---

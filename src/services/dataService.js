@@ -798,3 +798,69 @@ export const insertNotificationLogToSupabase = async (logData) => {
     return null;
   }
 };
+
+// ==========================================
+// TODO FOLLOWUPS (Module 5)
+// ==========================================
+
+export const fetchTodoFollowupsFromSupabase = async () => {
+  try {
+    const { data, error } = await supabase
+      .from('todo_followups')
+      .select('*')
+      .order('created_at', { ascending: false });
+
+    if (error) throw error;
+    // Map to frontend shape
+    return (data || []).map(item => ({
+      id: item.id,
+      title: item.title,
+      targetPerson: item.target_person,
+      status: item.status,
+      notes: item.notes,
+      createdAt: item.created_at
+    }));
+  } catch (err) {
+    console.error('Error fetching followups:', err);
+    return [];
+  }
+};
+
+export const saveTodoFollowupToSupabase = async (item) => {
+  try {
+    const dbItem = {
+      id: item.id,
+      title: item.title,
+      target_person: item.targetPerson || null,
+      status: item.status,
+      notes: item.notes || null,
+      created_at: item.createdAt || new Date().toISOString()
+    };
+    
+    const { data, error } = await supabase
+      .from('todo_followups')
+      .upsert(dbItem)
+      .select();
+
+    if (error) throw error;
+    return true;
+  } catch (err) {
+    console.error('Error saving followup:', err);
+    return false;
+  }
+};
+
+export const deleteTodoFollowupFromSupabase = async (id) => {
+  try {
+    const { error } = await supabase
+      .from('todo_followups')
+      .delete()
+      .eq('id', id);
+
+    if (error) throw error;
+    return true;
+  } catch (err) {
+    console.error('Error deleting followup:', err);
+    return false;
+  }
+};

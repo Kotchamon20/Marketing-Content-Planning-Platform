@@ -221,6 +221,16 @@ CREATE TABLE IF NOT EXISTS todo_tasks (
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
+-- 14.5 TODO FOLLOWUPS
+CREATE TABLE IF NOT EXISTS todo_followups (
+    id VARCHAR(50) PRIMARY KEY, -- use fol-timestamp
+    title VARCHAR(255) NOT NULL,
+    target_person VARCHAR(100),
+    status VARCHAR(20) DEFAULT 'following',
+    notes TEXT,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
 -- 15. KPI ITEMS & PAID ADS (Module 6 - Performance & Paid Spend)
 CREATE TABLE IF NOT EXISTS kpi_items (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -267,6 +277,7 @@ ALTER TABLE notification_logs DISABLE ROW LEVEL SECURITY;
 ALTER TABLE line_groups DISABLE ROW LEVEL SECURITY;
 ALTER TABLE branch_budgets DISABLE ROW LEVEL SECURITY;
 ALTER TABLE todo_tasks DISABLE ROW LEVEL SECURITY;
+ALTER TABLE todo_followups DISABLE ROW LEVEL SECURITY;
 ALTER TABLE kpi_items DISABLE ROW LEVEL SECURITY;
 ALTER TABLE promotion_plans DISABLE ROW LEVEL SECURITY;
 
@@ -279,6 +290,9 @@ CREATE POLICY "Allow public all access on branch_budgets" ON branch_budgets FOR 
 
 DROP POLICY IF EXISTS "Allow public all access on todo_tasks" ON todo_tasks;
 CREATE POLICY "Allow public all access on todo_tasks" ON todo_tasks FOR ALL USING (true);
+
+DROP POLICY IF EXISTS "Allow public all access on todo_followups" ON todo_followups;
+CREATE POLICY "Allow public all access on todo_followups" ON todo_followups FOR ALL USING (true);
 
 DROP POLICY IF EXISTS "Allow public all access on kpi_items" ON kpi_items;
 CREATE POLICY "Allow public all access on kpi_items" ON kpi_items FOR ALL USING (true);

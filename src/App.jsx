@@ -9,7 +9,6 @@ import ProductPlanModule from './components/ProductPlanModule';
 import PromotionPlanModule from './components/PromotionPlanModule';
 import TodoListModule from './components/TodoListModule';
 import KpiAnalyticsModule from './components/KpiAnalyticsModule';
-import AutoNotificationJob from './components/AutoNotificationJob';
 import SchemaViewerModal from './components/SchemaViewerModal';
 import {
   fetchContentItemsFromSupabase,
@@ -375,9 +374,6 @@ export default function App() {
     <div className="min-h-screen bg-[#FCFAF7] text-purple-950 font-sans selection:bg-purple-200 selection:text-purple-950 flex flex-col justify-between">
       
       <div>
-        {/* Background Job */}
-        <AutoNotificationJob />
-
         {/* Navigation Bar */}
         <NavigationHeader
           teams={teams}
