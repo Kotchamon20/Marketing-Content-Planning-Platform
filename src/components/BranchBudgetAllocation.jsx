@@ -49,11 +49,11 @@ export default function BranchBudgetAllocation() {
     return new Date().toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' });
   });
 
-  // Google Search Sub-Campaign Breakdown State (Supports % OR Baht ฿ input for every item)
+  // Google Search Sub-Campaign Breakdown State (Default to 0 for un-entered months)
   const [googleSearchBreakdown, setGoogleSearchBreakdown] = useState({
-    generalSearch: { percent: 25, amount: 283.72 },
-    leadsSearch: { percent: 25, amount: 283.72 },
-    naJomtienSearch: { percent: 50, amount: 567.43 }
+    generalSearch: { percent: 0, amount: 0 },
+    leadsSearch: { percent: 0, amount: 0 },
+    naJomtienSearch: { percent: 0, amount: 0 }
   });
 
   // Toggle state to expand/collapse Google Ads Breakdown box inside cards
@@ -89,7 +89,7 @@ export default function BranchBudgetAllocation() {
   // Custom Modal States
   const [showAddBranchModal, setShowAddBranchModal] = useState(false);
   const [newBranchName, setNewBranchName] = useState('');
-  const [newBranchSales, setNewBranchSales] = useState(1000000);
+  const [newBranchSales, setNewBranchSales] = useState(0);
 
   const [deleteBranchId, setDeleteBranchId] = useState(null);
 
@@ -129,69 +129,69 @@ export default function BranchBudgetAllocation() {
     return () => clearTimeout(syncTimer);
   }, [monthlyBudgetsData, googleSearchBreakdown, currentMonthKey]);
 
-  // 3 Standard Default Nitan Branches (Always preset so user never needs to add manually)
+  // 3 Standard Default Nitan Branches (Default 0 for all un-entered months)
   const DEFAULT_NITAN_BRANCHES = React.useMemo(() => [
     {
       id: 'hq',
       name: 'สำนักงานใหญ่ (NITAN)',
       colorHeader: 'bg-[#FFEBF3] text-purple-950 border-[#E2D2EA]',
-      manualFullBudget: 117860.64,
-      previousSales: 5893032.00,
+      manualFullBudget: 0,
+      previousSales: 0,
       promotions: [
         { id: 'p1', name: 'Influencer', amount: 0 },
         { id: 'p2', name: 'Workshop/Event', amount: 0 },
-        { id: 'p3', name: 'Line OA', amount: 2000 }
+        { id: 'p3', name: 'Line OA', amount: 0 }
       ],
       channelAllocations: [
-        { id: 'c1', name: 'Google', percent: 35, amount: 40551.22 },
-        { id: 'c2', name: 'Facebook', percent: 35, amount: 40551.22 },
-        { id: 'c3', name: 'TikTok', percent: 10, amount: 11586.06 },
+        { id: 'c1', name: 'Google', percent: 0, amount: 0 },
+        { id: 'c2', name: 'Facebook', percent: 0, amount: 0 },
+        { id: 'c3', name: 'TikTok', percent: 0, amount: 0 },
         { id: 'c4', name: 'Instagram', percent: 0, amount: 0 },
         { id: 'c5', name: 'Lazada', percent: 0, amount: 0 },
-        { id: 'c6', name: 'Shopee', percent: 10, amount: 11586.06 },
-        { id: 'c7', name: 'Grab', percent: 10, amount: 11586.06 }
+        { id: 'c6', name: 'Shopee', percent: 0, amount: 0 },
+        { id: 'c7', name: 'Grab', percent: 0, amount: 0 }
       ]
     },
     {
       id: 'pratamnak',
       name: 'สาขาเขาพระตำหนัก',
       colorHeader: 'bg-[#E6F2FF] text-purple-950 border-[#E2D2EA]',
-      manualFullBudget: 20083.34,
-      previousSales: 1004167.00,
+      manualFullBudget: 0,
+      previousSales: 0,
       promotions: [
         { id: 'p1', name: 'Influencer', amount: 0 },
         { id: 'p2', name: 'Workshop/Event', amount: 0 },
         { id: 'p3', name: 'Line OA', amount: 0 }
       ],
       channelAllocations: [
-        { id: 'c1', name: 'Google', percent: 40, amount: 8033.34 },
-        { id: 'c2', name: 'Facebook', percent: 40, amount: 8033.34 },
-        { id: 'c3', name: 'TikTok', percent: 10, amount: 2008.33 },
+        { id: 'c1', name: 'Google', percent: 0, amount: 0 },
+        { id: 'c2', name: 'Facebook', percent: 0, amount: 0 },
+        { id: 'c3', name: 'TikTok', percent: 0, amount: 0 },
         { id: 'c4', name: 'Instagram', percent: 0, amount: 0 },
         { id: 'c5', name: 'Lazada', percent: 0, amount: 0 },
         { id: 'c6', name: 'Shopee', percent: 0, amount: 0 },
-        { id: 'c7', name: 'Grab', percent: 10, amount: 2008.33 }
+        { id: 'c7', name: 'Grab', percent: 0, amount: 0 }
       ]
     },
     {
       id: 'naklua',
       name: 'สาขานาเกลือ',
       colorHeader: 'bg-[#FEF9C3] text-purple-950 border-[#E2D2EA]',
-      manualFullBudget: 22991.24,
-      previousSales: 1149562.00,
+      manualFullBudget: 0,
+      previousSales: 0,
       promotions: [
         { id: 'p1', name: 'Influencer', amount: 0 },
         { id: 'p2', name: 'Workshop/Event', amount: 0 },
         { id: 'p3', name: 'Line OA', amount: 0 }
       ],
       channelAllocations: [
-        { id: 'c1', name: 'Google', percent: 40, amount: 9196.50 },
-        { id: 'c2', name: 'Facebook', percent: 40, amount: 9196.50 },
-        { id: 'c3', name: 'TikTok', percent: 10, amount: 2299.12 },
+        { id: 'c1', name: 'Google', percent: 0, amount: 0 },
+        { id: 'c2', name: 'Facebook', percent: 0, amount: 0 },
+        { id: 'c3', name: 'TikTok', percent: 0, amount: 0 },
         { id: 'c4', name: 'Instagram', percent: 0, amount: 0 },
         { id: 'c5', name: 'Lazada', percent: 0, amount: 0 },
         { id: 'c6', name: 'Shopee', percent: 0, amount: 0 },
-        { id: 'c7', name: 'Grab', percent: 10, amount: 2299.12 }
+        { id: 'c7', name: 'Grab', percent: 0, amount: 0 }
       ]
     }
   ], []);
