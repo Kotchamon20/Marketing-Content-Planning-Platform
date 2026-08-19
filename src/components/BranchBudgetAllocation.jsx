@@ -476,89 +476,94 @@ export default function BranchBudgetAllocation() {
             </p>
           </div>
 
-          <div className="flex items-center gap-3 flex-wrap">
-            
-            {/* Auto vs Manual Calculation Mode Switcher */}
-            <div className="flex items-center p-1 bg-purple-50 rounded-xl border border-[#E2D2EA] text-xs font-bold shadow-xs">
+          <div className="flex flex-col sm:flex-row sm:flex-wrap items-start lg:items-center justify-end gap-3 w-full lg:w-auto">
+            {/* Group 1: Settings & Filters */}
+            <div className="flex flex-wrap items-center gap-2">
+              {/* Month & Year Filter Selectors */}
+              <div className="flex items-center gap-2 px-3 py-2 bg-white rounded-xl border border-[#E2D2EA] text-xs font-bold text-purple-950 shadow-xs">
+                <Calendar className="w-4 h-4 text-purple-700" />
+                <span>ประจำเดือน:</span>
+                <select
+                  value={selectedMonth}
+                  onChange={(e) => setSelectedMonth(e.target.value)}
+                  className="px-2 py-1 bg-purple-50 border border-purple-200 rounded-lg font-bold text-purple-950 focus:outline-none text-xs cursor-pointer hover:bg-purple-100 transition-colors"
+                >
+                  {monthsList.map(m => (
+                    <option key={m.value} value={m.value}>{m.label}</option>
+                  ))}
+                </select>
+
+                <select
+                  value={selectedYear}
+                  onChange={(e) => setSelectedYear(e.target.value)}
+                  className="px-2 py-1 bg-purple-50 border border-purple-200 rounded-lg font-bold text-purple-950 focus:outline-none text-xs cursor-pointer hover:bg-purple-100 transition-colors"
+                >
+                  <option value="2026">2026 (2569)</option>
+                  <option value="2027">2027 (2570)</option>
+                </select>
+              </div>
+
+              {/* Auto vs Manual Calculation Mode Switcher */}
+              <div className="flex items-center p-1 bg-purple-50 rounded-xl border border-[#E2D2EA] text-xs font-bold shadow-xs">
+                <button
+                  onClick={() => setBudgetCalcMode('auto')}
+                  className={`px-3 py-1.5 rounded-lg transition flex items-center gap-1.5 cursor-pointer ${
+                    budgetCalcMode === 'auto'
+                      ? 'bg-purple-950 text-white shadow-xs'
+                      : 'text-purple-900 hover:bg-purple-100'
+                  }`}
+                  title="คำนวณงบประมาณ 2% อัตโนมัติจากยอดขายเดือนก่อนหน้า"
+                >
+                  <Zap className="w-3.5 h-3.5 text-yellow-300" />
+                  <span>Auto (คำนวณ 2% อัตโนมัติ)</span>
+                </button>
+
+                <button
+                  onClick={() => setBudgetCalcMode('manual')}
+                  className={`px-3 py-1.5 rounded-lg transition flex items-center gap-1.5 cursor-pointer ${
+                    budgetCalcMode === 'manual'
+                      ? 'bg-purple-950 text-white shadow-xs'
+                      : 'text-purple-900 hover:bg-purple-100'
+                  }`}
+                  title="เปิดให้กรอกงบจำนวนเต็มเองอิสระ (Manual Output)"
+                >
+                  <Edit3 className="w-3.5 h-3.5 text-pink-300" />
+                  <span>Manual (กรอกงบจำนวนเต็มเอง)</span>
+                </button>
+              </div>
+            </div>
+
+            {/* Group 2: Actions */}
+            <div className="flex flex-wrap items-center gap-2">
+              {/* Smart Groq AI Image Auto-Scan Button */}
               <button
-                onClick={() => setBudgetCalcMode('auto')}
-                className={`px-3 py-1.5 rounded-lg transition flex items-center gap-1.5 cursor-pointer ${
-                  budgetCalcMode === 'auto'
-                    ? 'bg-purple-950 text-white shadow-xs'
-                    : 'text-purple-900 hover:bg-purple-100'
-                }`}
-                title="คำนวณงบประมาณ 2% อัตโนมัติจากยอดขายเดือนก่อนหน้า"
+                onClick={() => {
+                  setShowImageScanModal(true);
+                }}
+                className="px-4 py-2.5 bg-gradient-to-r from-purple-950 via-pink-900 to-purple-900 text-white font-bold rounded-xl text-xs transition shadow-md flex items-center gap-2 cursor-pointer hover:opacity-95"
               >
-                <Zap className="w-3.5 h-3.5 text-yellow-300" />
-                <span>Auto (คำนวณ 2% อัตโนมัติ)</span>
+                <Bot className="w-4 h-4 text-pink-300 animate-pulse" />
+                <span>Groq AI สแกนรูปภาพตาราง (Auto)</span>
               </button>
 
               <button
-                onClick={() => setBudgetCalcMode('manual')}
-                className={`px-3 py-1.5 rounded-lg transition flex items-center gap-1.5 cursor-pointer ${
-                  budgetCalcMode === 'manual'
-                    ? 'bg-purple-950 text-white shadow-xs'
-                    : 'text-purple-900 hover:bg-purple-100'
-                }`}
-                title="เปิดให้กรอกงบจำนวนเต็มเองอิสระ (Manual Output)"
+                onClick={() => setShowAddBranchModal(true)}
+                className="px-4 py-2.5 bg-gradient-to-r from-[#F0E6F5] via-[#FFEBF3] to-[#E6F2FF] hover:opacity-90 text-purple-950 font-bold rounded-xl text-xs transition shadow-xs border border-[#E2D2EA] flex items-center gap-2 cursor-pointer"
               >
-                <Edit3 className="w-3.5 h-3.5 text-pink-300" />
-                <span>Manual (กรอกงบจำนวนเต็มเอง)</span>
+                <Plus className="w-4 h-4 text-purple-700" />
+                <span>+ เพิ่มสาขาใหม่</span>
+              </button>
+
+              {/* Manual Save Button to Supabase & LocalStorage */}
+              <button
+                onClick={handleManualSaveAllBranches}
+                className="px-4 py-2.5 bg-gradient-to-r from-emerald-600 to-teal-700 hover:opacity-90 text-white font-bold rounded-xl text-xs transition shadow-md flex items-center gap-2 cursor-pointer"
+                title="บันทึกข้อมูลจัดสรรงบประมาณสาขาทั้งหมดลง DB ทันที"
+              >
+                <Save className="w-4 h-4 text-emerald-100" />
+                <span>💾 บันทึกข้อมูลลง DB</span>
               </button>
             </div>
-
-            {/* Month & Year Filter Selectors */}
-            <div className="flex items-center gap-2 px-3 py-2 bg-white rounded-xl border border-[#E2D2EA] text-xs font-bold text-purple-950 shadow-xs">
-              <Calendar className="w-4 h-4 text-purple-700" />
-              <span>ประจำเดือน:</span>
-              <select
-                value={selectedMonth}
-                onChange={(e) => setSelectedMonth(e.target.value)}
-                className="px-2 py-1 bg-purple-50 border border-purple-200 rounded-lg font-bold text-purple-950 focus:outline-none text-xs"
-              >
-                {monthsList.map(m => (
-                  <option key={m.value} value={m.value}>{m.label}</option>
-                ))}
-              </select>
-
-              <select
-                value={selectedYear}
-                onChange={(e) => setSelectedYear(e.target.value)}
-                className="px-2 py-1 bg-purple-50 border border-purple-200 rounded-lg font-bold text-purple-950 focus:outline-none text-xs"
-              >
-                <option value="2026">2026 (2569)</option>
-                <option value="2027">2027 (2570)</option>
-              </select>
-            </div>
-
-            {/* Manual Save Button to Supabase & LocalStorage */}
-            <button
-              onClick={handleManualSaveAllBranches}
-              className="px-4 py-2.5 bg-gradient-to-r from-emerald-600 to-teal-700 hover:opacity-90 text-white font-bold rounded-xl text-xs transition shadow-md flex items-center gap-2 cursor-pointer"
-              title="บันทึกข้อมูลจัดสรรงบประมาณสาขาทั้งหมดลง DB ทันที"
-            >
-              <Save className="w-4 h-4 text-emerald-100" />
-              <span>💾 บันทึกข้อมูลลง DB</span>
-            </button>
-
-            {/* Smart Groq AI Image Auto-Scan Button */}
-            <button
-              onClick={() => {
-                setShowImageScanModal(true);
-              }}
-              className="px-4 py-2.5 bg-gradient-to-r from-purple-950 via-pink-900 to-purple-900 text-white font-bold rounded-xl text-xs transition shadow-md flex items-center gap-2 cursor-pointer hover:opacity-95"
-            >
-              <Bot className="w-4 h-4 text-pink-300 animate-pulse" />
-              <span>Groq AI สแกนรูปภาพตาราง (Auto)</span>
-            </button>
-
-            <button
-              onClick={() => setShowAddBranchModal(true)}
-              className="px-4 py-2.5 bg-gradient-to-r from-[#F0E6F5] via-[#FFEBF3] to-[#E6F2FF] hover:opacity-90 text-purple-950 font-bold rounded-xl text-xs transition shadow-xs border border-[#E2D2EA] flex items-center gap-2 cursor-pointer"
-            >
-              <Plus className="w-4 h-4 text-purple-700" />
-              <span>+ เพิ่มสาขาใหม่</span>
-            </button>
           </div>
         </div>
 
