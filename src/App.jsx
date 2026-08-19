@@ -99,8 +99,10 @@ export default function App() {
     async function loadFromSupabase() {
       // 1. Content Items
       const dbItems = await fetchContentItemsFromSupabase();
-      if (dbItems) {
+      if (dbItems && dbItems.length > 0) {
         mapDbItems(dbItems);
+      } else {
+        setContentItems([]);
       }
 
       // 2. Campaigns
@@ -141,6 +143,8 @@ export default function App() {
           colorClass: g.color_class || 'bg-slate-500 text-white',
           subCategories: g.sub_categories || []
         })));
+      } else {
+        setContentGroups([]);
       }
 
       // 6. Campaign Ideas

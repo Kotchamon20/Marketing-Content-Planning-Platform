@@ -243,7 +243,7 @@ export default function ContentPlanModule({
     }
   ], []);
 
-  const effectiveContentGroups = (contentGroups && contentGroups.length > 0) ? contentGroups : DEFAULT_CONTENT_GROUPS;
+  const effectiveContentGroups = (contentGroups && contentGroups.length > 0) ? contentGroups : [];
 
   // Multi-Select Google Calendar Style Group Filter (selectedGroupNames)
   const [selectedGroupNames, setSelectedGroupNames] = useState([]);
@@ -1102,6 +1102,17 @@ export default function ContentPlanModule({
     if (!_seenGlobalSubNames.has(lowerName)) {
       _seenGlobalSubNames.add(lowerName);
       allGlobalSubCategories.push(sub.trim());
+    }
+  });
+
+  // Include dynamic subcategories from currently existing content items in the table
+  (contentItems || []).forEach(item => {
+    if (item.subCategory && item.subCategory.trim() !== '' && item.subCategory !== '-- ไม่ระบุ --') {
+      const lowerName = item.subCategory.trim().toLowerCase();
+      if (!_seenGlobalSubNames.has(lowerName)) {
+        _seenGlobalSubNames.add(lowerName);
+        allGlobalSubCategories.push(item.subCategory.trim());
+      }
     }
   });
 
@@ -2615,12 +2626,12 @@ export default function ContentPlanModule({
                               {/* 3. Platform Select Cell */}
                               <td className="p-1">
                                 <select
-                                  value={item.platform}
+                                  value={Array.isArray(item.platform) ? (item.platform[0] || 'facebook') : (item.platform || 'facebook')}
                                   onFocus={() => setSelectedGridCell({ row: rowIdx, col: 3 })}
                                   onPaste={(e) => handleGridCellPaste(e, rowIdx, 3)}
                                   onChange={(e) => {
                                     pushGridUndoSnapshot();
-                                    onEditContentItem && onEditContentItem({ ...item, platform: e.target.value });
+                                    onEditContentItem && onEditContentItem({ ...item, platform: [e.target.value] });
                                   }}
                                   className={`w-full p-2 rounded-xl font-semibold text-[11px] cursor-pointer focus:outline-none transition border shadow-xs ${selectedGridCell?.row === rowIdx && selectedGridCell?.col === 3
                                     ? 'bg-white border-2 border-rose-500 shadow-sm'
