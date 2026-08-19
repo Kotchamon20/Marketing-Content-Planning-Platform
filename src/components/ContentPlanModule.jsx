@@ -635,7 +635,7 @@ export default function ContentPlanModule({
     if (!rows || rows.length === 0) return [];
 
     let titleCol = 0;
-    let groupCol = 1;
+    let subCategoryCol = 1;  // หมวดหมู่ย่อย (Sub-Category) — อ่านจากไฟล์โดยตรง
     let visualCol = 2;
     let captionCol = 3;
     let platformCol = 4;
@@ -650,7 +650,7 @@ export default function ContentPlanModule({
       const candidateRow = rows[rIdx];
       if (candidateRow && candidateRow.some(c => {
         const s = String(c || '').toLowerCase();
-        return s.includes('title') || s.includes('หัวข้อ') || s.includes('pillar') || s.includes('หมวดหมู่') || s.includes('visual') || s.includes('caption') || s.includes('แคปชัน') || s.includes('platform') || s.includes('แพลตฟอร์ม');
+        return s.includes('title') || s.includes('หัวข้อ') || s.includes('sub') || s.includes('หมวดหมู่') || s.includes('visual') || s.includes('caption') || s.includes('แคปชัน') || s.includes('platform') || s.includes('แพลตฟอร์ม');
       })) {
         startIndex = rIdx + 1;
         candidateRow.forEach((colHeader, cIdx) => {
@@ -664,9 +664,14 @@ export default function ContentPlanModule({
           else if (headerStr.includes('title') || headerStr.includes('หัวข้อ') || headerStr.includes('topic') || headerStr.includes('ชื่อคอนเทนต์')) {
             titleCol = cIdx;
           }
-          // 3. Group / Pillar
-          else if (headerStr.includes('pillar') || headerStr.includes('หมวดหมู่') || headerStr.includes('กลุ่ม') || headerStr.includes('group')) {
-            groupCol = cIdx;
+          // 3. Sub-Category / หมวดหมู่ย่อย (อ่านจากไฟล์โดยตรง)
+          else if (
+            headerStr.includes('sub') || headerStr.includes('หมวดหมู่ย่อย') ||
+            headerStr.includes('sub-category') || headerStr.includes('subcategory') ||
+            headerStr.includes('pillar') || headerStr.includes('หมวดหมู่') ||
+            headerStr.includes('กลุ่ม') || headerStr.includes('group') || headerStr.includes('category')
+          ) {
+            subCategoryCol = cIdx;
           }
           // 4. Visual Concept / รูปแบบภาพ
           else if (headerStr.includes('visual') || headerStr.includes('รูปแบบ') || headerStr.includes('ไอเดียภาพ') || headerStr.includes('แนวภาพ') || (headerStr.includes('ภาพ') && !headerStr.includes('ลิงก์'))) {
@@ -699,7 +704,7 @@ export default function ContentPlanModule({
       if (!row || row.length === 0) continue;
 
       let title = String(row[titleCol] ?? '').trim();
-      const groupRaw = String(row[groupCol] ?? '').trim();
+      const subCategoryRaw = String(row[subCategoryCol] ?? '').trim(); // หมวดหมู่ย่อยจากไฟล์
       const visual_concept = String(row[visualCol] ?? '').trim();
       const caption = String(row[captionCol] ?? '').trim();
       const platformRaw = String(row[platformCol] ?? '').trim();
@@ -708,7 +713,7 @@ export default function ContentPlanModule({
       const media_url = String(row[mediaCol] ?? '').trim();
 
       // If all fields are empty, skip row
-      if (!title && !groupRaw && !visual_concept && !caption && !platformRaw && !dateRaw && !media_url) continue;
+      if (!title && !subCategoryRaw && !visual_concept && !caption && !platformRaw && !dateRaw && !media_url) continue;
 
       // Fallback for title if empty but other fields exist in row
       if (!title) {
@@ -721,13 +726,8 @@ export default function ContentPlanModule({
         }
       }
 
-      let group = groupRaw || effectiveContentGroups[0]?.name || 'Brand Vibe (Atmosphere)';
-      const matchedGrp = effectiveContentGroups.find(g =>
-        g.name.toLowerCase().includes(groupRaw.toLowerCase()) || groupRaw.toLowerCase().includes(g.name.toLowerCase())
-      );
-      if (matchedGrp) {
-        group = matchedGrp.name;
-      }
+      // กลุ่มคอนเทนต์หลักใช้จาก bulkTargetGroup (ตั้งแต่ขั้น Group Selector ก่อน Import)
+      const group = effectiveContentGroups[0]?.name || 'Brand Vibe (Atmosphere)';
 
       items.push({
         id: `cnt-${Date.now()}-${i}`,
@@ -739,7 +739,7 @@ export default function ContentPlanModule({
         visual_concept,
         platform: parsePlatformString(platformRaw),
         group,
-        subCategory: '',
+        subCategory: subCategoryRaw,  // อ่านตรงจากไฟล์
         status: parseStatusString(statusRaw),
         publish_date: parseThaiDateTime(dateRaw),
         media_url: media_url.startsWith('http') ? media_url : (media_url ? `https://${media_url}` : ''),
@@ -2366,7 +2366,7 @@ export default function ContentPlanModule({
                               <span className="flex items-center gap-1"><FileText className="w-3.5 h-3.5 text-pink-500" /> แคปชัน (Caption)</span>
                             </th>
                             <th className="p-3 min-w-[140px]">
-                              <span className="flex items-center gap-1"><Tag className="w-3.5 h-3.5 text-pink-500" /> กลุ่มคอนเทนต์ (Group)</span>
+                              <span className="flex items-center gap-1"><Tag className="w-3.5 h-3.5 text-pink-500" /> หมวดหมู่ย่อย (Sub-Category)</span>
                             </th>
                             <th className="p-3 min-w-[120px]">
                               <span className="flex items-center gap-1"><Video className="w-3.5 h-3.5 text-pink-500" /> แพลตฟอร์ม</span>
@@ -3188,7 +3188,7 @@ export default function ContentPlanModule({
               <div className="flex items-center justify-between gap-2 bg-pink-50/50 p-3 rounded-2xl border border-pink-100 flex-wrap">
                 <div className="text-[11px] text-slate-700 font-medium flex items-center gap-1.5">
                   <ClipboardPaste className="w-4 h-4 text-pink-500 shrink-0" />
-                  <span>วางตารางจาก Google Sheets / Excel (คอลัมน์: 1. Title | 2. Pillar | 3. Visual | 4. Caption | 5. Platform | 6. Status | 7. Date)</span>
+                  <span>วางตารางจาก Google Sheets / Excel (คอลัมน์: 1. Title | 2. Sub-Category (หมวดหมู่ย่อย) | 3. Visual | 4. Caption | 5. Platform | 6. Status | 7. Date)</span>
                 </div>
                 <div className="flex items-center gap-2 flex-wrap">
                   {/* Groq AI Table Parser Button */}
@@ -3279,7 +3279,7 @@ export default function ContentPlanModule({
                         <tr>
                           <th className="p-3 w-10 text-center text-rose-400">#</th>
                           <th className="p-3 w-[15%] min-w-[140px]">หัวข้อคอนเทนต์ (Title)</th>
-                          <th className="p-3 w-[13%] min-w-[130px]">หมวดหมู่ / Pillar</th>
+                          <th className="p-3 w-[13%] min-w-[130px]">หมวดหมู่ย่อย (Sub-Category)</th>
                           <th className="p-3 w-[18%] min-w-[150px]">รูปแบบ & ไอเดียภาพ (Visual)</th>
                           <th className="p-3 w-[28%] min-w-[220px] text-pink-700">ไอเดีย Copywriting / แคปชัน (Caption)</th>
                           <th className="p-3 w-[10%] min-w-[100px]">แพลตฟอร์ม</th>
@@ -3293,7 +3293,7 @@ export default function ContentPlanModule({
                           <tr key={idx} className="hover:bg-pink-50/50 transition">
                             <td className="p-3 text-center text-rose-400 font-bold">{idx + 1}</td>
                             <td className="p-3 font-bold text-slate-900 leading-snug">{item.title}</td>
-                            <td className="p-3">{getGroupBadge(item.group)}</td>
+                             <td className="p-3 text-slate-700 font-medium">{item.subCategory || <span className="text-slate-400 italic text-[11px]">-</span>}</td>
                             <td className="p-3 text-slate-700 leading-snug">{item.visual_concept || '-'}</td>
                             <td className="p-3 text-slate-800 font-normal leading-relaxed whitespace-pre-line">{item.caption || '-'}</td>
                             <td className="p-3">{getPlatformBadge(item.platform)}</td>
