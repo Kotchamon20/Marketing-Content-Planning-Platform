@@ -1095,6 +1095,16 @@ export default function ContentPlanModule({
     }
   });
 
+  const allGlobalSubCategories = [];
+  const _seenGlobalSubNames = new Set();
+  effectiveContentGroups.flatMap(g => g.subCategories || []).forEach(sub => {
+    const lowerName = sub.trim().toLowerCase();
+    if (!_seenGlobalSubNames.has(lowerName)) {
+      _seenGlobalSubNames.add(lowerName);
+      allGlobalSubCategories.push(sub.trim());
+    }
+  });
+
   const toggleSubCategorySelection = (subName) => {
     const allSubNames = availableSubCategories.map(s => s.subName);
     if (selectedSubCategories.length === 0) {
@@ -2578,24 +2588,25 @@ export default function ContentPlanModule({
                                 />
                               </td>
 
-                              {/* 2. Group Select Cell */}
+                              {/* 2. Sub-Category Select Cell */}
                               <td className="p-1">
                                 <select
-                                  value={item.group || contentGroups[0]?.name || ''}
+                                  value={item.subCategory || ''}
                                   onFocus={() => setSelectedGridCell({ row: rowIdx, col: 2 })}
                                   onPaste={(e) => handleGridCellPaste(e, rowIdx, 2)}
                                   onChange={(e) => {
                                     pushGridUndoSnapshot();
-                                    onEditContentItem && onEditContentItem({ ...item, group: e.target.value });
+                                    onEditContentItem && onEditContentItem({ ...item, subCategory: e.target.value });
                                   }}
                                   className={`w-full p-2 rounded-xl font-semibold text-[11px] cursor-pointer focus:outline-none transition border shadow-xs ${selectedGridCell?.row === rowIdx && selectedGridCell?.col === 2
                                     ? 'bg-white border-2 border-rose-500 shadow-sm'
                                     : 'bg-pink-50/50 hover:bg-pink-100/80 border-pink-200 text-rose-900'
                                     }`}
                                 >
-                                  {contentGroups.map(g => (
-                                    <option key={g.id} value={g.name}>
-                                      {g.name}
+                                  <option value="">-- ไม่ระบุ --</option>
+                                  {allGlobalSubCategories.map(sub => (
+                                    <option key={sub} value={sub}>
+                                      {sub}
                                     </option>
                                   ))}
                                 </select>
