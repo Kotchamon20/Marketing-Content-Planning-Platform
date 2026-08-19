@@ -1329,24 +1329,38 @@ export default function ContentPlanModule({
     setNewGroupName('');
   };
 
-  // Filter content
-  const filteredContent = contentItems.filter(item => {
-    let matchesPlatform = selectedPlatform === 'all';
-    if (!matchesPlatform) {
-      if (Array.isArray(item.platform)) {
-        matchesPlatform = item.platform.includes(selectedPlatform);
-      } else if (typeof item.platform === 'string') {
-        matchesPlatform = item.platform.toLowerCase().includes(selectedPlatform);
+  // Filter & Sort content: Date ascending (Day 1 first), with 'published' items moved to the end
+  const filteredContent = contentItems
+    .filter(item => {
+      let matchesPlatform = selectedPlatform === 'all';
+      if (!matchesPlatform) {
+        if (Array.isArray(item.platform)) {
+          matchesPlatform = item.platform.includes(selectedPlatform);
+        } else if (typeof item.platform === 'string') {
+          matchesPlatform = item.platform.toLowerCase().includes(selectedPlatform);
+        }
       }
-    }
 
-    const matchesStatus = selectedStatus === 'all' || item.status === selectedStatus;
-    const matchesGroup = isGroupChecked(item.group);
-    const matchesSubCategory = !item.subCategory || isSubCategoryChecked(item.subCategory);
-    const matchesSearch = item.title.toLowerCase().includes(searchQuery.toLowerCase()) || 
-                          item.caption.toLowerCase().includes(searchQuery.toLowerCase());
-    return matchesPlatform && matchesStatus && matchesGroup && matchesSubCategory && matchesSearch;
-  });
+      const matchesStatus = selectedStatus === 'all' || item.status === selectedStatus;
+      const matchesGroup = isGroupChecked(item.group);
+      const matchesSubCategory = !item.subCategory || isSubCategoryChecked(item.subCategory);
+      const matchesSearch = item.title.toLowerCase().includes(searchQuery.toLowerCase()) || 
+                            item.caption.toLowerCase().includes(searchQuery.toLowerCase());
+      return matchesPlatform && matchesStatus && matchesGroup && matchesSubCategory && matchesSearch;
+    })
+    .sort((a, b) => {
+      const isPubA = a.status === 'published';
+      const isPubB = b.status === 'published';
+
+      // Rule 1: 'published' items go to the end/bottom
+      if (isPubA && !isPubB) return 1;
+      if (!isPubA && isPubB) return -1;
+
+      // Rule 2: Sort by Publish Date ascending (Day 1, 2, 3...)
+      const dateA = parseThaiDateTime(a.publish_date);
+      const dateB = parseThaiDateTime(b.publish_date);
+      return dateA.localeCompare(dateB);
+    });
 
   const handleCreateContent = (e) => {
     e.preventDefault();
