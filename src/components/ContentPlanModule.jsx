@@ -2,23 +2,23 @@ import React, { useState, useRef, useEffect } from 'react';
 import * as XLSX from 'xlsx';
 import LineFlexModal from './LineFlexModal';
 import { parseExcelWithGroqAi } from '../services/groqAiService';
-import { 
-  Calendar as CalendarIcon, 
-  Plus, 
-  Search, 
-  Filter, 
-  Lightbulb, 
-  TrendingUp, 
-  CheckCircle2, 
-  Clock, 
-  FileText, 
-  Tag, 
-  Eye, 
-  ThumbsUp, 
-  Share2, 
-  Sparkles, 
-  Trash2, 
-  Edit3, 
+import {
+  Calendar as CalendarIcon,
+  Plus,
+  Search,
+  Filter,
+  Lightbulb,
+  TrendingUp,
+  CheckCircle2,
+  Clock,
+  FileText,
+  Tag,
+  Eye,
+  ThumbsUp,
+  Share2,
+  Sparkles,
+  Trash2,
+  Edit3,
   ArrowRight,
   Send,
   BarChart2,
@@ -145,16 +145,14 @@ const MultiPlatformSelectDropdown = ({ platformsList, selectedPlatforms, onChang
               <div
                 key={p.id}
                 onClick={() => togglePlatform(p.id)}
-                className={`flex items-center justify-between p-2.5 rounded-xl text-xs font-bold transition cursor-pointer ${
-                  isChecked
+                className={`flex items-center justify-between p-2.5 rounded-xl text-xs font-bold transition cursor-pointer ${isChecked
                     ? 'bg-pink-50 text-rose-950 border border-pink-200 shadow-2xs'
                     : 'hover:bg-slate-50 text-slate-700 border border-transparent'
-                }`}
+                  }`}
               >
                 <div className="flex items-center gap-2.5">
-                  <div className={`w-4 h-4 rounded-md border flex items-center justify-center transition ${
-                    isChecked ? 'bg-rose-500 border-rose-500 text-white' : 'border-slate-300 bg-white'
-                  }`}>
+                  <div className={`w-4 h-4 rounded-md border flex items-center justify-center transition ${isChecked ? 'bg-rose-500 border-rose-500 text-white' : 'border-slate-300 bg-white'
+                    }`}>
                     {isChecked && <Check className="w-3 h-3 stroke-[3]" />}
                   </div>
                   {renderPlatformIcon(p.id)}
@@ -192,7 +190,7 @@ export default function ContentPlanModule({
 }) {
   const [activeSubTab, setActiveSubTab] = useState('calendar'); // 'calendar' | 'vault' | 'analytics'
   const [viewMode, setViewMode] = useState('calendar'); // 'calendar' | 'list' | 'table'
-  
+
   // Sidebar Visibility & Collapsing States (Horizontal Hide/Show & Vertical Accordion)
   const [isSidebarVisible, setIsSidebarVisible] = useState(true);
   const [groupsCollapsed, setGroupsCollapsed] = useState(false);
@@ -283,14 +281,7 @@ export default function ContentPlanModule({
   const [availableSheets, setAvailableSheets] = useState([]);
   const [selectedSheetName, setSelectedSheetName] = useState('');
   const [isParsingWithAi, setIsParsingWithAi] = useState(false);
-  const [bulkTargetGroup, setBulkTargetGroup] = useState(''); // Target Group for Bulk Import
-
-  // Auto-default bulkTargetGroup to the first available content group
-  React.useEffect(() => {
-    if (!bulkTargetGroup && contentGroups && contentGroups.length > 0) {
-      setBulkTargetGroup(contentGroups[0].name);
-    }
-  }, [contentGroups, bulkTargetGroup]);
+  const [bulkTargetGroup, setBulkTargetGroup] = useState(''); // Mandatory Group for Bulk Import
 
   // Spreadsheet Data Grid State (Cell Selection, Range, Undo Stack)
   const [selectedGridCell, setSelectedGridCell] = useState(null); // { row: number, col: number }
@@ -451,7 +442,7 @@ export default function ContentPlanModule({
     setPlatformsList(newList);
     try {
       localStorage.setItem('nitan_platformsList', JSON.stringify(newList));
-    } catch (e) {}
+    } catch (e) { }
   };
 
   const handleAddPlatform = (e) => {
@@ -668,31 +659,31 @@ export default function ContentPlanModule({
           // 1. Media URL / Image Link (Check FIRST so "ลิงก์ภาพ" isn't misidentified as visualCol)
           if (headerStr.includes('url') || headerStr.includes('ลิงก์') || headerStr.includes('link') || headerStr.includes('ภาพลิงก์')) {
             mediaCol = cIdx;
-          } 
+          }
           // 2. Title / Topic
           else if (headerStr.includes('title') || headerStr.includes('หัวข้อ') || headerStr.includes('topic') || headerStr.includes('ชื่อคอนเทนต์')) {
             titleCol = cIdx;
-          } 
+          }
           // 3. Group / Pillar
           else if (headerStr.includes('pillar') || headerStr.includes('หมวดหมู่') || headerStr.includes('กลุ่ม') || headerStr.includes('group')) {
             groupCol = cIdx;
-          } 
+          }
           // 4. Visual Concept / รูปแบบภาพ
           else if (headerStr.includes('visual') || headerStr.includes('รูปแบบ') || headerStr.includes('ไอเดียภาพ') || headerStr.includes('แนวภาพ') || (headerStr.includes('ภาพ') && !headerStr.includes('ลิงก์'))) {
             visualCol = cIdx;
-          } 
+          }
           // 5. Caption / Copywriting
           else if (headerStr.includes('caption') || headerStr.includes('แคปชัน') || headerStr.includes('copywriting') || headerStr.includes('ข้อความ')) {
             captionCol = cIdx;
-          } 
+          }
           // 6. Platform
           else if (headerStr.includes('platform') || headerStr.includes('แพลตฟอร์ม') || headerStr.includes('ช่องทาง')) {
             platformCol = cIdx;
-          } 
+          }
           // 7. Status
           else if (headerStr.includes('status') || headerStr.includes('สถานะ')) {
             statusCol = cIdx;
-          } 
+          }
           // 8. Publish Date
           else if (headerStr.includes('publish') || headerStr.includes('กำหนดวัน') || headerStr.includes('วันโพสต์') || headerStr.includes('date') || (headerStr.includes('วัน') && !headerStr.includes('หมวดหมู่'))) {
             dateCol = cIdx;
@@ -731,7 +722,7 @@ export default function ContentPlanModule({
       }
 
       let group = groupRaw || effectiveContentGroups[0]?.name || 'Brand Vibe (Atmosphere)';
-      const matchedGrp = effectiveContentGroups.find(g => 
+      const matchedGrp = effectiveContentGroups.find(g =>
         g.name.toLowerCase().includes(groupRaw.toLowerCase()) || groupRaw.toLowerCase().includes(g.name.toLowerCase())
       );
       if (matchedGrp) {
@@ -952,12 +943,12 @@ export default function ContentPlanModule({
   const handleCalendarDrop = (e, targetDayNum) => {
     e.preventDefault();
     setDragOverDay(null);
-    
+
     if (!draggedContentItem) return;
 
     const formattedDay = targetDayNum < 10 ? `0${targetDayNum}` : `${targetDayNum}`;
     const formattedMonth = (currentMonth + 1) < 10 ? `0${currentMonth + 1}` : `${currentMonth + 1}`;
-    
+
     let originalTime = '10:00';
     if (draggedContentItem.publish_date && draggedContentItem.publish_date.includes('T')) {
       originalTime = draggedContentItem.publish_date.split('T')[1].substring(0, 5);
@@ -1014,7 +1005,7 @@ export default function ContentPlanModule({
 
   // Dynamically calculate sub-categories belonging to currently CHECKED main groups
   const activeCheckedGroups = effectiveContentGroups.filter(g => isGroupChecked(g.name));
-  const availableSubCategories = activeCheckedGroups.flatMap(g => 
+  const availableSubCategories = activeCheckedGroups.flatMap(g =>
     (g.subCategories || []).map(s => ({ groupName: g.name, subName: s }))
   );
 
@@ -1058,7 +1049,7 @@ export default function ContentPlanModule({
     if (gridUndoStack.length === 0) return;
     const previousItems = gridUndoStack[gridUndoStack.length - 1];
     setGridUndoStack(prev => prev.slice(0, prev.length - 1));
-    
+
     previousItems.forEach(prevItem => {
       onEditContentItem && onEditContentItem(prevItem);
     });
@@ -1276,7 +1267,7 @@ export default function ContentPlanModule({
   const handleOpenDetailModal = (item) => {
     setSelectedDetailContent(item);
     setIsEditingModal(false);
-    
+
     setEditTitle(item.title || '');
     setEditCaption(item.caption || '');
     setEditVisualConcept(item.visual_concept || '');
@@ -1363,8 +1354,8 @@ export default function ContentPlanModule({
       const matchesStatus = selectedStatus === 'all' || item.status === selectedStatus;
       const matchesGroup = isGroupChecked(item.group);
       const matchesSubCategory = !item.subCategory || isSubCategoryChecked(item.subCategory);
-      const matchesSearch = item.title.toLowerCase().includes(searchQuery.toLowerCase()) || 
-                            item.caption.toLowerCase().includes(searchQuery.toLowerCase());
+      const matchesSearch = item.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        item.caption.toLowerCase().includes(searchQuery.toLowerCase());
       return matchesPlatform && matchesStatus && matchesGroup && matchesSubCategory && matchesSearch;
     })
     .sort((a, b) => {
@@ -1439,9 +1430,9 @@ export default function ContentPlanModule({
 
   const renderSinglePlatformBadge = (platKey) => {
     const key = String(platKey || '').toLowerCase().trim();
-    
+
     // Look up in platformsList
-    const matched = platformsList.find(p => 
+    const matched = platformsList.find(p =>
       p.id === key || p.name.toLowerCase() === key || key.includes(p.id) || key.includes(p.name.toLowerCase())
     );
 
@@ -1532,7 +1523,7 @@ export default function ContentPlanModule({
 
   return (
     <div className="space-y-6 animate-in fade-in duration-300">
-      
+
       {/* Hidden File Input for Excel Upload */}
       <input
         type="file"
@@ -1560,33 +1551,30 @@ export default function ContentPlanModule({
         <div className="flex items-center gap-1.5 bg-pink-50/60 p-1.5 rounded-2xl border border-pink-100/80 self-start md:self-auto">
           <button
             onClick={() => setActiveSubTab('calendar')}
-            className={`px-3.5 py-2 rounded-xl text-xs font-semibold transition-all flex items-center gap-2 cursor-pointer ${
-              activeSubTab === 'calendar' 
-                ? 'bg-white text-rose-600 shadow-sm border border-pink-100 scale-[1.02]' 
+            className={`px-3.5 py-2 rounded-xl text-xs font-semibold transition-all flex items-center gap-2 cursor-pointer ${activeSubTab === 'calendar'
+                ? 'bg-white text-rose-600 shadow-sm border border-pink-100 scale-[1.02]'
                 : 'text-rose-700/70 hover:text-rose-950 hover:bg-pink-100/50'
-            }`}
+              }`}
           >
             <CalendarIcon className="w-3.5 h-3.5" />
             <span>คอนเทนต์คาเลนดาร์ (FR-1.1)</span>
           </button>
           <button
             onClick={() => setActiveSubTab('vault')}
-            className={`px-3.5 py-2 rounded-xl text-xs font-semibold transition-all flex items-center gap-2 cursor-pointer ${
-              activeSubTab === 'vault' 
-                ? 'bg-white text-rose-600 shadow-sm border border-pink-100 scale-[1.02]' 
+            className={`px-3.5 py-2 rounded-xl text-xs font-semibold transition-all flex items-center gap-2 cursor-pointer ${activeSubTab === 'vault'
+                ? 'bg-white text-rose-600 shadow-sm border border-pink-100 scale-[1.02]'
                 : 'text-rose-700/70 hover:text-rose-950 hover:bg-pink-100/50'
-            }`}
+              }`}
           >
             <Lightbulb className="w-3.5 h-3.5" />
             <span>คลังไอเดีย (FR-1.2)</span>
           </button>
           <button
             onClick={() => setActiveSubTab('analytics')}
-            className={`px-3.5 py-2 rounded-xl text-xs font-semibold transition-all flex items-center gap-2 cursor-pointer ${
-              activeSubTab === 'analytics' 
-                ? 'bg-white text-rose-600 shadow-sm border border-pink-100 scale-[1.02]' 
+            className={`px-3.5 py-2 rounded-xl text-xs font-semibold transition-all flex items-center gap-2 cursor-pointer ${activeSubTab === 'analytics'
+                ? 'bg-white text-rose-600 shadow-sm border border-pink-100 scale-[1.02]'
                 : 'text-rose-700/70 hover:text-rose-950 hover:bg-pink-100/50'
-            }`}
+              }`}
           >
             <BarChart2 className="w-3.5 h-3.5" />
             <span>Performance ย้อนหลัง (FR-1.4)</span>
@@ -1597,19 +1585,18 @@ export default function ContentPlanModule({
       {/* SUB-TAB 1: CONTENT CALENDAR & LIST & TABLE VIEW (FR-1.1 & FR-1.3) */}
       {activeSubTab === 'calendar' && (
         <div className="space-y-6">
-          
+
           {/* Controls Bar */}
           <div className="glass-panel p-4 flex flex-col md:flex-row items-center justify-between gap-4">
             <div className="flex flex-wrap items-center gap-3 w-full md:w-auto">
-              
+
               {/* Show/Hide Sidebar Toggle Button */}
               <button
                 onClick={() => setIsSidebarVisible(!isSidebarVisible)}
-                className={`px-3 py-2 rounded-xl text-xs font-semibold border transition flex items-center gap-2 cursor-pointer shadow-sm ${
-                  isSidebarVisible 
-                    ? 'bg-pink-100/80 text-rose-900 border-pink-300' 
+                className={`px-3 py-2 rounded-xl text-xs font-semibold border transition flex items-center gap-2 cursor-pointer shadow-sm ${isSidebarVisible
+                    ? 'bg-pink-100/80 text-rose-900 border-pink-300'
                     : 'bg-white text-rose-800 border-pink-200 hover:bg-pink-50'
-                }`}
+                  }`}
                 title={isSidebarVisible ? "ซ่อนแถบปฏิทินของฉัน (Hide Sidebar)" : "แสดงแถบปฏิทินของฉัน (Show Sidebar)"}
               >
                 {isSidebarVisible ? <PanelLeftClose className="w-4 h-4 text-pink-600" /> : <PanelLeftOpen className="w-4 h-4 text-pink-600" />}
@@ -1690,32 +1677,29 @@ export default function ContentPlanModule({
             </div>
 
             <div className="flex flex-wrap items-center gap-2.5 w-full md:w-auto justify-between md:justify-end">
-              
+
               {/* VIEW SWITCHER: CALENDAR vs LIST vs TABLE VIEW */}
               <div className="flex items-center bg-pink-50/60 p-1 rounded-xl border border-pink-200/80">
                 <button
                   onClick={() => setViewMode('calendar')}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all flex items-center gap-1.5 cursor-pointer ${
-                    viewMode === 'calendar' ? 'bg-white text-rose-600 shadow-sm' : 'text-rose-700/70 hover:text-rose-950'
-                  }`}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all flex items-center gap-1.5 cursor-pointer ${viewMode === 'calendar' ? 'bg-white text-rose-600 shadow-sm' : 'text-rose-700/70 hover:text-rose-950'
+                    }`}
                 >
                   <Grid className="w-3.5 h-3.5" />
                   <span>ปฏิทิน</span>
                 </button>
                 <button
                   onClick={() => setViewMode('list')}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all flex items-center gap-1.5 cursor-pointer ${
-                    viewMode === 'list' ? 'bg-white text-rose-600 shadow-sm' : 'text-rose-700/70 hover:text-rose-950'
-                  }`}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all flex items-center gap-1.5 cursor-pointer ${viewMode === 'list' ? 'bg-white text-rose-600 shadow-sm' : 'text-rose-700/70 hover:text-rose-950'
+                    }`}
                 >
                   <List className="w-3.5 h-3.5" />
                   <span>รายการ</span>
                 </button>
                 <button
                   onClick={() => setViewMode('table')}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all flex items-center gap-1.5 cursor-pointer ${
-                    viewMode === 'table' ? 'bg-white text-rose-600 shadow-sm' : 'text-rose-700/70 hover:text-rose-950'
-                  }`}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all flex items-center gap-1.5 cursor-pointer ${viewMode === 'table' ? 'bg-white text-rose-600 shadow-sm' : 'text-rose-700/70 hover:text-rose-950'
+                    }`}
                 >
                   <TableProperties className="w-3.5 h-3.5" />
                   <span>มุมมองตาราง</span>
@@ -1766,11 +1750,11 @@ export default function ContentPlanModule({
 
           {/* MAIN LAYOUT WITH SIDEBAR + CALENDAR / LIST / TABLE VIEW */}
           <div className="flex flex-col lg:flex-row items-start gap-6">
-            
+
             {/* GOOGLE CALENDAR STYLE NARROWER SIDEBAR */}
             {isSidebarVisible && (
               <div className="w-full lg:w-56 shrink-0 space-y-3 sticky top-24 transition-all duration-300">
-                
+
                 {/* Card 1: Main Category Groups */}
                 <div className="glass-panel p-3.5 space-y-3.5 text-xs font-medium">
                   {/* Accordion Header */}
@@ -1780,14 +1764,14 @@ export default function ContentPlanModule({
                       <span>ปฏิทินของฉัน</span>
                     </div>
                     <div className="flex items-center gap-1">
-                      <button 
+                      <button
                         onClick={() => setGroupsCollapsed(!groupsCollapsed)}
                         className="p-1 text-rose-500 hover:bg-pink-50 rounded-lg transition cursor-pointer"
                         title="ซ่อน/แสดง รายการ"
                       >
                         {groupsCollapsed ? <ChevronDown className="w-3.5 h-3.5" /> : <ChevronUp className="w-3.5 h-3.5" />}
                       </button>
-                      <button 
+                      <button
                         onClick={() => setIsSidebarVisible(false)}
                         className="p-1 text-rose-400 hover:text-rose-600 hover:bg-pink-50 rounded-lg transition cursor-pointer"
                         title="ซ่อนแถบข้าง"
@@ -1799,16 +1783,16 @@ export default function ContentPlanModule({
 
                   {!groupsCollapsed && (
                     <div className="space-y-2.5">
-                      
+
                       {/* Select All / Clear All Row */}
                       <div className="flex items-center justify-between text-[10px] font-semibold text-rose-600 px-1">
-                        <button 
+                        <button
                           onClick={handleSelectAllGroups}
                           className="hover:underline hover:text-pink-600 cursor-pointer"
                         >
                           เลือกทั้งหมด
                         </button>
-                        <button 
+                        <button
                           onClick={handleClearAllGroups}
                           className="hover:underline hover:text-rose-700 cursor-pointer"
                         >
@@ -1824,24 +1808,21 @@ export default function ContentPlanModule({
 
                           return (
                             <div key={grp.id} className="space-y-1">
-                              <div 
+                              <div
                                 onClick={() => toggleGroupSelection(grp.name)}
-                                className={`flex items-center justify-between p-2 rounded-xl transition-all cursor-pointer group/row relative ${
-                                  checked ? 'bg-pink-50/70 border border-pink-200/80 shadow-xs' : 'bg-white hover:bg-pink-50/30 border border-transparent'
-                                }`}
+                                className={`flex items-center justify-between p-2 rounded-xl transition-all cursor-pointer group/row relative ${checked ? 'bg-pink-50/70 border border-pink-200/80 shadow-xs' : 'bg-white hover:bg-pink-50/30 border border-transparent'
+                                  }`}
                               >
                                 <div className="flex items-center gap-2 flex-1 min-w-0">
                                   {/* Custom Google Calendar Checkbox Box */}
-                                  <div className={`w-3.5 h-3.5 rounded-[4px] flex items-center justify-center transition-colors border shrink-0 ${
-                                    checked ? `${colorOpts.bg} text-white shadow-xs` : `${colorOpts.border} bg-white`
-                                  }`}>
+                                  <div className={`w-3.5 h-3.5 rounded-[4px] flex items-center justify-center transition-colors border shrink-0 ${checked ? `${colorOpts.bg} text-white shadow-xs` : `${colorOpts.border} bg-white`
+                                    }`}>
                                     {checked && <Check className="w-2.5 h-2.5 stroke-[3]" />}
                                   </div>
 
                                   {/* Label */}
-                                  <span className={`truncate text-[11px] ${
-                                    checked ? 'font-bold text-rose-950' : 'font-medium text-rose-800'
-                                  }`}>
+                                  <span className={`truncate text-[11px] ${checked ? 'font-bold text-rose-950' : 'font-medium text-rose-800'
+                                    }`}>
                                     {grp.name}
                                   </span>
                                 </div>
@@ -1860,7 +1841,7 @@ export default function ContentPlanModule({
 
                                 {/* Group Options Popover Menu */}
                                 {activeGroupOptions === grp.id && (
-                                  <div 
+                                  <div
                                     onClick={(e) => e.stopPropagation()}
                                     className="absolute right-2 top-8 z-30 bg-white border border-pink-200 rounded-2xl shadow-xl p-1.5 text-[11px] w-36 space-y-1 animate-in fade-in duration-150"
                                   >
@@ -1914,7 +1895,7 @@ export default function ContentPlanModule({
                         <Tag className="w-3.5 h-3.5 text-amber-500" />
                         <span>หมวดหมู่ย่อย ({availableSubCategories.length})</span>
                       </div>
-                      <button 
+                      <button
                         onClick={() => setSubCategoryCardCollapsed(!subCategoryCardCollapsed)}
                         className="p-1 text-purple-700 hover:bg-amber-100/50 rounded-lg transition cursor-pointer"
                         title="ซ่อน/แสดง หมวดหมู่ย่อย"
@@ -1927,13 +1908,13 @@ export default function ContentPlanModule({
                       <div className="space-y-2">
                         {/* Select All / Clear All Sub-Categories */}
                         <div className="flex items-center justify-between text-[10px] font-semibold text-purple-800 px-1">
-                          <button 
+                          <button
                             onClick={() => setSelectedSubCategories([])}
                             className="hover:underline hover:text-amber-700 cursor-pointer"
                           >
                             เลือกย่อยทั้งหมด
                           </button>
-                          <button 
+                          <button
                             onClick={() => setSelectedSubCategories(['__NONE__'])}
                             className="hover:underline hover:text-rose-700 cursor-pointer"
                           >
@@ -1982,24 +1963,21 @@ export default function ContentPlanModule({
                             }
 
                             return (
-                              <div 
+                              <div
                                 key={idx}
-                                className={`flex items-center justify-between p-1.5 rounded-xl transition-all group/subitem ${
-                                  checked ? 'bg-amber-100/80 border border-amber-300/80 shadow-2xs' : 'bg-white hover:bg-amber-50/40 border border-transparent'
-                                }`}
+                                className={`flex items-center justify-between p-1.5 rounded-xl transition-all group/subitem ${checked ? 'bg-amber-100/80 border border-amber-300/80 shadow-2xs' : 'bg-white hover:bg-amber-50/40 border border-transparent'
+                                  }`}
                               >
-                                <div 
+                                <div
                                   onClick={() => toggleSubCategorySelection(item.subName)}
                                   className="flex items-center gap-2 flex-1 min-w-0 cursor-pointer"
                                 >
-                                  <div className={`w-3.5 h-3.5 rounded-[4px] flex items-center justify-center transition-colors border shrink-0 ${
-                                    checked ? 'bg-amber-500 border-amber-500 text-white shadow-2xs' : 'border-amber-400 bg-white'
-                                  }`}>
+                                  <div className={`w-3.5 h-3.5 rounded-[4px] flex items-center justify-center transition-colors border shrink-0 ${checked ? 'bg-amber-500 border-amber-500 text-white shadow-2xs' : 'border-amber-400 bg-white'
+                                    }`}>
                                     {checked && <Check className="w-2.5 h-2.5 stroke-[3]" />}
                                   </div>
-                                  <span className={`truncate text-[11px] ${
-                                    checked ? 'font-bold text-purple-950' : 'font-medium text-purple-900/70'
-                                  }`}>
+                                  <span className={`truncate text-[11px] ${checked ? 'font-bold text-purple-950' : 'font-medium text-purple-900/70'
+                                    }`}>
                                     {item.subName}
                                   </span>
                                 </div>
@@ -2053,11 +2031,11 @@ export default function ContentPlanModule({
 
             {/* MAIN CONTENT AREA: CALENDAR / LIST / TABLE VIEW */}
             <div className="flex-1 min-w-0 w-full space-y-4">
-              
+
               {/* VIEW MODE 1: VISUAL MONTHLY CALENDAR GRID */}
               {viewMode === 'calendar' && (
                 <div className="glass-panel p-6 space-y-4">
-                  
+
                   {/* Calendar Header Navigation */}
                   <div className="flex items-center justify-between border-b border-pink-100/80 pb-4">
                     <div className="flex items-center gap-3">
@@ -2113,7 +2091,7 @@ export default function ContentPlanModule({
 
                   {/* Calendar Grid Container */}
                   <div className="border border-pink-100 rounded-2xl overflow-hidden shadow-sm bg-white">
-                    
+
                     {/* Days of Week Header */}
                     <div className="grid grid-cols-7 bg-pink-50/50 border-b border-pink-100 text-center text-xs font-semibold text-rose-900 py-2.5">
                       <div className="text-rose-500">อาทิตย์</div>
@@ -2127,7 +2105,7 @@ export default function ContentPlanModule({
 
                     {/* Days Cells Grid */}
                     <div className="grid grid-cols-7 auto-rows-fr divide-x divide-y divide-pink-100/60 bg-white">
-                      
+
                       {/* Empty lead cells before 1st day of month */}
                       {Array.from({ length: firstDayOfWeek }).map((_, idx) => (
                         <div key={`empty-${idx}`} className="min-h-[110px] bg-pink-50/10 p-2 text-pink-200" />
@@ -2141,22 +2119,20 @@ export default function ContentPlanModule({
                         const isTargetHover = dragOverDay === dayNum;
 
                         return (
-                          <div 
+                          <div
                             key={`day-${dayNum}`}
                             onDragOver={(e) => handleCalendarDragOver(e, dayNum)}
                             onDragLeave={handleCalendarDragLeave}
                             onDrop={(e) => handleCalendarDrop(e, dayNum)}
-                            className={`min-h-[110px] p-2 transition-all flex flex-col justify-between group relative ${
-                              isTargetHover 
-                                ? 'bg-purple-100/80 border-2 border-dashed border-purple-400 scale-[0.99] shadow-inner' 
+                            className={`min-h-[110px] p-2 transition-all flex flex-col justify-between group relative ${isTargetHover
+                                ? 'bg-purple-100/80 border-2 border-dashed border-purple-400 scale-[0.99] shadow-inner'
                                 : isToday ? 'bg-pink-50/60' : 'bg-white hover:bg-pink-50/30'
-                            }`}
+                              }`}
                           >
                             {/* Day Number Row */}
                             <div className="flex items-center justify-between mb-1.5">
-                              <span className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold ${
-                                isToday ? 'bg-rose-500 text-white shadow-sm' : 'text-rose-900'
-                              }`}>
+                              <span className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold ${isToday ? 'bg-rose-500 text-white shadow-sm' : 'text-rose-900'
+                                }`}>
                                 {dayNum}
                               </span>
 
@@ -2177,15 +2153,14 @@ export default function ContentPlanModule({
                             {/* Content Item Badges for Date */}
                             <div className="space-y-1.5 flex-1 overflow-y-auto max-h-[95px] pr-0.5">
                               {dateItems.map(item => (
-                                <div 
+                                <div
                                   key={item.id}
                                   draggable="true"
                                   onDragStart={(e) => handleCalendarDragStart(e, item)}
                                   onDragEnd={() => { setDraggedContentItem(null); setDragOverDay(null); }}
                                   onClick={() => handleOpenDetailModal(item)}
-                                  className={`p-2 rounded-xl bg-pink-50/70 hover:bg-pink-100/90 border border-pink-200/90 text-[10px] space-y-1 transition-colors group/item cursor-grab active:cursor-grabbing select-none shadow-2xs ${
-                                    draggedContentItem?.id === item.id ? 'opacity-40 scale-95 border-dashed border-rose-400' : ''
-                                  }`}
+                                  className={`p-2 rounded-xl bg-pink-50/70 hover:bg-pink-100/90 border border-pink-200/90 text-[10px] space-y-1 transition-colors group/item cursor-grab active:cursor-grabbing select-none shadow-2xs ${draggedContentItem?.id === item.id ? 'opacity-40 scale-95 border-dashed border-rose-400' : ''
+                                    }`}
                                   title="ลากเพื่อย้ายวันที่กำหนดโพสต์ หรือคลิกเพื่อดูรายละเอียด"
                                 >
                                   <div className="flex items-center justify-between gap-1">
@@ -2194,15 +2169,14 @@ export default function ContentPlanModule({
                                       {item.reference_url && (
                                         <LinkIcon className="w-3 h-3 text-pink-400" title="มีลิงก์แนบ" />
                                       )}
-                                      <span className={`w-2 h-2 rounded-full ${
-                                        item.status === 'published' ? 'bg-emerald-400' : item.status === 'scheduled' ? 'bg-sky-400' : 'bg-amber-400'
-                                      }`} title={item.status} />
+                                      <span className={`w-2 h-2 rounded-full ${item.status === 'published' ? 'bg-emerald-400' : item.status === 'scheduled' ? 'bg-sky-400' : 'bg-amber-400'
+                                        }`} title={item.status} />
                                     </div>
                                   </div>
 
                                   {/* Title */}
                                   <div className="font-semibold text-rose-950 line-clamp-1 leading-tight">{item.title}</div>
-                                  
+
                                   {/* Group Badge Tag */}
                                   {item.group && (
                                     <div className="pt-0.5">{getGroupBadge(item.group)}</div>
@@ -2237,14 +2211,14 @@ export default function ContentPlanModule({
                             {getStatusBadge(item.status)}
                           </div>
 
-                          <h3 
+                          <h3
                             onClick={() => handleOpenDetailModal(item)}
                             className="font-bold text-rose-950 text-sm line-clamp-2 leading-snug cursor-pointer hover:text-pink-600 transition flex items-center justify-between gap-1"
                           >
                             <span>{item.title}</span>
                           </h3>
                           <p className="text-xs text-rose-800 mt-2 line-clamp-3 leading-relaxed font-medium">{item.caption}</p>
-                          
+
                           <div className="mt-3 pt-3 border-t border-pink-100/80 text-[11px] text-rose-700 font-medium flex items-center justify-between">
                             <span className="flex items-center gap-1 font-medium">
                               <CalendarIcon className="w-3.5 h-3.5 text-pink-400" />
@@ -2268,27 +2242,24 @@ export default function ContentPlanModule({
                             <button
                               onClick={() => onUpdateContentStatus(item.id, 'draft')}
                               disabled={item.status === 'draft'}
-                              className={`px-2 py-1 rounded-lg text-[10px] font-semibold transition cursor-pointer ${
-                                item.status === 'draft' ? 'bg-amber-50 text-amber-800 border border-amber-200' : 'bg-pink-50 text-rose-700 hover:bg-pink-100'
-                              }`}
+                              className={`px-2 py-1 rounded-lg text-[10px] font-semibold transition cursor-pointer ${item.status === 'draft' ? 'bg-amber-50 text-amber-800 border border-amber-200' : 'bg-pink-50 text-rose-700 hover:bg-pink-100'
+                                }`}
                             >
                               Draft
                             </button>
                             <button
                               onClick={() => onUpdateContentStatus(item.id, 'scheduled')}
                               disabled={item.status === 'scheduled'}
-                              className={`px-2 py-1 rounded-lg text-[10px] font-semibold transition cursor-pointer ${
-                                item.status === 'scheduled' ? 'bg-sky-50 text-sky-800 border border-sky-200' : 'bg-pink-50 text-rose-700 hover:bg-pink-100'
-                              }`}
+                              className={`px-2 py-1 rounded-lg text-[10px] font-semibold transition cursor-pointer ${item.status === 'scheduled' ? 'bg-sky-50 text-sky-800 border border-sky-200' : 'bg-pink-50 text-rose-700 hover:bg-pink-100'
+                                }`}
                             >
                               Scheduled
                             </button>
                             <button
                               onClick={() => onUpdateContentStatus(item.id, 'published')}
                               disabled={item.status === 'published'}
-                              className={`px-2 py-1 rounded-lg text-[10px] font-semibold transition cursor-pointer ${
-                                item.status === 'published' ? 'bg-emerald-50 text-emerald-800 border border-emerald-200' : 'bg-pink-50 text-rose-700 hover:bg-pink-100'
-                              }`}
+                              className={`px-2 py-1 rounded-lg text-[10px] font-semibold transition cursor-pointer ${item.status === 'published' ? 'bg-emerald-50 text-emerald-800 border border-emerald-200' : 'bg-pink-50 text-rose-700 hover:bg-pink-100'
+                                }`}
                             >
                               Published
                             </button>
@@ -2312,7 +2283,7 @@ export default function ContentPlanModule({
               {/* VIEW MODE 3: INTERACTIVE EDITABLE SPREADSHEET DATA GRID */}
               {viewMode === 'table' && (
                 <div className="glass-panel p-5 space-y-4">
-                  
+
                   {/* Spreadsheet Grid Header Bar with Undo, Copy & Paste shortcuts */}
                   <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-pink-100 pb-3">
                     <div className="flex items-center gap-2">
@@ -2325,16 +2296,15 @@ export default function ContentPlanModule({
 
                     {/* Toolbar Actions */}
                     <div className="flex items-center gap-2 flex-wrap">
-                      
+
                       {/* Undo Button */}
                       <button
                         onClick={handleGridUndo}
                         disabled={gridUndoStack.length === 0}
-                        className={`px-2.5 py-1.5 rounded-xl text-xs font-semibold border transition flex items-center gap-1.5 cursor-pointer shadow-xs ${
-                          gridUndoStack.length > 0 
-                            ? 'bg-white hover:bg-pink-50 text-rose-900 border-pink-200' 
+                        className={`px-2.5 py-1.5 rounded-xl text-xs font-semibold border transition flex items-center gap-1.5 cursor-pointer shadow-xs ${gridUndoStack.length > 0
+                            ? 'bg-white hover:bg-pink-50 text-rose-900 border-pink-200'
                             : 'bg-pink-50 text-pink-300 border-pink-100 cursor-not-allowed'
-                        }`}
+                          }`}
                         title="ย้อนกลับการแก้ไข (Ctrl / Cmd + Z)"
                       >
                         <Undo2 className="w-3.5 h-3.5 text-pink-500" />
@@ -2417,7 +2387,7 @@ export default function ContentPlanModule({
                           {filteredContent.map((item, rowIdx) => (
                             <tr key={item.id} className="hover:bg-pink-50/40 transition group">
                               <td className="p-3 text-center text-rose-400 font-semibold">{rowIdx + 1}</td>
-                              
+
                               {/* 0. Title Cell */}
                               <td className="p-1">
                                 <input
@@ -2430,11 +2400,10 @@ export default function ContentPlanModule({
                                     pushGridUndoSnapshot();
                                     onEditContentItem && onEditContentItem({ ...item, title: e.target.value });
                                   }}
-                                  className={`w-full p-2 rounded-xl font-bold text-rose-950 text-xs focus:outline-none transition ${
-                                    selectedGridCell?.row === rowIdx && selectedGridCell?.col === 0
+                                  className={`w-full p-2 rounded-xl font-bold text-rose-950 text-xs focus:outline-none transition ${selectedGridCell?.row === rowIdx && selectedGridCell?.col === 0
                                       ? 'bg-white border-2 border-rose-500 shadow-sm'
                                       : 'bg-pink-50/20 hover:bg-pink-50/60 border border-pink-100'
-                                  }`}
+                                    }`}
                                 />
                               </td>
 
@@ -2450,11 +2419,10 @@ export default function ContentPlanModule({
                                     pushGridUndoSnapshot();
                                     onEditContentItem && onEditContentItem({ ...item, caption: e.target.value });
                                   }}
-                                  className={`w-full p-2 rounded-xl font-medium text-rose-900 text-xs focus:outline-none transition ${
-                                    selectedGridCell?.row === rowIdx && selectedGridCell?.col === 1
+                                  className={`w-full p-2 rounded-xl font-medium text-rose-900 text-xs focus:outline-none transition ${selectedGridCell?.row === rowIdx && selectedGridCell?.col === 1
                                       ? 'bg-white border-2 border-rose-500 shadow-sm'
                                       : 'bg-pink-50/20 hover:bg-pink-50/60 border border-pink-100'
-                                  }`}
+                                    }`}
                                 />
                               </td>
 
@@ -2468,11 +2436,10 @@ export default function ContentPlanModule({
                                     pushGridUndoSnapshot();
                                     onEditContentItem && onEditContentItem({ ...item, group: e.target.value });
                                   }}
-                                  className={`w-full p-2 rounded-xl font-semibold text-[11px] cursor-pointer focus:outline-none transition border shadow-xs ${
-                                    selectedGridCell?.row === rowIdx && selectedGridCell?.col === 2
+                                  className={`w-full p-2 rounded-xl font-semibold text-[11px] cursor-pointer focus:outline-none transition border shadow-xs ${selectedGridCell?.row === rowIdx && selectedGridCell?.col === 2
                                       ? 'bg-white border-2 border-rose-500 shadow-sm'
                                       : 'bg-pink-50/50 hover:bg-pink-100/80 border-pink-200 text-rose-900'
-                                  }`}
+                                    }`}
                                 >
                                   {contentGroups.map(g => (
                                     <option key={g.id} value={g.name}>
@@ -2492,11 +2459,10 @@ export default function ContentPlanModule({
                                     pushGridUndoSnapshot();
                                     onEditContentItem && onEditContentItem({ ...item, platform: e.target.value });
                                   }}
-                                  className={`w-full p-2 rounded-xl font-semibold text-[11px] cursor-pointer focus:outline-none transition border shadow-xs ${
-                                    selectedGridCell?.row === rowIdx && selectedGridCell?.col === 3
+                                  className={`w-full p-2 rounded-xl font-semibold text-[11px] cursor-pointer focus:outline-none transition border shadow-xs ${selectedGridCell?.row === rowIdx && selectedGridCell?.col === 3
                                       ? 'bg-white border-2 border-rose-500 shadow-sm'
                                       : 'bg-pink-50/50 hover:bg-pink-100/80 border-pink-200 text-rose-900'
-                                  }`}
+                                    }`}
                                 >
                                   <option value="tiktok">TikTok</option>
                                   <option value="facebook">Facebook</option>
@@ -2516,11 +2482,10 @@ export default function ContentPlanModule({
                                     pushGridUndoSnapshot();
                                     onUpdateContentStatus(item.id, e.target.value);
                                   }}
-                                  className={`w-full p-2 rounded-xl font-bold text-[11px] cursor-pointer focus:outline-none border shadow-xs ${
-                                    selectedGridCell?.row === rowIdx && selectedGridCell?.col === 4
+                                  className={`w-full p-2 rounded-xl font-bold text-[11px] cursor-pointer focus:outline-none border shadow-xs ${selectedGridCell?.row === rowIdx && selectedGridCell?.col === 4
                                       ? 'bg-white border-2 border-rose-500 shadow-sm text-rose-950'
                                       : item.status === 'published' ? 'bg-emerald-50 text-emerald-800 border-emerald-200' : item.status === 'scheduled' ? 'bg-sky-50 text-sky-800 border-sky-200' : 'bg-amber-50 text-amber-800 border-amber-200'
-                                  }`}
+                                    }`}
                                 >
                                   <option value="draft">Draft (ร่าง)</option>
                                   <option value="scheduled">Scheduled (ตั้งเวลา)</option>
@@ -2539,11 +2504,10 @@ export default function ContentPlanModule({
                                     pushGridUndoSnapshot();
                                     onEditContentItem && onEditContentItem({ ...item, publish_date: e.target.value });
                                   }}
-                                  className={`w-full p-1.5 rounded-xl font-medium text-rose-900 text-[11px] focus:outline-none transition ${
-                                    selectedGridCell?.row === rowIdx && selectedGridCell?.col === 5
+                                  className={`w-full p-1.5 rounded-xl font-medium text-rose-900 text-[11px] focus:outline-none transition ${selectedGridCell?.row === rowIdx && selectedGridCell?.col === 5
                                       ? 'bg-white border-2 border-rose-500 shadow-sm'
                                       : 'bg-pink-50/20 hover:bg-pink-50/60 border border-pink-100'
-                                  }`}
+                                    }`}
                                 />
                               </td>
 
@@ -2559,11 +2523,10 @@ export default function ContentPlanModule({
                                     pushGridUndoSnapshot();
                                     onEditContentItem && onEditContentItem({ ...item, reference_url: e.target.value });
                                   }}
-                                  className={`w-full p-2 rounded-xl font-mono text-rose-900 text-[10px] focus:outline-none transition ${
-                                    selectedGridCell?.row === rowIdx && selectedGridCell?.col === 6
+                                  className={`w-full p-2 rounded-xl font-mono text-rose-900 text-[10px] focus:outline-none transition ${selectedGridCell?.row === rowIdx && selectedGridCell?.col === 6
                                       ? 'bg-white border-2 border-rose-500 shadow-sm'
                                       : 'bg-pink-50/20 hover:bg-pink-50/60 border border-pink-100'
-                                  }`}
+                                    }`}
                                 />
                               </td>
 
@@ -2673,11 +2636,10 @@ export default function ContentPlanModule({
                   <button
                     onClick={() => onConvertVaultIdeaToContent(idea)}
                     disabled={idea.is_used}
-                    className={`w-full py-2.5 rounded-xl text-xs font-bold transition flex items-center justify-center gap-2 cursor-pointer ${
-                      idea.is_used 
+                    className={`w-full py-2.5 rounded-xl text-xs font-bold transition flex items-center justify-center gap-2 cursor-pointer ${idea.is_used
                         ? 'bg-pink-50 text-pink-300 cursor-not-allowed border border-pink-100'
                         : 'bg-gradient-to-r from-[#F0E6F5] via-[#FFEBF3] to-[#E6F2FF] hover:opacity-90 text-purple-950 font-bold border border-[#E2D2EA] shadow-xs'
-                    }`}
+                      }`}
                   >
                     <Send className="w-3.5 h-3.5" />
                     <span>{idea.is_used ? 'ใช้งานแล้ว' : 'แปลงเป็น Content Plan (Draft)'}</span>
@@ -2752,7 +2714,7 @@ export default function ContentPlanModule({
       {selectedDetailContent && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/30 backdrop-blur-sm p-4 animate-in fade-in duration-200">
           <div className="w-full max-w-2xl bg-white border border-pink-100 rounded-3xl shadow-xl overflow-hidden flex flex-col max-h-[92vh]">
-            
+
             {/* Modal Header */}
             <div className="p-5 bg-white border-b border-pink-100 flex items-center justify-between">
               <div className="flex items-center gap-3">
@@ -2785,9 +2747,8 @@ export default function ContentPlanModule({
                 {/* Mode Switcher Button */}
                 <button
                   onClick={() => setIsEditingModal(!isEditingModal)}
-                  className={`px-3 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 cursor-pointer shadow-xs border ${
-                    isEditingModal ? 'bg-pink-50 text-rose-800 border-pink-200' : 'bg-gradient-to-r from-[#F0E6F5] via-[#FFEBF3] to-[#E6F2FF] text-purple-950 border-[#E2D2EA]'
-                  }`}
+                  className={`px-3 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 cursor-pointer shadow-xs border ${isEditingModal ? 'bg-pink-50 text-rose-800 border-pink-200' : 'bg-gradient-to-r from-[#F0E6F5] via-[#FFEBF3] to-[#E6F2FF] text-purple-950 border-[#E2D2EA]'
+                    }`}
                 >
                   {isEditingModal ? <Eye className="w-3.5 h-3.5" /> : <Edit3 className="w-3.5 h-3.5" />}
                   <span>{isEditingModal ? 'ดูรายละเอียด' : 'แก้ไขข้อมูล'}</span>
@@ -2953,13 +2914,13 @@ export default function ContentPlanModule({
             ) : (
               /* VIEW MODE: CONTENT DETAILS */
               <div className="p-6 overflow-y-auto space-y-5 text-xs text-rose-900">
-                
+
                 {/* Top Banner Image & Campaign Info */}
                 <div className="relative rounded-2xl overflow-hidden border border-pink-100 bg-pink-50/50 shadow-inner max-h-56 flex items-center justify-center">
-                  <img 
-                    src={selectedDetailContent.media_url || 'https://images.unsplash.com/photo-1620916566398-39f1143ab7be?auto=format&fit=crop&w=600&q=80'} 
+                  <img
+                    src={selectedDetailContent.media_url || 'https://images.unsplash.com/photo-1620916566398-39f1143ab7be?auto=format&fit=crop&w=600&q=80'}
                     alt={selectedDetailContent.title}
-                    className="w-full h-52 object-cover" 
+                    className="w-full h-52 object-cover"
                   />
                   <div className="absolute inset-0 bg-gradient-to-t from-slate-950/70 via-transparent to-transparent flex items-end p-4">
                     <div className="text-white space-y-1 w-full flex items-end justify-between">
@@ -2972,9 +2933,9 @@ export default function ContentPlanModule({
                       </div>
 
                       {selectedDetailContent.media_url && (
-                        <a 
-                          href={selectedDetailContent.media_url} 
-                          target="_blank" 
+                        <a
+                          href={selectedDetailContent.media_url}
+                          target="_blank"
                           rel="noreferrer"
                           className="px-2.5 py-1 bg-white/20 hover:bg-white/30 text-white rounded-lg backdrop-blur-md text-[10px] font-medium border border-white/30 transition flex items-center gap-1"
                         >
@@ -3079,9 +3040,8 @@ export default function ContentPlanModule({
                         onUpdateContentStatus(selectedDetailContent.id, 'draft');
                         setSelectedDetailContent(prev => ({ ...prev, status: 'draft' }));
                       }}
-                      className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition cursor-pointer ${
-                        selectedDetailContent.status === 'draft' ? 'bg-amber-500 text-white shadow-sm' : 'bg-white text-rose-800 border border-pink-200 hover:bg-pink-50'
-                      }`}
+                      className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition cursor-pointer ${selectedDetailContent.status === 'draft' ? 'bg-amber-500 text-white shadow-sm' : 'bg-white text-rose-800 border border-pink-200 hover:bg-pink-50'
+                        }`}
                     >
                       Draft (ร่าง)
                     </button>
@@ -3090,9 +3050,8 @@ export default function ContentPlanModule({
                         onUpdateContentStatus(selectedDetailContent.id, 'scheduled');
                         setSelectedDetailContent(prev => ({ ...prev, status: 'scheduled' }));
                       }}
-                      className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition cursor-pointer ${
-                        selectedDetailContent.status === 'scheduled' ? 'bg-sky-500 text-white shadow-sm' : 'bg-white text-rose-800 border border-pink-200 hover:bg-pink-50'
-                      }`}
+                      className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition cursor-pointer ${selectedDetailContent.status === 'scheduled' ? 'bg-sky-500 text-white shadow-sm' : 'bg-white text-rose-800 border border-pink-200 hover:bg-pink-50'
+                        }`}
                     >
                       Scheduled (ตั้งเวลา)
                     </button>
@@ -3101,9 +3060,8 @@ export default function ContentPlanModule({
                         onUpdateContentStatus(selectedDetailContent.id, 'published');
                         setSelectedDetailContent(prev => ({ ...prev, status: 'published' }));
                       }}
-                      className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition cursor-pointer ${
-                        selectedDetailContent.status === 'published' ? 'bg-emerald-500 text-white shadow-sm' : 'bg-white text-rose-800 border border-pink-200 hover:bg-pink-50'
-                      }`}
+                      className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition cursor-pointer ${selectedDetailContent.status === 'published' ? 'bg-emerald-500 text-white shadow-sm' : 'bg-white text-rose-800 border border-pink-200 hover:bg-pink-50'
+                        }`}
                     >
                       Published (โพสต์แล้ว)
                     </button>
@@ -3142,7 +3100,7 @@ export default function ContentPlanModule({
       {showBulkPasteModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/50 backdrop-blur-md p-2 sm:p-4 animate-in fade-in">
           <div className="w-[96vw] max-w-[96vw] bg-white border border-pink-100 rounded-3xl p-5 sm:p-6 shadow-2xl space-y-4 max-h-[96vh] flex flex-col">
-            
+
             {/* Header */}
             <div className="flex items-center justify-between border-b border-pink-100 pb-3.5">
               <div className="flex items-center gap-3">
@@ -3165,21 +3123,22 @@ export default function ContentPlanModule({
             {/* Content Body */}
             <div className="overflow-y-auto space-y-4 flex-1 pr-1 text-xs">
 
-              {/* STEP 1: Content Group Selection Box (Auto-selected default) */}
+              {/* STEP 1: Mandatory Content Group Selection Box */}
               <div className="p-3.5 rounded-2xl bg-gradient-to-r from-amber-50 via-orange-50 to-pink-50 border-2 border-amber-300/90 shadow-xs space-y-2">
                 <div className="flex items-center justify-between flex-wrap gap-2">
                   <label className="font-black text-amber-950 text-xs flex items-center gap-2">
                     <span className="w-5 h-5 rounded-full bg-amber-500 text-white text-[11px] flex items-center justify-center font-black shadow-2xs">1</span>
-                    <span>หมวดหมู่กลุ่มคอนเทนต์หลักสำหรับนำเข้า (Content Group / Pillar):</span>
+                    <span>เลือกหมวดหมู่กลุ่มคอนเทนต์ที่ต้องการนำเข้า (Mandatory Content Group / Pillar):</span>
+                    <span className="text-rose-500 font-extrabold">*</span>
                   </label>
                   <span className="text-[11px] font-bold text-amber-800 bg-amber-100/90 px-2.5 py-0.5 rounded-full border border-amber-200">
-                    *ระบบเลือกหมวดที่มีให้อัตโนมัติ สามารถสลับเปลี่ยนได้
+                    *จำเป็นต้องเลือกก่อนนำเข้า
                   </span>
                 </div>
 
                 <div className="flex items-center gap-3 flex-wrap pt-0.5">
                   <select
-                    value={bulkTargetGroup || contentGroups[0]?.name || ''}
+                    value={bulkTargetGroup || effectiveContentGroups[0]?.name || ''}
                     onChange={(e) => {
                       const newGrp = e.target.value;
                       setBulkTargetGroup(newGrp);
@@ -3189,14 +3148,14 @@ export default function ContentPlanModule({
                     }}
                     className="w-full sm:w-auto min-w-[320px] bg-white border-2 border-amber-400 text-amber-950 text-xs font-black p-2.5 rounded-xl cursor-pointer shadow-xs focus:ring-2 focus:ring-amber-500 focus:outline-none transition"
                   >
-                    {contentGroups.map(g => (
-                      <option key={g.id} value={g.name}>{g.name}</option>
+                    {effectiveContentGroups.map(g => (
+                      <option key={g.id || g.name} value={g.name}>{g.name}</option>
                     ))}
                   </select>
 
                   <span className="text-xs font-black text-emerald-700 bg-emerald-100/90 px-3 py-2 rounded-xl border border-emerald-300 flex items-center gap-1.5 shrink-0 shadow-2xs">
                     <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
-                    <span>นำเข้าบันทึกลงในหมวด: <strong className="underline text-emerald-950">{bulkTargetGroup || contentGroups[0]?.name}</strong></span>
+                    <span>นำเข้าบันทึกลงในหมวด: <strong className="underline text-emerald-950">{bulkTargetGroup || effectiveContentGroups[0]?.name}</strong></span>
                   </span>
                 </div>
               </div>
@@ -3224,7 +3183,7 @@ export default function ContentPlanModule({
                   )}
                 </div>
               )}
-              
+
               {/* Presets & Help Bar */}
               <div className="flex items-center justify-between gap-2 bg-pink-50/50 p-3 rounded-2xl border border-pink-100 flex-wrap">
                 <div className="text-[11px] text-slate-700 font-medium flex items-center gap-1.5">
@@ -3237,11 +3196,10 @@ export default function ContentPlanModule({
                     type="button"
                     onClick={handleGroqAiParseTable}
                     disabled={isParsingWithAi || !bulkRawText.trim()}
-                    className={`px-3.5 py-1.5 rounded-xl text-xs font-extrabold transition shadow-sm flex items-center gap-1.5 cursor-pointer ${
-                      isParsingWithAi
+                    className={`px-3.5 py-1.5 rounded-xl text-xs font-extrabold transition shadow-sm flex items-center gap-1.5 cursor-pointer ${isParsingWithAi
                         ? 'bg-purple-200 text-purple-700 animate-pulse cursor-wait'
                         : 'bg-gradient-to-r from-purple-600 via-pink-600 to-rose-600 hover:opacity-95 text-white border border-purple-500 shadow-purple-500/20'
-                    }`}
+                      }`}
                     title="ใช้ Groq AI อ่านและสกัดโครงสร้างตารางให้อัตโนมัติ"
                   >
                     {isParsingWithAi ? (
@@ -3377,12 +3335,11 @@ export default function ContentPlanModule({
               <button
                 type="button"
                 onClick={handleConfirmBulkImport}
-                disabled={parsedBulkItems.length === 0}
-                className={`px-5 py-2 rounded-xl text-xs font-extrabold transition flex items-center gap-2 cursor-pointer shadow-md ${
-                  parsedBulkItems.length === 0
+                disabled={parsedBulkItems.length === 0 || !bulkTargetGroup}
+                className={`px-5 py-2 rounded-xl text-xs font-extrabold transition flex items-center gap-2 cursor-pointer shadow-md ${parsedBulkItems.length === 0 || !bulkTargetGroup
                     ? 'bg-slate-100 text-slate-400 cursor-not-allowed border border-slate-200'
                     : 'bg-gradient-to-r from-emerald-500 to-teal-600 hover:opacity-90 text-white border border-emerald-600'
-                }`}
+                  }`}
               >
                 <CheckCircle2 className="w-4 h-4" />
                 <span>ตกลงบันทึก ({parsedBulkItems.length} รายการ)</span>
@@ -3397,7 +3354,7 @@ export default function ContentPlanModule({
       {showAddContentModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-md p-4 sm:p-6 animate-in fade-in duration-200">
           <div className="w-[95vw] max-w-6xl bg-white border border-rose-100/80 rounded-3xl p-6 sm:p-8 shadow-2xl space-y-6 max-h-[92vh] overflow-y-auto">
-            
+
             {/* Modal Header Bar */}
             <div className="flex items-center justify-between border-b border-slate-100 pb-4">
               <div className="flex items-center gap-3">
@@ -3417,9 +3374,9 @@ export default function ContentPlanModule({
                 <X className="w-5 h-5" />
               </button>
             </div>
-            
+
             <form onSubmit={handleCreateContent} className="space-y-6 text-xs">
-              
+
               {/* Row 1: Title (2 Cols) & Platform (1 Col) */}
               <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
                 <div className="md:col-span-2">
@@ -3622,7 +3579,7 @@ export default function ContentPlanModule({
       {showManageGroupsModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#12072B]/60 backdrop-blur-md p-4 animate-in fade-in">
           <div className="w-full max-w-2xl bg-white border border-[#E2D2EA] rounded-3xl p-6 shadow-2xl space-y-5 max-h-[90vh] overflow-y-auto">
-            
+
             {/* Header */}
             <div className="flex items-center justify-between border-b border-pink-100 pb-3">
               <div className="flex items-center gap-2.5">
@@ -3646,7 +3603,7 @@ export default function ContentPlanModule({
             {/* List of Existing Groups with Nested Sub-Categories */}
             <div className="space-y-3 max-h-[380px] overflow-y-auto pr-1">
               <label className="text-xs font-bold text-rose-950 block">รายการกลุ่มและหมวดหมู่ย่อยปัจจุบัน ({effectiveContentGroups.length} กลุ่ม):</label>
-              
+
               {effectiveContentGroups.map(grp => {
                 const subCats = grp.subCategories || [];
 
@@ -3835,7 +3792,7 @@ export default function ContentPlanModule({
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/30 backdrop-blur-sm p-4 animate-in fade-in">
           <div className="w-full max-w-md bg-white border border-pink-100 rounded-3xl p-6 shadow-xl space-y-4">
             <h3 className="text-lg font-bold text-rose-950">บันทึกไอเดียลงคลัง (Idea Vault)</h3>
-            
+
             <form onSubmit={handleCreateIdea} className="space-y-3 text-xs">
               <div>
                 <label className="block text-rose-800 font-semibold mb-1">ชื่อไอเดีย</label>
@@ -3895,7 +3852,7 @@ export default function ContentPlanModule({
       {showManagePlatformsModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-md p-4 animate-in fade-in">
           <div className="w-full max-w-lg bg-white border border-rose-100/80 rounded-3xl p-6 shadow-2xl space-y-5 max-h-[90vh] flex flex-col">
-            
+
             {/* Modal Header */}
             <div className="flex items-center justify-between border-b border-slate-100 pb-3.5">
               <div className="flex items-center gap-3">
@@ -3933,11 +3890,10 @@ export default function ContentPlanModule({
                 <button
                   type="submit"
                   disabled={!newCustomPlatformName.trim()}
-                  className={`px-4 py-2.5 rounded-xl text-xs font-extrabold transition shadow-sm cursor-pointer ${
-                    newCustomPlatformName.trim()
+                  className={`px-4 py-2.5 rounded-xl text-xs font-extrabold transition shadow-sm cursor-pointer ${newCustomPlatformName.trim()
                       ? 'bg-rose-500 hover:bg-rose-600 text-white'
                       : 'bg-slate-100 text-slate-400 cursor-not-allowed'
-                  }`}
+                    }`}
                 >
                   + เพิ่ม
                 </button>
@@ -4019,9 +3975,9 @@ export default function ContentPlanModule({
       )}
 
       {/* LINE Flex Alert Modal for Content Items */}
-      <LineFlexModal 
-        isOpen={!!lineModalItem} 
-        onClose={() => setLineModalItem(null)} 
+      <LineFlexModal
+        isOpen={!!lineModalItem}
+        onClose={() => setLineModalItem(null)}
         defaultCampaign={lineModalItem ? { name: lineModalItem.title } : null}
       />
 
