@@ -47,30 +47,30 @@ export default function App() {
   const [activeTab, setActiveTab] = useState('dashboard');
   const [schemaModalOpen, setSchemaModalOpen] = useState(false);
 
-  // Module Data States with localStorage persistence (Auto-save for Local & Production)
+  // Module Data States with localStorage persistence (Pure Real Data from Supabase & User Entry)
   const [products, setProducts] = useState(() => {
     const saved = localStorage.getItem('nitan_products');
-    return saved ? JSON.parse(saved) : INITIAL_PRODUCTS;
+    return saved ? JSON.parse(saved) : [];
   });
 
   const [marketingPlans, setMarketingPlans] = useState(() => {
     const saved = localStorage.getItem('nitan_marketingPlans');
-    return saved ? JSON.parse(saved) : INITIAL_MARKETING_PLANS;
+    return saved ? JSON.parse(saved) : [];
   });
 
   const [campaignIdeas, setCampaignIdeas] = useState(() => {
     const saved = localStorage.getItem('nitan_campaignIdeas');
-    return saved ? JSON.parse(saved) : INITIAL_CAMPAIGN_IDEAS;
+    return saved ? JSON.parse(saved) : [];
   });
 
   const [campaigns, setCampaigns] = useState(() => {
     const saved = localStorage.getItem('nitan_campaigns');
-    return saved ? JSON.parse(saved) : INITIAL_CAMPAIGNS;
+    return saved ? JSON.parse(saved) : [];
   });
 
   const [contentItems, setContentItems] = useState(() => {
     const saved = localStorage.getItem('nitan_contentItems');
-    return saved ? JSON.parse(saved) : INITIAL_CONTENT_ITEMS;
+    return saved ? JSON.parse(saved) : [];
   });
 
   const [contentGroups, setContentGroups] = useState(() => {
@@ -80,7 +80,7 @@ export default function App() {
 
   const [ideaVault, setIdeaVault] = useState(() => {
     const saved = localStorage.getItem('nitan_ideaVault');
-    return saved ? JSON.parse(saved) : INITIAL_IDEA_VAULT;
+    return saved ? JSON.parse(saved) : [];
   });
 
   const [notificationRules, setNotificationRules] = useState(INITIAL_NOTIFICATION_RULES);
@@ -123,25 +123,25 @@ export default function App() {
     async function loadFromSupabase() {
       // 1. Content Items
       const dbItems = await fetchContentItemsFromSupabase();
-      if (dbItems && dbItems.length > 0) {
+      if (dbItems) {
         mapDbItems(dbItems);
       }
 
       // 2. Campaigns
       const dbCampaigns = await fetchCampaignsFromSupabase();
-      if (dbCampaigns && dbCampaigns.length > 0) {
+      if (dbCampaigns) {
         setCampaigns(dbCampaigns.map(c => ({
           ...c,
           team_id: c.team_id || 'team-1',
           projectedSales: c.revenue_target || c.projectedSales || 0,
           budget: c.budget || 0,
-          stages: c.stages || INITIAL_CAMPAIGNS[0].stages
+          stages: c.stages || []
         })));
       }
 
       // 3. Marketing Plans
       const dbPlans = await fetchMarketingPlansFromSupabase();
-      if (dbPlans && dbPlans.length > 0) {
+      if (dbPlans) {
         setMarketingPlans(dbPlans.map(p => ({
           ...p,
           team_id: p.team_id || 'team-1',
@@ -151,7 +151,7 @@ export default function App() {
 
       // 4. Products Catalog
       const dbProducts = await fetchProductsFromSupabase();
-      if (dbProducts && dbProducts.length > 0) {
+      if (dbProducts) {
         setProducts(dbProducts.map(prod => ({
           ...prod,
           team_id: prod.team_id || 'team-1'
