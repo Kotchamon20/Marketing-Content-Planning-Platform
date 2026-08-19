@@ -46,6 +46,15 @@ export default function PromotionPlanModule({
     { id: 'cat-4', name: 'Seasonal Promo', label: 'โปรโมชันตามเทศกาล (Seasonal)' }
   ]);
 
+  // Dynamic Related Products State (Add, Edit, Delete products)
+  const [productsList, setProductsList] = useState([
+    { id: 'p-1', name: 'Sunscreen Aqua Gel (กันแดดสูตรน้ำ)' },
+    { id: 'p-2', name: 'Melasma Clear Serum (เซรั่มสลายฝ้า)' },
+    { id: 'p-3', name: 'Radiance C Body Lotion (โลชั่นผิวใส)' },
+    { id: 'p-4', name: 'Nitan Club VIP Pass (บัตรสมาชิก)' },
+    { id: 'p-5', name: 'สินค้าทุกรายการ (All Products)' }
+  ]);
+
   // Clean Initial Promotion Plans Data State (Cleared Mockup Data)
   const [promotionPlans, setPromotionPlans] = useState([]);
 
@@ -59,6 +68,7 @@ export default function PromotionPlanModule({
   // Modals State
   const [showAddModal, setShowAddModal] = useState(false);
   const [showManageCategoriesModal, setShowManageCategoriesModal] = useState(false);
+  const [showManageProductsModal, setShowManageProductsModal] = useState(false);
   const [viewDocPlan, setViewDocPlan] = useState(null); // Doc Format Viewer Modal State
   const [editingPlan, setEditingPlan] = useState(null);
   const [lineModalItem, setLineModalItem] = useState(null);
@@ -67,6 +77,11 @@ export default function PromotionPlanModule({
   const [newCategoryName, setNewCategoryName] = useState('');
   const [editingCategoryId, setEditingCategoryId] = useState(null);
   const [editingCategoryName, setEditingCategoryName] = useState('');
+
+  // Product Manager Modal Inputs State
+  const [newProductName, setNewProductName] = useState('');
+  const [editingProductId, setEditingProductId] = useState(null);
+  const [editingProductName, setEditingProductName] = useState('');
 
   // Form State for Add / Edit Plan Modal
   const [formData, setFormData] = useState({
@@ -119,13 +134,45 @@ export default function PromotionPlanModule({
     setCategories(prev => prev.filter(c => c.id !== catId));
   };
 
+  // Product Management Handlers
+  const handleAddProduct = (e) => {
+    e.preventDefault();
+    if (!newProductName.trim()) return;
+
+    const newProd = {
+      id: `prod-${Date.now()}`,
+      name: newProductName.trim()
+    };
+
+    setProductsList(prev => [...prev, newProd]);
+    setNewProductName('');
+  };
+
+  const handleStartEditProduct = (prod) => {
+    setEditingProductId(prod.id);
+    setEditingProductName(prod.name);
+  };
+
+  const handleSaveEditProduct = (prodId) => {
+    if (!editingProductName.trim()) return;
+
+    const updatedName = editingProductName.trim();
+    setProductsList(prev => prev.map(p => p.id === prodId ? { ...p, name: updatedName } : p));
+    setEditingProductId(null);
+    setEditingProductName('');
+  };
+
+  const handleDeleteProduct = (prodId) => {
+    setProductsList(prev => prev.filter(p => p.id !== prodId));
+  };
+
   // Open Add Plan Modal
   const handleOpenAddModal = () => {
     setEditingPlan(null);
     setFormData({
       title: '',
       category: categories[0]?.name || 'Product Promotion',
-      targetProductName: products[0]?.name || 'สินค้าโปรโมชัน',
+      targetProductName: productsList[0]?.name || 'สินค้าทุกรายการ (All Products)',
       targetBranch: 'ทุกสาขา',
       status: 'planned',
       discountOffer: 'Discount 20% Off',
@@ -395,20 +442,29 @@ export default function PromotionPlanModule({
 
         {/* Secondary Filters Dropdown Row */}
         <div className="flex flex-wrap items-center gap-3 pt-3 border-t border-purple-100/60 text-xs">
-          {/* Product Filter */}
+          {/* Product Filter with Add/Edit/Delete capability */}
           <div className="flex items-center gap-1.5 bg-white px-2.5 py-1 rounded-xl border border-[#E2D2EA]">
             <Package className="w-3.5 h-3.5 text-purple-600" />
-            <span className="font-bold text-purple-900">เลือกโปรโมทสินค้า:</span>
+            <span className="font-bold text-purple-900">เลือกสินค้าที่เกี่ยวข้อง:</span>
             <select
               value={selectedProduct}
               onChange={(e) => setSelectedProduct(e.target.value)}
               className="bg-transparent font-bold text-purple-950 focus:outline-none text-xs"
             >
               <option value="all">สินค้าทั้งหมด (All Products)</option>
-              {products.map(p => (
+              {productsList.map(p => (
                 <option key={p.id} value={p.name}>{p.name}</option>
               ))}
             </select>
+
+            <button
+              onClick={() => setShowManageProductsModal(true)}
+              className="px-2 py-0.5 rounded-lg font-bold bg-[#FFEBF3] hover:bg-pink-200 text-purple-950 border border-[#E2D2EA] transition flex items-center gap-1 cursor-pointer text-[11px]"
+              title="จัดการตัวเลือกสินค้า (เพิ่ม / แก้ไข / ลบ)"
+            >
+              <Settings className="w-3 h-3 text-purple-700" />
+              <span>เพิ่ม/ลด/แก้ไข</span>
+            </button>
           </div>
 
           {/* Branch Filter */}
@@ -713,15 +769,26 @@ export default function PromotionPlanModule({
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-purple-950 font-bold mb-1">สินค้าเป้าหมาย (Target Product)</label>
-                  <input
-                    type="text"
-                    required
-                    placeholder="เช่น Sunscreen Aqua Gel หรือ สินค้าทุกรายการ"
+                  <label className="block text-purple-950 font-bold mb-1 flex items-center justify-between">
+                    <span>สินค้าเป้าหมาย (Target Product)</span>
+                    <button
+                      type="button"
+                      onClick={() => setShowManageProductsModal(true)}
+                      className="text-[10px] text-purple-700 hover:text-purple-950 font-bold underline flex items-center gap-0.5"
+                    >
+                      <Settings className="w-3 h-3" />
+                      <span>เพิ่ม/แก้ไขรายชื่อสินค้า</span>
+                    </button>
+                  </label>
+                  <select
                     value={formData.targetProductName}
                     onChange={(e) => setFormData(prev => ({ ...prev, targetProductName: e.target.value }))}
-                    className="w-full px-3 py-2 bg-white border border-[#E2D2EA] rounded-xl text-purple-950 font-medium focus:outline-none shadow-xs"
-                  />
+                    className="w-full px-3 py-2 bg-white border border-[#E2D2EA] rounded-xl text-purple-950 font-bold focus:outline-none shadow-xs text-xs"
+                  >
+                    {productsList.map(p => (
+                      <option key={p.id} value={p.name}>{p.name}</option>
+                    ))}
+                  </select>
                 </div>
 
                 <div>
@@ -944,6 +1011,111 @@ export default function PromotionPlanModule({
               <button
                 type="button"
                 onClick={() => setShowManageCategoriesModal(false)}
+                className="px-5 py-2 bg-gradient-to-r from-purple-950 via-pink-900 to-purple-900 text-white font-bold rounded-xl text-xs transition shadow-md cursor-pointer"
+              >
+                เสร็จสิ้น
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL 2.5: Dynamic Product Manager Modal (เพิ่ม/แก้ไข/ลบ สินค้าที่เกี่ยวข้อง) */}
+      {showManageProductsModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-xs p-4 animate-in fade-in duration-150 overflow-y-auto">
+          <div className="glass-panel max-w-lg w-full p-6 space-y-4 border-[#E2D2EA] shadow-2xl bg-white/95 my-8">
+            <div className="flex items-center justify-between border-b border-purple-100 pb-3">
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded-xl bg-[#FFEBF3] text-purple-800 flex items-center justify-center border border-[#E2D2EA]">
+                  <Package className="w-4 h-4" />
+                </div>
+                <h3 className="text-base font-bold text-purple-950">
+                  จัดการตัวเลือกสินค้าที่เกี่ยวข้อง (Add / Edit / Delete Products)
+                </h3>
+              </div>
+              <button onClick={() => setShowManageProductsModal(false)} className="text-purple-400 hover:text-purple-700 font-bold cursor-pointer">
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            {/* Add New Product Form */}
+            <form onSubmit={handleAddProduct} className="space-y-2 text-xs">
+              <label className="block text-purple-950 font-bold">เพิ่มสินค้าที่เกี่ยวข้องใหม่:</label>
+              <div className="flex items-center gap-2">
+                <input
+                  type="text"
+                  required
+                  placeholder="เช่น Sunscreen Aqua Gel 50ml หรือ เซรั่มสลายฝ้า"
+                  value={newProductName}
+                  onChange={(e) => setNewProductName(e.target.value)}
+                  className="flex-1 px-3 py-2 bg-white border border-[#E2D2EA] rounded-xl text-purple-950 font-medium focus:outline-none text-xs"
+                />
+                <button
+                  type="submit"
+                  className="px-4 py-2 bg-gradient-to-r from-purple-950 via-pink-900 to-purple-900 text-white font-bold rounded-xl text-xs transition shadow-md shrink-0 cursor-pointer flex items-center gap-1"
+                >
+                  <Plus className="w-3.5 h-3.5 text-pink-300" />
+                  <span>+ เพิ่มสินค้า</span>
+                </button>
+              </div>
+            </form>
+
+            {/* Products List */}
+            <div className="space-y-2 max-h-60 overflow-y-auto pt-2">
+              <span className="text-xs font-bold text-purple-900 block">รายการสินค้าที่เกี่ยวข้องในระบบ ({productsList.length}):</span>
+              
+              {productsList.map(prod => {
+                const isEditing = editingProductId === prod.id;
+
+                return (
+                  <div key={prod.id} className="p-3 bg-purple-50/60 rounded-xl border border-purple-100 flex items-center justify-between gap-2 text-xs">
+                    {isEditing ? (
+                      <input
+                        type="text"
+                        value={editingProductName}
+                        onChange={(e) => setEditingProductName(e.target.value)}
+                        className="flex-1 px-2.5 py-1 bg-white border border-purple-300 rounded-lg text-purple-950 font-bold focus:outline-none text-xs"
+                      />
+                    ) : (
+                      <span className="font-bold text-purple-950">{prod.name}</span>
+                    )}
+
+                    <div className="flex items-center gap-1.5 shrink-0">
+                      {isEditing ? (
+                        <button
+                          onClick={() => handleSaveEditProduct(prod.id)}
+                          className="px-2.5 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg font-bold text-[11px] flex items-center gap-1 cursor-pointer"
+                        >
+                          <Check className="w-3 h-3" />
+                          <span>บันทึก</span>
+                        </button>
+                      ) : (
+                        <button
+                          onClick={() => handleStartEditProduct(prod)}
+                          className="p-1 text-purple-600 hover:bg-purple-100 rounded-md transition cursor-pointer"
+                          title="แก้ไขชื่อสินค้า"
+                        >
+                          <Edit3 className="w-3.5 h-3.5" />
+                        </button>
+                      )}
+
+                      <button
+                        onClick={() => handleDeleteProduct(prod.id)}
+                        className="p-1 text-rose-500 hover:bg-rose-100 rounded-md transition cursor-pointer"
+                        title="ลบสินค้านี้"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
+            <div className="pt-3 border-t border-purple-100 flex justify-end">
+              <button
+                type="button"
+                onClick={() => setShowManageProductsModal(false)}
                 className="px-5 py-2 bg-gradient-to-r from-purple-950 via-pink-900 to-purple-900 text-white font-bold rounded-xl text-xs transition shadow-md cursor-pointer"
               >
                 เสร็จสิ้น
