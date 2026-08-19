@@ -12,6 +12,7 @@ import KpiAnalyticsModule from './components/KpiAnalyticsModule';
 import SchemaViewerModal from './components/SchemaViewerModal';
 import {
   fetchContentItemsFromSupabase,
+  subscribeToContentItems,
   upsertContentItemToSupabase,
   deleteContentItemFromSupabase,
   upsertCampaignToSupabase,
@@ -93,31 +94,46 @@ export default function App() {
     localStorage.setItem('nitan_ideaVault', JSON.stringify(ideaVault));
   }, [products, marketingPlans, campaignIdeas, campaigns, contentItems, contentGroups, ideaVault]);
 
-  // Auto-fetch from Supabase DB on mount
+  // Auto-fetch from Supabase DB on mount & Subscribe to Realtime Changes (Live Sync across Local & Production)
   React.useEffect(() => {
+    const mapDbItems = (dbItems) => {
+      if (!dbItems) return;
+      setContentItems(dbItems.map(item => ({
+        id: item.id,
+        team_id: item.team_id || 'team-1',
+        campaign_id: item.campaign_id || 'camp-1',
+        creator_id: item.creator_id || 'user-2',
+        title: item.title,
+        caption: item.caption || '',
+        visual_concept: item.visual_concept || '',
+        platform: item.platforms || (item.platform ? item.platform.split(/[\s,]+/) : ['facebook']),
+        group: item.content_group || 'Brand Vibe (Atmosphere)',
+        subCategory: '',
+        status: item.status || 'draft',
+        publish_date: item.publish_date ? item.publish_date.split('T')[0] : '2026-08-20',
+        media_url: item.media_url || '',
+        reference_url: item.reference_url || '',
+        performance: { views: 0, likes: 0, comments: 0, shares: 0, ctr: 0 }
+      })));
+    };
+
     async function loadFromSupabase() {
       const dbItems = await fetchContentItemsFromSupabase();
       if (dbItems && dbItems.length > 0) {
-        setContentItems(dbItems.map(item => ({
-          id: item.id,
-          team_id: item.team_id || 'team-1',
-          campaign_id: item.campaign_id || 'camp-1',
-          creator_id: item.creator_id || 'user-2',
-          title: item.title,
-          caption: item.caption || '',
-          visual_concept: item.visual_concept || '',
-          platform: item.platforms || (item.platform ? item.platform.split(/[\s,]+/) : ['facebook']),
-          group: item.content_group || 'Brand Vibe (Atmosphere)',
-          subCategory: '',
-          status: item.status || 'draft',
-          publish_date: item.publish_date ? item.publish_date.split('T')[0] : '2026-08-20',
-          media_url: item.media_url || '',
-          reference_url: item.reference_url || '',
-          performance: { views: 0, likes: 0, comments: 0, shares: 0, ctr: 0 }
-        })));
+        mapDbItems(dbItems);
       }
     }
+
     loadFromSupabase();
+
+    // Subscribe to Live Realtime DB changes (Broadcasts to all open tabs/clients on Local & Production)
+    const unsubscribe = subscribeToContentItems((freshDbItems) => {
+      mapDbItems(freshDbItems);
+    });
+
+    return () => {
+      if (unsubscribe) unsubscribe();
+    };
   }, []);
 
   // Filtered by Tenant (team_id)

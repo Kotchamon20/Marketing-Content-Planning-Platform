@@ -333,3 +333,6 @@ ALTER TABLE content_items ALTER COLUMN platform TYPE TEXT USING platform::text;
 ALTER TABLE custom_platforms DISABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "Allow public all access on custom_platforms" ON custom_platforms;
 CREATE POLICY "Allow public all access on custom_platforms" ON custom_platforms FOR ALL USING (true);
+
+-- REALTIME BROADCAST SYNCHRONIZATION FOR LOCAL & PRODUCTION
+ALTER PUBLICATION supabase_realtime ADD TABLE content_items;

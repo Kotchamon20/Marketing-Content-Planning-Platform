@@ -28,6 +28,31 @@ export async function fetchContentItemsFromSupabase() {
   }
 }
 
+export function subscribeToContentItems(onDataChanged) {
+  try {
+    const channel = supabase
+      .channel('public:content_items')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'content_items' },
+        async () => {
+          const freshItems = await fetchContentItemsFromSupabase();
+          if (freshItems && onDataChanged) {
+            onDataChanged(freshItems);
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  } catch (e) {
+    console.warn('Realtime subscription warning:', e);
+    return () => {};
+  }
+}
+
 const isUuid = (str) => typeof str === 'string' && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(str);
 
 export async function upsertContentItemToSupabase(contentItem) {
