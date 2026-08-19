@@ -9,6 +9,12 @@ import PromotionPlanModule from './components/PromotionPlanModule';
 import TodoListModule from './components/TodoListModule';
 import KpiAnalyticsModule from './components/KpiAnalyticsModule';
 import SchemaViewerModal from './components/SchemaViewerModal';
+import {
+  upsertContentItemToSupabase,
+  deleteContentItemFromSupabase,
+  upsertCampaignToSupabase,
+  upsertProductToSupabase
+} from './services/dataService';
 
 import {
   INITIAL_TEAMS,
@@ -98,19 +104,27 @@ export default function App() {
   // Handlers for Module 1: Content Plan
   const handleAddContentItem = (newItem) => {
     setContentItems(prev => [newItem, ...prev]);
+    upsertContentItemToSupabase(newItem);
     confetti({ particleCount: 50, spread: 60, origin: { y: 0.8 } });
   };
 
   const handleUpdateContentStatus = (id, newStatus) => {
-    setContentItems(prev => prev.map(item => item.id === id ? { ...item, status: newStatus } : item));
+    setContentItems(prev => {
+      const updated = prev.map(item => item.id === id ? { ...item, status: newStatus } : item);
+      const targetItem = updated.find(i => i.id === id);
+      if (targetItem) upsertContentItemToSupabase(targetItem);
+      return updated;
+    });
   };
 
   const handleEditContentItem = (updatedItem) => {
     setContentItems(prev => prev.map(item => item.id === updatedItem.id ? { ...item, ...updatedItem } : item));
+    upsertContentItemToSupabase(updatedItem);
   };
 
   const handleDeleteContentItem = (id) => {
     setContentItems(prev => prev.filter(item => item.id !== id));
+    deleteContentItemFromSupabase(id);
   };
 
   const handleAddContentGroup = (newGroup) => {
@@ -178,6 +192,7 @@ export default function App() {
 
   const handleAddCampaign = (newCampaign) => {
     setCampaigns(prev => [newCampaign, ...prev]);
+    upsertCampaignToSupabase(newCampaign);
     confetti({ particleCount: 70, spread: 80, origin: { y: 0.7 } });
   };
 

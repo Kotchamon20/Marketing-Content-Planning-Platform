@@ -79,9 +79,9 @@ CREATE TABLE IF NOT EXISTS marketing_plans (
     swot_weaknesses TEXT[],
     swot_opportunities TEXT[],
     swot_threats TEXT[],
-    customer_journey JSONB DEFAULT '{}', -- { awareness: '', consideration: '', conversion: '', loyalty: '' }
+    customer_journey JSONB DEFAULT '{}',
     total_budget DECIMAL(12, 2) DEFAULT 0.00,
-    budget_channels JSONB DEFAULT '{}', -- { tiktok: 50000, facebook: 30000, instagram: 20000 }
+    budget_channels JSONB DEFAULT '{}',
     start_date DATE NOT NULL,
     end_date DATE NOT NULL,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
@@ -162,7 +162,7 @@ CREATE TABLE IF NOT EXISTS notification_rules (
     team_id UUID REFERENCES teams(id) ON DELETE CASCADE,
     campaign_id UUID REFERENCES campaigns(id) ON DELETE CASCADE,
     stage notification_stage NOT NULL,
-    offset_days INTEGER NOT NULL, -- e.g. -5 for T-5, -2 for T-2, 0 for T-0, +1 for Overdue
+    offset_days INTEGER NOT NULL,
     target_role user_role DEFAULT 'content_creator',
     is_active BOOLEAN DEFAULT TRUE,
     custom_template TEXT,
@@ -184,18 +184,6 @@ CREATE TABLE IF NOT EXISTS notification_logs (
     last_escalated_at TIMESTAMP WITH TIME ZONE
 );
 
--- RLS (ROW LEVEL SECURITY) POLICIES FOR MULTI-TENANCY
-ALTER TABLE teams ENABLE ROW LEVEL SECURITY;
-ALTER TABLE users ENABLE ROW LEVEL SECURITY;
-ALTER TABLE products ENABLE ROW LEVEL SECURITY;
-ALTER TABLE marketing_plans ENABLE ROW LEVEL SECURITY;
-ALTER TABLE campaign_ideas ENABLE ROW LEVEL SECURITY;
-ALTER TABLE campaigns ENABLE ROW LEVEL SECURITY;
-ALTER TABLE content_items ENABLE ROW LEVEL SECURITY;
-ALTER TABLE idea_vault ENABLE ROW LEVEL SECURITY;
-ALTER TABLE notification_rules ENABLE ROW LEVEL SECURITY;
-ALTER TABLE notification_logs ENABLE ROW LEVEL SECURITY;
-
 -- 12. LINE GROUPS (Auto-Captured LINE Group IDs)
 CREATE TABLE IF NOT EXISTS line_groups (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -205,12 +193,23 @@ CREATE TABLE IF NOT EXISTS line_groups (
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
-ALTER TABLE line_groups ENABLE ROW LEVEL SECURITY;
+-- DISABLE RLS TO ALLOW FULL DIRECT ANONYMOUS READ/WRITE ACCESS FROM LOCAL AND PRODUCTION
+ALTER TABLE teams DISABLE ROW LEVEL SECURITY;
+ALTER TABLE users DISABLE ROW LEVEL SECURITY;
+ALTER TABLE products DISABLE ROW LEVEL SECURITY;
+ALTER TABLE marketing_plans DISABLE ROW LEVEL SECURITY;
+ALTER TABLE campaign_ideas DISABLE ROW LEVEL SECURITY;
+ALTER TABLE campaigns DISABLE ROW LEVEL SECURITY;
+ALTER TABLE content_items DISABLE ROW LEVEL SECURITY;
+ALTER TABLE idea_vault DISABLE ROW LEVEL SECURITY;
+ALTER TABLE notification_rules DISABLE ROW LEVEL SECURITY;
+ALTER TABLE notification_logs DISABLE ROW LEVEL SECURITY;
+ALTER TABLE line_groups DISABLE ROW LEVEL SECURITY;
 
+-- SAFE PUBLIC ALL ACCESS POLICIES
 DROP POLICY IF EXISTS "Allow public all access on line_groups" ON line_groups;
 CREATE POLICY "Allow public all access on line_groups" ON line_groups FOR ALL USING (true);
 
--- Public access policies for all multi-tenant tables
 DROP POLICY IF EXISTS "Allow public all access on teams" ON teams;
 CREATE POLICY "Allow public all access on teams" ON teams FOR ALL USING (true);
 
@@ -240,5 +239,3 @@ CREATE POLICY "Allow public all access on notification_rules" ON notification_ru
 
 DROP POLICY IF EXISTS "Allow public all access on notification_logs" ON notification_logs;
 CREATE POLICY "Allow public all access on notification_logs" ON notification_logs FOR ALL USING (true);
-
-
