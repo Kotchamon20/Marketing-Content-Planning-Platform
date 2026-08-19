@@ -182,6 +182,7 @@ export async function sendLineFlexCardAlert(targetId, alertData, token = LINE_CH
             size: 'md'
           }
         ]
+      },
       body: {
         type: 'box',
         layout: 'vertical',
