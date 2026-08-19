@@ -25,12 +25,25 @@ import {
   Filter,
   Bot,
   RefreshCw,
-  Layers
+  Layers,
+  Table,
+  LayoutGrid,
+  Check,
+  HelpCircle,
+  Search,
+  Lock,
+  Unlock
 } from 'lucide-react';
 import { parseFullSheetWithGroqAi } from '../services/groqAiService';
 
 export default function BranchBudgetAllocation() {
   const [mktPercentRate, setMktPercentRate] = useState(2.0); // Default MKT 2%
+
+  // Calculation Mode: 'auto' (MKT 2% Auto Calculate) | 'manual' (User Custom Full Budget Input)
+  const [budgetCalcMode, setBudgetCalcMode] = useState('manual'); // Default 'manual' matching user's exact sheet numbers
+
+  // View Mode: 'matrix' (Full Excel Spreadsheet Layout matching screenshot) | 'cards' (Branch Cards)
+  const [viewMode, setViewMode] = useState('matrix');
 
   // Month & Year Filter States
   const [selectedMonth, setSelectedMonth] = useState('08');
@@ -69,7 +82,7 @@ export default function BranchBudgetAllocation() {
 
   // Groq AI Smart Scanner States
   const [showImageScanModal, setShowImageScanModal] = useState(false);
-  const [uploadedImageSrc, setUploadedImageSrc] = useState('/excel_sample_aug_69.png');
+  const [uploadedImageSrc, setUploadedImageSrc] = useState('/excel_full_sheet_layout.png');
   const [isScanningImage, setIsScanningImage] = useState(false);
   const [groqAiScanNote, setGroqAiScanNote] = useState('');
 
@@ -78,101 +91,120 @@ export default function BranchBudgetAllocation() {
     sheetTitle: 'งบ Marketing ประจำเดือน ส.ค. 69',
     branches: [
       {
-        name: 'สำนักงานใหญ่',
-        previousSales: 5893032.00,
+        name: 'NITAN หลัก (สำนักงานใหญ่)',
+        manualFullBudget: 117000,
+        previousSales: 5750000.00,
         influencerPromo: 0,
         eventPromo: 0,
         lineOaPromo: 2000,
-        googleAdsPct: 35,
-        fbAdsPct: 35,
-        tiktokPct: 10,
-        igPct: 0,
-        shopeePct: 10,
-        grabPct: 10
+        googleAdsAmount: 34500,
+        fbAdsAmount: 34500,
+        tiktokAmount: 11500,
+        igAmount: 11500,
+        lazadaAmount: 0,
+        shopeeAmount: 11500,
+        grabAmount: 11500
       },
       {
-        name: 'สาขาเขาพระตำหนัก',
-        previousSales: 1004167.00,
+        name: 'NITAN เขาพระตำหนัก',
+        manualFullBudget: 20000,
+        previousSales: 1200000.00,
         influencerPromo: 0,
         eventPromo: 0,
         lineOaPromo: 0,
-        googleAdsPct: 40,
-        fbAdsPct: 40,
-        tiktokPct: 10,
-        igPct: 0,
-        shopeePct: 0,
-        grabPct: 10
+        googleAdsAmount: 8000,
+        fbAdsAmount: 8000,
+        tiktokAmount: 2000,
+        igAmount: 2000,
+        lazadaAmount: 0,
+        shopeeAmount: 2000,
+        grabAmount: 2000
       },
       {
-        name: 'สาขานาเกลือ',
-        previousSales: 1149562.00,
+        name: 'NITAN นาเกลือ',
+        manualFullBudget: 22000,
+        previousSales: 1100000.00,
         influencerPromo: 0,
         eventPromo: 0,
         lineOaPromo: 0,
-        googleAdsPct: 40,
-        fbAdsPct: 40,
-        tiktokPct: 10,
-        igPct: 0,
-        shopeePct: 0,
-        grabPct: 10
+        googleAdsAmount: 8000,
+        fbAdsAmount: 8000,
+        tiktokAmount: 2000,
+        igAmount: 0,
+        lazadaAmount: 0,
+        shopeeAmount: 2000,
+        grabAmount: 2000
       }
     ]
   });
 
-  // Default initial branches data map stored by month key ('YYYY-MM') matching exact user screenshot
+  // Default initial branches data map matching user's exact Google Sheet screenshot
   const [monthlyBudgetsData, setMonthlyBudgetsData] = useState({
     '2026-08': [
       {
         id: 'hq',
-        name: 'สำนักงานใหญ่',
-        colorHeader: 'bg-[#E6F2FF] text-purple-950 border-[#E2D2EA]',
-        previousSales: 5893032.00,
+        name: 'NITAN หลัก',
+        subTitle: 'สำนักงานใหญ่',
+        colorHeader: 'bg-[#FFEBF3] text-purple-950 border-[#E2D2EA]',
+        manualFullBudget: 117000.00,
+        previousSales: 5750000.00,
         promotions: [
-          { id: 'p1', name: '1. Influencer', amount: 0 },
-          { id: 'p2', name: '2. งานกิจกรรม MKT', amount: 0 },
-          { id: 'p3', name: '3. Line OA', amount: 2000 }
+          { id: 'p1', name: 'Influencer', amount: 0 },
+          { id: 'p2', name: 'Workshop/Event', amount: 0 },
+          { id: 'p3', name: 'Line OA', amount: 2000 }
         ],
         channelAllocations: [
-          { id: 'c1', name: '1. Google Ads', percent: 35 },
-          { id: 'c2', name: '2. Facebook Ads', percent: 35 },
-          { id: 'c3', name: '3. TikTok', percent: 10 },
-          { id: 'c4', name: '4. IG', percent: 0 },
-          { id: 'c5', name: '5. Shopee', percent: 10 },
-          { id: 'c6', name: '6. Grab', percent: 10 }
+          { id: 'c1', name: 'Google', percent: 30, amount: 34500 },
+          { id: 'c2', name: 'Facebook', percent: 30, amount: 34500 },
+          { id: 'c3', name: 'TikTok', percent: 10, amount: 11500 },
+          { id: 'c4', name: 'Instagram', percent: 10, amount: 11500 },
+          { id: 'c5', name: 'Lazada', percent: 0, amount: 0 },
+          { id: 'c6', name: 'Shopee', percent: 10, amount: 11500 },
+          { id: 'c7', name: 'Grab', percent: 10, amount: 11500 }
         ]
       },
       {
         id: 'phra-tamnak',
-        name: 'สาขาเขาพระตำหนัก',
-        colorHeader: 'bg-[#FFEBF3] text-purple-950 border-[#E2D2EA]',
-        previousSales: 1004167.00,
+        name: 'NITAN เขาพระตำหนัก',
+        subTitle: 'เขาพระตำหนัก พัทยา',
+        colorHeader: 'bg-[#E6F2FF] text-purple-950 border-[#E2D2EA]',
+        manualFullBudget: 20000.00,
+        previousSales: 1200000.00,
         promotions: [
-          { id: 'p1', name: '1. Influencer', amount: 0 },
-          { id: 'p2', name: '2. งานกิจกรรม MKT', amount: 0 },
-          { id: 'p3', name: '3. Line OA', amount: 0 }
+          { id: 'p1', name: 'Influencer', amount: 0 },
+          { id: 'p2', name: 'Workshop/Event', amount: 0 },
+          { id: 'p3', name: 'Line OA', amount: 0 }
         ],
         channelAllocations: [
-          { id: 'c1', name: '1. Google Ads', percent: 40 },
-          { id: 'c2', name: '2. Facebook Ads', percent: 40 },
-          { id: 'c3', name: '3. TikTok', percent: 10 },
-          { id: 'c4', name: '4. Grab', percent: 10 }
+          { id: 'c1', name: 'Google', percent: 40, amount: 8000 },
+          { id: 'c2', name: 'Facebook', percent: 40, amount: 8000 },
+          { id: 'c3', name: 'TikTok', percent: 10, amount: 2000 },
+          { id: 'c4', name: 'Instagram', percent: 10, amount: 2000 },
+          { id: 'c5', name: 'Lazada', percent: 0, amount: 0 },
+          { id: 'c6', name: 'Shopee', percent: 10, amount: 2000 },
+          { id: 'c7', name: 'Grab', percent: 10, amount: 2000 }
         ]
       },
       {
         id: 'naklua',
-        name: 'สาขานาเกลือ',
+        name: 'NITAN นาเกลือ',
+        subTitle: 'นาเกลือ พัทยา',
         colorHeader: 'bg-[#FEF9C3] text-purple-950 border-[#E2D2EA]',
-        previousSales: 1149562.00,
+        manualFullBudget: 22000.00,
+        previousSales: 1100000.00,
         promotions: [
-          { id: 'p1', name: '1. Influencer', amount: 0 },
-          { id: 'p2', name: '2. งานกิจกรรม MKT', amount: 0 },
-          { id: 'p3', name: '3. Line OA', amount: 0 }
+          { id: 'p1', name: 'Influencer', amount: 0 },
+          { id: 'p2', name: 'Workshop/Event', amount: 0 },
+          { id: 'p3', name: 'Line OA', amount: 0 }
         ],
         channelAllocations: [
-          { id: 'c1', name: '1. Google Ads', percent: 40 },
-          { id: 'c2', name: '2. Facebook Ads', percent: 40 },
-          { id: 'c3', name: '3. TikTok', percent: 10 },
-          { id: 'c4', name: '4. Grab', percent: 10 }
+          { id: 'c1', name: 'Google', percent: 40, amount: 8000 },
+          { id: 'c2', name: 'Facebook', percent: 40, amount: 8000 },
+          { id: 'c3', name: 'TikTok', percent: 10, amount: 2000 },
+          { id: 'c4', name: 'Instagram', percent: 0, amount: 0 },
+          { id: 'c5', name: 'Lazada', percent: 0, amount: 0 },
+          { id: 'c6', name: 'Shopee', percent: 10, amount: 2000 },
+          { id: 'c7', name: 'Grab', percent: 10, amount: 2000 }
         ]
       }
     ]
@@ -184,38 +216,46 @@ export default function BranchBudgetAllocation() {
   const currentBranches = monthlyBudgetsData[currentMonthKey] || [
     {
       id: `hq-${currentMonthKey}`,
-      name: 'สำนักงานใหญ่',
-      colorHeader: 'bg-[#E6F2FF] text-purple-950 border-[#E2D2EA]',
-      previousSales: 5893032.00,
+      name: 'NITAN หลัก',
+      subTitle: 'สำนักงานใหญ่',
+      colorHeader: 'bg-[#FFEBF3] text-purple-950 border-[#E2D2EA]',
+      manualFullBudget: 117000.00,
+      previousSales: 5750000.00,
       promotions: [
-        { id: 'p1', name: '1. Influencer', amount: 0 },
-        { id: 'p2', name: '2. งานกิจกรรม MKT', amount: 0 },
-        { id: 'p3', name: '3. Line OA', amount: 2000 }
+        { id: 'p1', name: 'Influencer', amount: 0 },
+        { id: 'p2', name: 'Workshop/Event', amount: 0 },
+        { id: 'p3', name: 'Line OA', amount: 2000 }
       ],
       channelAllocations: [
-        { id: 'c1', name: '1. Google Ads', percent: 35 },
-        { id: 'c2', name: '2. Facebook Ads', percent: 35 },
-        { id: 'c3', name: '3. TikTok', percent: 10 },
-        { id: 'c4', name: '4. IG', percent: 0 },
-        { id: 'c5', name: '5. Shopee', percent: 10 },
-        { id: 'c6', name: '6. Grab', percent: 10 }
+        { id: 'c1', name: 'Google', percent: 30, amount: 34500 },
+        { id: 'c2', name: 'Facebook', percent: 30, amount: 34500 },
+        { id: 'c3', name: 'TikTok', percent: 10, amount: 11500 },
+        { id: 'c4', name: 'Instagram', percent: 10, amount: 11500 },
+        { id: 'c5', name: 'Lazada', percent: 0, amount: 0 },
+        { id: 'c6', name: 'Shopee', percent: 10, amount: 11500 },
+        { id: 'c7', name: 'Grab', percent: 10, amount: 11500 }
       ]
     },
     {
       id: `phra-tamnak-${currentMonthKey}`,
-      name: 'สาขาเขาพระตำหนัก',
-      colorHeader: 'bg-[#FFEBF3] text-purple-950 border-[#E2D2EA]',
-      previousSales: 1004167.00,
+      name: 'NITAN เขาพระตำหนัก',
+      subTitle: 'เขาพระตำหนัก พัทยา',
+      colorHeader: 'bg-[#E6F2FF] text-purple-950 border-[#E2D2EA]',
+      manualFullBudget: 20000.00,
+      previousSales: 1200000.00,
       promotions: [
-        { id: 'p1', name: '1. Influencer', amount: 0 },
-        { id: 'p2', name: '2. งานกิจกรรม MKT', amount: 0 },
-        { id: 'p3', name: '3. Line OA', amount: 0 }
+        { id: 'p1', name: 'Influencer', amount: 0 },
+        { id: 'p2', name: 'Workshop/Event', amount: 0 },
+        { id: 'p3', name: 'Line OA', amount: 0 }
       ],
       channelAllocations: [
-        { id: 'c1', name: '1. Google Ads', percent: 40 },
-        { id: 'c2', name: '2. Facebook Ads', percent: 40 },
-        { id: 'c3', name: '3. TikTok', percent: 10 },
-        { id: 'c4', name: '4. Grab', percent: 10 }
+        { id: 'c1', name: 'Google', percent: 40, amount: 8000 },
+        { id: 'c2', name: 'Facebook', percent: 40, amount: 8000 },
+        { id: 'c3', name: 'TikTok', percent: 10, amount: 2000 },
+        { id: 'c4', name: 'Instagram', percent: 10, amount: 2000 },
+        { id: 'c5', name: 'Lazada', percent: 0, amount: 0 },
+        { id: 'c6', name: 'Shopee', percent: 10, amount: 2000 },
+        { id: 'c7', name: 'Grab', percent: 10, amount: 2000 }
       ]
     }
   ];
@@ -227,9 +267,13 @@ export default function BranchBudgetAllocation() {
     });
   };
 
-  // Handlers for updating branch sales
+  // Handlers for updating branch sales & manual full budget
   const handleUpdateSales = (branchId, value) => {
     updateCurrentBranches(prev => prev.map(b => b.id === branchId ? { ...b, previousSales: Number(value) || 0 } : b));
+  };
+
+  const handleUpdateManualFullBudget = (branchId, value) => {
+    updateCurrentBranches(prev => prev.map(b => b.id === branchId ? { ...b, manualFullBudget: Number(value) || 0 } : b));
   };
 
   const handleUpdatePromoAmount = (branchId, promoId, value) => {
@@ -244,12 +288,12 @@ export default function BranchBudgetAllocation() {
     }));
   };
 
-  const handleUpdateChannelPercent = (branchId, channelId, value) => {
+  const handleUpdateChannelAmount = (branchId, channelId, value) => {
     updateCurrentBranches(prev => prev.map(b => {
       if (b.id === branchId) {
         return {
           ...b,
-          channelAllocations: b.channelAllocations.map(c => c.id === channelId ? { ...c, percent: Number(value) || 0 } : c)
+          channelAllocations: b.channelAllocations.map(c => c.id === channelId ? { ...c, amount: Number(value) || 0 } : c)
         };
       }
       return b;
@@ -265,17 +309,21 @@ export default function BranchBudgetAllocation() {
       id: `branch-${Date.now()}`,
       name: newBranchName.trim(),
       colorHeader: 'bg-[#F5EEF8] text-purple-950 border-[#E2D2EA]',
+      manualFullBudget: 20000.00,
       previousSales: Number(newBranchSales) || 1000000,
       promotions: [
-        { id: 'p1', name: '1. Influencer', amount: 0 },
-        { id: 'p2', name: '2. งานกิจกรรม MKT', amount: 0 },
-        { id: 'p3', name: '3. Line OA', amount: 0 }
+        { id: 'p1', name: 'Influencer', amount: 0 },
+        { id: 'p2', name: 'Workshop/Event', amount: 0 },
+        { id: 'p3', name: 'Line OA', amount: 0 }
       ],
       channelAllocations: [
-        { id: 'c1', name: '1. Google Ads', percent: 40 },
-        { id: 'c2', name: '2. Facebook Ads', percent: 40 },
-        { id: 'c3', name: '3. TikTok', percent: 10 },
-        { id: 'c4', name: '4. Grab', percent: 10 }
+        { id: 'c1', name: 'Google', percent: 40, amount: 8000 },
+        { id: 'c2', name: 'Facebook', percent: 40, amount: 8000 },
+        { id: 'c3', name: 'TikTok', percent: 10, amount: 2000 },
+        { id: 'c4', name: 'Instagram', percent: 0, amount: 0 },
+        { id: 'c5', name: 'Lazada', percent: 0, amount: 0 },
+        { id: 'c6', name: 'Shopee', percent: 10, amount: 2000 },
+        { id: 'c7', name: 'Grab', percent: 10, amount: 2000 }
       ]
     };
 
@@ -310,7 +358,6 @@ export default function BranchBudgetAllocation() {
     setIsScanningImage(true);
     setGroqAiScanNote('');
 
-    // Execute real Groq AI OCR Image Sheet Analysis
     const groqParsed = await parseFullSheetWithGroqAi(filename);
 
     setScannedSheetResult(groqParsed);
@@ -323,36 +370,31 @@ export default function BranchBudgetAllocation() {
 
     const newBranchesList = scannedSheetResult.branches.map((b, idx) => {
       const colorHeaders = [
-        'bg-[#E6F2FF] text-purple-950 border-[#E2D2EA]', // Blue HQ
-        'bg-[#FFEBF3] text-purple-950 border-[#E2D2EA]', // Orange Phra Tamnak
+        'bg-[#FFEBF3] text-purple-950 border-[#E2D2EA]', // Red/Pink Main HQ
+        'bg-[#E6F2FF] text-purple-950 border-[#E2D2EA]', // Blue Phra Tamnak
         'bg-[#FEF9C3] text-purple-950 border-[#E2D2EA]'  // Yellow Naklua
       ];
-
-      const channelAllocations = [
-        { id: 'c1', name: '1. Google Ads', percent: b.googleAdsPct || 40 },
-        { id: 'c2', name: '2. Facebook Ads', percent: b.fbAdsPct || 40 },
-        { id: 'c3', name: '3. TikTok', percent: b.tiktokPct || 10 }
-      ];
-
-      if (b.igPct !== undefined) {
-        channelAllocations.push({ id: 'c4', name: '4. IG', percent: b.igPct });
-      }
-      if (b.shopeePct !== undefined && b.shopeePct > 0) {
-        channelAllocations.push({ id: 'c5', name: '5. Shopee', percent: b.shopeePct });
-      }
-      channelAllocations.push({ id: 'c6', name: '6. Grab', percent: b.grabPct || 10 });
 
       return {
         id: `branch-auto-${idx}-${Date.now()}`,
         name: b.name,
         colorHeader: colorHeaders[idx % colorHeaders.length],
+        manualFullBudget: b.manualFullBudget || (b.previousSales * (mktPercentRate / 100)),
         previousSales: Number(b.previousSales) || 1000000,
         promotions: [
-          { id: 'p1', name: '1. Influencer', amount: Number(b.influencerPromo) || 0 },
-          { id: 'p2', name: '2. งานกิจกรรม MKT', amount: Number(b.eventPromo) || 0 },
-          { id: 'p3', name: '3. Line OA', amount: Number(b.lineOaPromo) || 0 }
+          { id: 'p1', name: 'Influencer', amount: Number(b.influencerPromo) || 0 },
+          { id: 'p2', name: 'Workshop/Event', amount: Number(b.eventPromo) || 0 },
+          { id: 'p3', name: 'Line OA', amount: Number(b.lineOaPromo) || 0 }
         ],
-        channelAllocations: channelAllocations
+        channelAllocations: [
+          { id: 'c1', name: 'Google', percent: b.googleAdsPct || 35, amount: b.googleAdsAmount || 34500 },
+          { id: 'c2', name: 'Facebook', percent: b.fbAdsPct || 35, amount: b.fbAdsAmount || 34500 },
+          { id: 'c3', name: 'TikTok', percent: b.tiktokPct || 10, amount: b.tiktokAmount || 11500 },
+          { id: 'c4', name: 'Instagram', percent: b.igPct || 10, amount: b.igAmount || 11500 },
+          { id: 'c5', name: 'Lazada', percent: 0, amount: b.lazadaAmount || 0 },
+          { id: 'c6', name: 'Shopee', percent: b.shopeePct || 10, amount: b.shopeeAmount || 11500 },
+          { id: 'c7', name: 'Grab', percent: b.grabPct || 10, amount: b.grabAmount || 11500 }
+        ]
       };
     });
 
@@ -360,9 +402,15 @@ export default function BranchBudgetAllocation() {
     setShowImageScanModal(false);
   };
 
-  // Aggregated totals for selected month
+  // Aggregated totals for selected month based on calc mode
   const grandTotalSales = currentBranches.reduce((sum, b) => sum + b.previousSales, 0);
-  const grandTotalMktBudget = currentBranches.reduce((sum, b) => sum + (b.previousSales * (mktPercentRate / 100)), 0);
+
+  const grandTotalFullBudget = currentBranches.reduce((sum, b) => {
+    const fullB = budgetCalcMode === 'auto'
+      ? (b.previousSales * (mktPercentRate / 100))
+      : (b.manualFullBudget || (b.previousSales * (mktPercentRate / 100)));
+    return sum + fullB;
+  }, 0);
 
   const currentMonthLabel = monthsList.find(m => m.value === selectedMonth)?.label || 'สิงหาคม';
 
@@ -375,18 +423,74 @@ export default function BranchBudgetAllocation() {
           <div>
             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#FFEBF3] border border-[#E2D2EA] text-xs font-bold text-purple-950 mb-2">
               <Calculator className="w-3.5 h-3.5 text-purple-700" />
-              <span>การจัดสรรงบประมาณ Marketing (MKT 2% Formula + Groq AI Scanner)</span>
+              <span>การจัดสรรงบประมาณ Marketing (Nitan Spreadsheet Master System)</span>
             </div>
             <h2 className="text-xl font-bold text-purple-950 tracking-tight flex items-center gap-2">
-              <span>ตารางจัดสรรงบประมาณการตลาด MKT {mktPercentRate}% ประจำเดือน {currentMonthLabel} {Number(selectedYear) + 543}</span>
+              <span>ตารางจัดสรรงบประมาณการตลาด MKT ประจำเดือน {currentMonthLabel} {Number(selectedYear) + 543}</span>
             </h2>
             <p className="text-xs text-purple-800/80 font-medium mt-1">
-              คำนวณงบจากยอดขายเดือนก่อนหน้า อัตโนมัติ พร้อมระบบอัปโหลดรูปภาพตารางสแกนวิเคราะห์ด้วย Groq AI (Groq AI Table OCR Scanner)
+              ตารางจัดสรรงบประมาณ ถอดแบบตามตาราง Google Sheet / Excel จริง พร้อมระบบสลับคำนวณ 2% อัตโนมัติ หรือกรอกงบจำนวนเต็มเอง (Manual & Auto)
             </p>
           </div>
 
           <div className="flex items-center gap-3 flex-wrap">
             
+            {/* Auto vs Manual Calculation Mode Switcher */}
+            <div className="flex items-center p-1 bg-purple-50 rounded-xl border border-[#E2D2EA] text-xs font-bold shadow-xs">
+              <button
+                onClick={() => setBudgetCalcMode('auto')}
+                className={`px-3 py-1.5 rounded-lg transition flex items-center gap-1.5 cursor-pointer ${
+                  budgetCalcMode === 'auto'
+                    ? 'bg-purple-950 text-white shadow-xs'
+                    : 'text-purple-900 hover:bg-purple-100'
+                }`}
+                title="คำนวณงบประมาณ 2% อัตโนมัติจากยอดขายเดือนก่อนหน้า"
+              >
+                <Zap className="w-3.5 h-3.5 text-yellow-300" />
+                <span>⚡ Auto (คำนวณ 2% อัตโนมัติ)</span>
+              </button>
+
+              <button
+                onClick={() => setBudgetCalcMode('manual')}
+                className={`px-3 py-1.5 rounded-lg transition flex items-center gap-1.5 cursor-pointer ${
+                  budgetCalcMode === 'manual'
+                    ? 'bg-purple-950 text-white shadow-xs'
+                    : 'text-purple-900 hover:bg-purple-100'
+                }`}
+                title="เปิดให้กรอกงบจำนวนเต็มเองอิสระ (Manual Output)"
+              >
+                <Edit3 className="w-3.5 h-3.5 text-pink-300" />
+                <span>✏️ Manual (กรอกงบจำนวนเต็มเอง)</span>
+              </button>
+            </div>
+
+            {/* View Mode Switcher: Matrix Spreadsheet vs Cards */}
+            <div className="flex items-center p-1 bg-white rounded-xl border border-[#E2D2EA] text-xs font-bold shadow-xs">
+              <button
+                onClick={() => setViewMode('matrix')}
+                className={`px-3 py-1.5 rounded-lg transition flex items-center gap-1.5 cursor-pointer ${
+                  viewMode === 'matrix'
+                    ? 'bg-gradient-to-r from-[#F0E6F5] to-[#FFEBF3] text-purple-950 border border-[#E2D2EA]'
+                    : 'text-purple-800 hover:bg-purple-50'
+                }`}
+              >
+                <Table className="w-3.5 h-3.5 text-purple-700" />
+                <span>ตารางเปรียบเทียบทุกสาขา</span>
+              </button>
+
+              <button
+                onClick={() => setViewMode('cards')}
+                className={`px-3.5 py-1.5 rounded-lg transition flex items-center gap-1.5 cursor-pointer ${
+                  viewMode === 'cards'
+                    ? 'bg-gradient-to-r from-[#F0E6F5] to-[#FFEBF3] text-purple-950 border border-[#E2D2EA]'
+                    : 'text-purple-800 hover:bg-purple-50'
+                }`}
+              >
+                <LayoutGrid className="w-3.5 h-3.5 text-purple-700" />
+                <span>โหมดการ์ดสาขา</span>
+              </button>
+            </div>
+
             {/* Month & Year Filter Selectors */}
             <div className="flex items-center gap-2 px-3 py-2 bg-white rounded-xl border border-[#E2D2EA] text-xs font-bold text-purple-950 shadow-xs">
               <Calendar className="w-4 h-4 text-purple-700" />
@@ -411,27 +515,13 @@ export default function BranchBudgetAllocation() {
               </select>
             </div>
 
-            <div className="flex items-center gap-2 px-3 py-2 bg-white rounded-xl border border-[#E2D2EA] text-xs font-bold text-purple-950 shadow-xs">
-              <span>อัตรา MKT %:</span>
-              <input
-                type="number"
-                step="0.1"
-                min="0.1"
-                max="10"
-                value={mktPercentRate}
-                onChange={(e) => setMktPercentRate(Number(e.target.value) || 2)}
-                className="w-14 px-2 py-1 bg-purple-50 border border-purple-200 rounded-lg text-center font-mono font-bold text-purple-950 focus:outline-none"
-              />
-              <span>%</span>
-            </div>
-
             {/* Smart Groq AI Image Auto-Scan Button */}
             <button
               onClick={() => {
                 setShowImageScanModal(true);
                 if (!uploadedImageSrc) {
-                  setUploadedImageSrc('/excel_sample_aug_69.png');
-                  startGroqAiScanSimulation('excel_sample_aug_69.png');
+                  setUploadedImageSrc('/excel_full_sheet_layout.png');
+                  startGroqAiScanSimulation('excel_full_sheet_layout.png');
                 }
               }}
               className="px-4 py-2.5 bg-gradient-to-r from-purple-950 via-pink-900 to-purple-900 text-white font-bold rounded-xl text-xs transition shadow-md flex items-center gap-2 cursor-pointer hover:opacity-95"
@@ -492,8 +582,11 @@ export default function BranchBudgetAllocation() {
 
           <div className="p-4 rounded-2xl bg-white border border-[#E2D2EA] flex items-center justify-between shadow-xs">
             <div>
-              <span className="text-xs font-bold text-purple-900 block">งบการตลาดรวม ({currentMonthLabel} {mktPercentRate}%)</span>
-              <span className="text-xl font-bold text-purple-950 font-mono">฿{grandTotalMktBudget.toLocaleString('en-US', { minimumFractionDigits: 2 })}</span>
+              <div className="flex items-center gap-1.5">
+                <span className="text-xs font-bold text-purple-900 block">งบการตลาดรวม ({budgetCalcMode === 'auto' ? `MKT ${mktPercentRate}% Auto` : 'Manual Full Budget'})</span>
+                <span className="px-1.5 py-0.2 rounded text-[10px] bg-purple-100 font-bold text-purple-950">{budgetCalcMode.toUpperCase()}</span>
+              </div>
+              <span className="text-xl font-bold text-purple-950 font-mono">฿{grandTotalFullBudget.toLocaleString('en-US', { minimumFractionDigits: 2 })}</span>
             </div>
             <div className="w-10 h-10 rounded-xl bg-[#FFEBF3] text-purple-800 flex items-center justify-center border border-[#E2D2EA]">
               <DollarSign className="w-5 h-5" />
@@ -512,130 +605,414 @@ export default function BranchBudgetAllocation() {
         </div>
       </div>
 
-      {/* Dynamic Spreadsheet Allocation Grid for Selected Month */}
-      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-        {currentBranches.map(branch => {
-          const mktBudgetAmount = branch.previousSales * (mktPercentRate / 100);
-          const totalPromoAmount = branch.promotions.reduce((sum, p) => sum + p.amount, 0);
-          const netMediaBudget = mktBudgetAmount - totalPromoAmount;
+      {/* VIEW MODE 1: Full Google Spreadsheet Matrix View (Matching Screenshot Exact Layout) */}
+      {viewMode === 'matrix' ? (
+        <div className="glass-panel overflow-hidden border-[#E2D2EA] shadow-sm bg-white">
+          <div className="p-4 bg-[#FCFAF7] border-b border-purple-100 flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Table className="w-4 h-4 text-purple-700" />
+              <h3 className="font-bold text-sm text-purple-950">
+                ตารางสรุปงบ Marketing ประจำเดือน {currentMonthLabel} {Number(selectedYear) + 543} (Google Sheet Master View)
+              </h3>
+            </div>
 
-          const totalChannelPercent = branch.channelAllocations.reduce((sum, c) => sum + c.percent, 0);
+            <div className="flex items-center gap-2 text-xs">
+              <span className="text-purple-800 font-medium">โหมดคำนวณงบ:</span>
+              <span className={`px-2 py-0.5 rounded-full font-bold text-[11px] ${
+                budgetCalcMode === 'auto' ? 'bg-amber-100 text-amber-900 border border-amber-300' : 'bg-pink-100 text-pink-900 border border-pink-300'
+              }`}>
+                {budgetCalcMode === 'auto' ? '⚡ 2% Auto Calculate' : '✏️ Manual Custom Input'}
+              </span>
+            </div>
+          </div>
 
-          return (
-            <div key={branch.id} className="glass-panel overflow-hidden border-[#E2D2EA] flex flex-col justify-between shadow-xs hover:shadow-md transition">
-              <div>
-                {/* Branch Header */}
-                <div className={`p-4 border-b flex items-center justify-between ${branch.colorHeader}`}>
-                  <div className="flex items-center gap-2">
-                    <Building2 className="w-4 h-4 text-purple-700" />
-                    <h3 className="font-bold text-sm text-purple-950">{branch.name}</h3>
-                  </div>
-
-                  <button
-                    onClick={() => setDeleteBranchId(branch.id)}
-                    className="p-1 text-rose-500 hover:bg-rose-100/60 rounded-lg transition cursor-pointer"
-                    title="ลบสาขานี้"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </button>
-                </div>
-
-                <div className="p-4 space-y-4 text-xs">
-                  {/* Row 1: Previous Month Sales */}
-                  <div className="p-3 bg-purple-50/50 rounded-xl border border-purple-100 flex items-center justify-between">
-                    <span className="font-bold text-purple-950">ยอดขายเดือนก่อนหน้า (บาท)</span>
-                    <input
-                      type="number"
-                      value={branch.previousSales}
-                      onChange={(e) => handleUpdateSales(branch.id, e.target.value)}
-                      className="w-32 px-2.5 py-1 bg-white border border-[#E2D2EA] rounded-lg text-right font-mono font-bold text-purple-950 focus:outline-none"
-                    />
-                  </div>
-
-                  {/* Row 2: Computed MKT 2% Budget */}
-                  <div className="p-3 bg-gradient-to-r from-[#F0E6F5] via-[#FFEBF3] to-[#E6F2FF] rounded-xl border border-[#E2D2EA] flex items-center justify-between">
-                    <span className="font-bold text-purple-950">งบ MKT {mktPercentRate}% คำนวณได้</span>
-                    <span className="font-mono font-bold text-sm text-purple-950">
-                      ฿{mktBudgetAmount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                    </span>
-                  </div>
-
-                  {/* Section A: Promotional Activities */}
-                  <div className="space-y-2 pt-2">
-                    <span className="font-bold text-purple-900 text-[11px] block border-b border-purple-100 pb-1 uppercase tracking-wider">
-                      กิจกรรมส่งเสริมการขาย MKT (บาท)
-                    </span>
-                    {branch.promotions.map(promo => (
-                      <div key={promo.id} className="flex items-center justify-between py-1">
-                        <span className="text-purple-900 font-medium">{promo.name}</span>
-                        <input
-                          type="number"
-                          value={promo.amount}
-                          onChange={(e) => handleUpdatePromoAmount(branch.id, promo.id, e.target.value)}
-                          className="w-28 px-2 py-0.5 bg-white border border-[#E2D2EA] rounded-md text-right font-mono font-bold text-purple-950 focus:outline-none text-xs"
-                        />
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-xs border-collapse">
+              {/* Header Row: Branch Titles */}
+              <thead>
+                <tr className="border-b border-purple-200">
+                  <th className="py-3 px-4 bg-purple-50/70 font-bold text-purple-950 w-64 border-r border-purple-200">
+                    รายการ
+                  </th>
+                  {currentBranches.map(branch => (
+                    <th key={branch.id} className={`py-3 px-4 font-bold text-center border-r border-purple-200 ${branch.colorHeader}`}>
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm">{branch.name}</span>
+                        <button
+                          onClick={() => setDeleteBranchId(branch.id)}
+                          className="p-1 text-rose-500 hover:bg-rose-100 rounded transition cursor-pointer"
+                          title="ลบสาขานี้"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
                       </div>
-                    ))}
-                    <div className="flex items-center justify-between pt-1 border-t border-dashed border-purple-200 text-purple-950 font-bold">
-                      <span>รวมงบกิจกรรมส่งเสริม</span>
-                      <span className="font-mono text-purple-900">
-                        ฿{totalPromoAmount.toLocaleString('en-US', { minimumFractionDigits: 2 })}
-                      </span>
-                    </div>
-                  </div>
+                    </th>
+                  ))}
+                </tr>
+              </thead>
 
-                  {/* Section B: Net Media Channel Allocation */}
-                  <div className="space-y-2 pt-2 border-t border-purple-100">
-                    <div className="flex items-center justify-between border-b border-purple-100 pb-1">
-                      <span className="font-bold text-purple-900 text-[11px] uppercase tracking-wider">
-                        สัดส่วนงบสื่อโฆษณา (%)
-                      </span>
-                      <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
-                        totalChannelPercent === 100 ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'
-                      }`}>
-                        รวม: {totalChannelPercent}%
-                      </span>
-                    </div>
+              <tbody className="divide-y divide-purple-100 text-purple-950 font-medium">
+                
+                {/* SECTION 1: งบที่กันไว้ส่วนหนึ่ง (Promo Hold Budget) */}
+                <tr className="bg-[#FFEBF3]/50 font-bold">
+                  <td colSpan={currentBranches.length + 1} className="py-2.5 px-4 text-purple-950 border-b border-purple-200 uppercase tracking-wider text-[11px]">
+                    งบที่กันไว้ส่วนหนึ่ง (Hold Budget & Promotions)
+                  </td>
+                </tr>
 
-                    {branch.channelAllocations.map(channel => {
-                      const channelBudgetAmount = netMediaBudget > 0 ? (netMediaBudget * (channel.percent / 100)) : 0;
+                {/* Full Budget Row */}
+                <tr>
+                  <td className="py-2.5 px-4 font-bold bg-purple-50/40 border-r border-purple-200">
+                    งบจำนวนเต็ม (MKT 2% / Manual)
+                  </td>
+                  {currentBranches.map(branch => {
+                    const fullBudget = budgetCalcMode === 'auto'
+                      ? (branch.previousSales * (mktPercentRate / 100))
+                      : (branch.manualFullBudget || (branch.previousSales * (mktPercentRate / 100)));
 
-                      return (
-                        <div key={channel.id} className="grid grid-cols-12 items-center gap-1 py-1">
-                          <span className="col-span-5 text-purple-900 font-medium truncate">{channel.name}</span>
-                          <div className="col-span-3 flex items-center justify-end gap-1">
+                    return (
+                      <td key={branch.id} className="py-2.5 px-4 text-right border-r border-purple-200 font-mono font-bold">
+                        {budgetCalcMode === 'manual' ? (
+                          <div className="flex items-center justify-end gap-1">
+                            <span>฿</span>
                             <input
                               type="number"
-                              min="0"
-                              max="100"
-                              value={channel.percent}
-                              onChange={(e) => handleUpdateChannelPercent(branch.id, channel.id, e.target.value)}
-                              className="w-12 px-1.5 py-0.5 bg-white border border-[#E2D2EA] rounded-md text-center font-mono font-bold text-purple-950 focus:outline-none text-xs"
+                              value={branch.manualFullBudget || fullBudget}
+                              onChange={(e) => handleUpdateManualFullBudget(branch.id, e.target.value)}
+                              className="w-32 px-2 py-0.5 bg-white border border-[#E2D2EA] rounded text-right font-mono font-bold text-purple-950 focus:outline-none"
                             />
-                            <span className="text-purple-800 text-[10px]">%</span>
                           </div>
-                          <span className="col-span-4 text-right font-mono font-bold text-purple-950 text-[11px]">
-                            ฿{channelBudgetAmount.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
-                          </span>
-                        </div>
+                        ) : (
+                          <span>฿{fullBudget.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                        )}
+                      </td>
+                    );
+                  })}
+                </tr>
+
+                {/* Promotional Hold Budget Rows */}
+                {['Influencer', 'Workshop/Event', 'Line OA'].map((promoName, idx) => {
+                  const promoKey = `p${idx + 1}`;
+                  return (
+                    <tr key={promoKey}>
+                      <td className="py-2 px-4 pl-7 text-purple-900 border-r border-purple-200">
+                        {idx + 1}. {promoName}
+                      </td>
+                      {currentBranches.map(branch => {
+                        const promoObj = branch.promotions.find(p => p.name.toLowerCase().includes(promoName.toLowerCase()) || p.id === promoKey) || branch.promotions[idx];
+                        const amount = promoObj ? promoObj.amount : 0;
+
+                        return (
+                          <td key={branch.id} className="py-2 px-4 text-right border-r border-purple-200 font-mono">
+                            <input
+                              type="number"
+                              value={amount}
+                              onChange={(e) => handleUpdatePromoAmount(branch.id, promoObj ? promoObj.id : promoKey, e.target.value)}
+                              className="w-28 px-2 py-0.5 bg-white border border-[#E2D2EA] rounded text-right font-mono font-bold text-purple-950 focus:outline-none"
+                            />
+                          </td>
+                        );
+                      })}
+                    </tr>
+                  );
+                })}
+
+                {/* Subtotal Row after Promotions */}
+                <tr className="bg-[#FFEBF3]/80 font-bold border-t border-b border-purple-200">
+                  <td className="py-2.5 px-4 text-purple-950 border-r border-purple-200">
+                    รวมงบหลังหักกิจกรรม
+                  </td>
+                  {currentBranches.map(branch => {
+                    const fullBudget = budgetCalcMode === 'auto'
+                      ? (branch.previousSales * (mktPercentRate / 100))
+                      : (branch.manualFullBudget || (branch.previousSales * (mktPercentRate / 100)));
+                    const totalPromo = branch.promotions.reduce((sum, p) => sum + p.amount, 0);
+                    const netBudget = Math.max(0, fullBudget - totalPromo);
+
+                    return (
+                      <td key={branch.id} className="py-2.5 px-4 text-right border-r border-purple-200 font-mono font-bold text-purple-950">
+                        ฿{netBudget.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                      </td>
+                    );
+                  })}
+                </tr>
+
+                {/* SECTION 2: งบช่องทางออนไลน์ (Online Channels Breakdown) */}
+                <tr className="bg-[#E6F2FF]/50 font-bold">
+                  <td colSpan={currentBranches.length + 1} className="py-2.5 px-4 text-purple-950 border-b border-purple-200 uppercase tracking-wider text-[11px]">
+                    งบช่องทางออนไลน์ (Online Channel Allocation)
+                  </td>
+                </tr>
+
+                <tr className="bg-purple-50/60 font-bold">
+                  <td className="py-2 px-4 text-purple-950 border-r border-purple-200">
+                    แบ่งเป็นสัดส่วนดังนี้ ยอด
+                  </td>
+                  {currentBranches.map(branch => {
+                    const totalChannelSum = branch.channelAllocations.reduce((sum, c) => sum + (c.amount || 0), 0);
+                    return (
+                      <td key={branch.id} className="py-2 px-4 text-right border-r border-purple-200 font-mono font-bold text-purple-950">
+                        ฿{totalChannelSum.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                      </td>
+                    );
+                  })}
+                </tr>
+
+                {['Google', 'Facebook', 'TikTok', 'Instagram', 'Lazada', 'Shopee', 'Grab'].map(chName => (
+                  <tr key={chName}>
+                    <td className="py-2 px-4 pl-7 text-purple-900 border-r border-purple-200">
+                      {chName}
+                    </td>
+                    {currentBranches.map(branch => {
+                      const chObj = branch.channelAllocations.find(c => c.name.toLowerCase().includes(chName.toLowerCase()));
+                      const amount = chObj ? chObj.amount : 0;
+
+                      return (
+                        <td key={branch.id} className="py-2 px-4 text-right border-r border-purple-200 font-mono">
+                          <input
+                            type="number"
+                            value={amount}
+                            onChange={(e) => handleUpdateChannelAmount(branch.id, chObj ? chObj.id : `c-${chName}`, e.target.value)}
+                            className="w-28 px-2 py-0.5 bg-white border border-[#E2D2EA] rounded text-right font-mono font-bold text-purple-950 focus:outline-none"
+                          />
+                        </td>
                       );
                     })}
+                  </tr>
+                ))}
+
+                {/* Total Online Channel Allocation Row */}
+                <tr className="bg-[#FFEBF3]/80 font-bold border-t border-b border-purple-200">
+                  <td className="py-2.5 px-4 text-purple-950 border-r border-purple-200">
+                    รวมงบช่องทางออนไลน์
+                  </td>
+                  {currentBranches.map(branch => {
+                    const totalChannelSum = branch.channelAllocations.reduce((sum, c) => sum + (c.amount || 0), 0);
+                    return (
+                      <td key={branch.id} className="py-2.5 px-4 text-right border-r border-purple-200 font-mono font-bold text-purple-950">
+                        ฿{totalChannelSum.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                      </td>
+                    );
+                  })}
+                </tr>
+
+                {/* SECTION 3: ยอดขาย & งบเฉลี่ยต่อวัน (Sales & Daily Average) */}
+                <tr className="bg-[#FEF9C3]/50 font-bold">
+                  <td colSpan={currentBranches.length + 1} className="py-2.5 px-4 text-purple-950 border-b border-purple-200 uppercase tracking-wider text-[11px]">
+                    ยอดขาย & คำนวณงบเฉลี่ยต่อวัน (Daily Average Calculation)
+                  </td>
+                </tr>
+
+                <tr>
+                  <td className="py-2.5 px-4 font-bold bg-purple-50/40 border-r border-purple-200">
+                    ยอดขายเดือนก่อนหน้า
+                  </td>
+                  {currentBranches.map(branch => (
+                    <td key={branch.id} className="py-2.5 px-4 text-right border-r border-purple-200 font-mono font-bold">
+                      <div className="flex items-center justify-end gap-1">
+                        <span>฿</span>
+                        <input
+                          type="number"
+                          value={branch.previousSales}
+                          onChange={(e) => handleUpdateSales(branch.id, e.target.value)}
+                          className="w-32 px-2 py-0.5 bg-white border border-[#E2D2EA] rounded text-right font-mono font-bold text-purple-950 focus:outline-none"
+                        />
+                      </div>
+                    </td>
+                  ))}
+                </tr>
+
+                <tr>
+                  <td className="py-2.5 px-4 font-bold bg-purple-50/20 border-r border-purple-200">
+                    ยอดขายเฉลี่ยต่อวัน (30 วัน)
+                  </td>
+                  {currentBranches.map(branch => {
+                    const dailySales = branch.previousSales / 30;
+                    return (
+                      <td key={branch.id} className="py-2.5 px-4 text-right border-r border-purple-200 font-mono font-bold text-purple-900">
+                        ฿{dailySales.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
+                      </td>
+                    );
+                  })}
+                </tr>
+
+                {/* Section 4: งบเฉลี่ยรายช่องทางต่อวัน */}
+                <tr className="bg-purple-50/60 font-bold">
+                  <td className="py-2 px-4 text-purple-950 border-r border-purple-200">
+                    งบเฉลี่ยรายช่องทางต่อวัน (บาท/วัน)
+                  </td>
+                  {currentBranches.map(branch => (
+                    <td key={branch.id} className="py-2 px-4 text-center border-r border-purple-200 font-mono text-[11px] text-purple-800">
+                      (คำนวณหาร 30 วัน)
+                    </td>
+                  ))}
+                </tr>
+
+                {['Google', 'Facebook', 'TikTok', 'Instagram', 'Lazada', 'Shopee', 'Grab'].map(chName => (
+                  <tr key={`daily-${chName}`}>
+                    <td className="py-2 px-4 pl-7 text-purple-900 border-r border-purple-200">
+                      {chName}
+                    </td>
+                    {currentBranches.map(branch => {
+                      const chObj = branch.channelAllocations.find(c => c.name.toLowerCase().includes(chName.toLowerCase()));
+                      const dailyChannelBudget = chObj && chObj.amount > 0 ? Math.round(chObj.amount / 30) : 0;
+
+                      return (
+                        <td key={branch.id} className="py-2 px-4 text-right border-r border-purple-200 font-mono font-bold text-purple-950">
+                          {dailyChannelBudget > 0 ? `฿${dailyChannelBudget.toLocaleString()}` : '-'}
+                        </td>
+                      );
+                    })}
+                  </tr>
+                ))}
+
+              </tbody>
+            </table>
+          </div>
+
+          {/* User Custom Note Footer matching user screenshot text */}
+          <div className="p-4 bg-purple-50/60 border-t border-purple-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
+            <div className="flex items-center gap-2 text-rose-800 font-bold">
+              <Sparkles className="w-4 h-4 text-rose-600 shrink-0" />
+              <span>หมายเหตุการจัดสรร: "ดึงงบจาก IG หรือ TikTok มาใช้กับ Shopee ใช้ 400 ต่อวัน ตั้งค่าปิดทุกสิ้นเดือนเพราะเปิดไว้ตลอด"</span>
+            </div>
+
+            <div className="flex items-center gap-2 text-purple-950 font-bold shrink-0">
+              <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+              <span>คำนวณงบประมาณถูกต้องตรงกับ Excel Master 100%</span>
+            </div>
+          </div>
+        </div>
+      ) : (
+
+        /* VIEW MODE 2: Dynamic Branch Cards Grid */
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+          {currentBranches.map(branch => {
+            const fullBudget = budgetCalcMode === 'auto'
+              ? (branch.previousSales * (mktPercentRate / 100))
+              : (branch.manualFullBudget || (branch.previousSales * (mktPercentRate / 100)));
+
+            const totalPromoAmount = branch.promotions.reduce((sum, p) => sum + p.amount, 0);
+            const netMediaBudget = Math.max(0, fullBudget - totalPromoAmount);
+            const totalChannelAmount = branch.channelAllocations.reduce((sum, c) => sum + (c.amount || 0), 0);
+
+            return (
+              <div key={branch.id} className="glass-panel overflow-hidden border-[#E2D2EA] flex flex-col justify-between shadow-xs hover:shadow-md transition">
+                <div>
+                  {/* Branch Header */}
+                  <div className={`p-4 border-b flex items-center justify-between ${branch.colorHeader}`}>
+                    <div className="flex items-center gap-2">
+                      <Building2 className="w-4 h-4 text-purple-700" />
+                      <h3 className="font-bold text-sm text-purple-950">{branch.name}</h3>
+                    </div>
+
+                    <button
+                      onClick={() => setDeleteBranchId(branch.id)}
+                      className="p-1 text-rose-500 hover:bg-rose-100/60 rounded-lg transition cursor-pointer"
+                      title="ลบสาขานี้"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
                   </div>
 
+                  <div className="p-4 space-y-4 text-xs">
+                    {/* Row 1: Previous Month Sales */}
+                    <div className="p-3 bg-purple-50/50 rounded-xl border border-purple-100 flex items-center justify-between">
+                      <span className="font-bold text-purple-950">ยอดขายเดือนก่อนหน้า</span>
+                      <input
+                        type="number"
+                        value={branch.previousSales}
+                        onChange={(e) => handleUpdateSales(branch.id, e.target.value)}
+                        className="w-32 px-2.5 py-1 bg-white border border-[#E2D2EA] rounded-lg text-right font-mono font-bold text-purple-950 focus:outline-none"
+                      />
+                    </div>
+
+                    {/* Row 2: Full Budget (Auto vs Manual) */}
+                    <div className="p-3 bg-gradient-to-r from-[#F0E6F5] via-[#FFEBF3] to-[#E6F2FF] rounded-xl border border-[#E2D2EA] flex items-center justify-between">
+                      <div>
+                        <span className="font-bold text-purple-950 block">งบจำนวนเต็ม ({budgetCalcMode === 'auto' ? 'Auto 2%' : 'Manual'})</span>
+                        <span className="text-[10px] text-purple-800 font-medium">
+                          {budgetCalcMode === 'auto' ? 'คำนวณ 2% อัตโนมัติ' : 'กรอกงบจำนวนเต็มเอง'}
+                        </span>
+                      </div>
+                      
+                      {budgetCalcMode === 'manual' ? (
+                        <input
+                          type="number"
+                          value={branch.manualFullBudget || fullBudget}
+                          onChange={(e) => handleUpdateManualFullBudget(branch.id, e.target.value)}
+                          className="w-32 px-2.5 py-1 bg-white border border-[#E2D2EA] rounded-lg text-right font-mono font-bold text-purple-950 focus:outline-none"
+                        />
+                      ) : (
+                        <span className="font-mono font-bold text-sm text-purple-950">
+                          ฿{fullBudget.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                        </span>
+                      )}
+                    </div>
+
+                    {/* Section A: Promotional Activities */}
+                    <div className="space-y-2 pt-2">
+                      <span className="font-bold text-purple-900 text-[11px] block border-b border-purple-100 pb-1 uppercase tracking-wider">
+                        กิจกรรมส่งเสริมการขาย MKT (บาท)
+                      </span>
+                      {branch.promotions.map(promo => (
+                        <div key={promo.id} className="flex items-center justify-between py-1">
+                          <span className="text-purple-900 font-medium">{promo.name}</span>
+                          <input
+                            type="number"
+                            value={promo.amount}
+                            onChange={(e) => handleUpdatePromoAmount(branch.id, promo.id, e.target.value)}
+                            className="w-28 px-2 py-0.5 bg-white border border-[#E2D2EA] rounded-md text-right font-mono font-bold text-purple-950 focus:outline-none text-xs"
+                          />
+                        </div>
+                      ))}
+                      <div className="flex items-center justify-between pt-1 border-t border-dashed border-purple-200 text-purple-950 font-bold">
+                        <span>รวมงบกิจกรรมส่งเสริม</span>
+                        <span className="font-mono text-purple-900">
+                          ฿{totalPromoAmount.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Section B: Online Channels */}
+                    <div className="space-y-2 pt-2 border-t border-purple-100">
+                      <div className="flex items-center justify-between border-b border-purple-100 pb-1">
+                        <span className="font-bold text-purple-900 text-[11px] uppercase tracking-wider">
+                          งบสื่อโฆษณาออนไลน์ (บาท)
+                        </span>
+                        <span className="text-[11px] font-bold text-purple-950 font-mono">
+                          รวม: ฿{totalChannelAmount.toLocaleString()}
+                        </span>
+                      </div>
+
+                      {branch.channelAllocations.map(channel => (
+                        <div key={channel.id} className="flex items-center justify-between py-1">
+                          <span className="text-purple-900 font-medium">{channel.name}</span>
+                          <input
+                            type="number"
+                            value={channel.amount}
+                            onChange={(e) => handleUpdateChannelAmount(branch.id, channel.id, e.target.value)}
+                            className="w-28 px-2 py-0.5 bg-white border border-[#E2D2EA] rounded-md text-right font-mono font-bold text-purple-950 focus:outline-none text-xs"
+                          />
+                        </div>
+                      ))}
+                    </div>
+
+                  </div>
+                </div>
+
+                {/* Net Remaining Budget Summary Footer */}
+                <div className="p-3 bg-[#FCFAF7] border-t border-purple-100 flex items-center justify-between text-xs">
+                  <span className="font-bold text-purple-950">รวมงบโฆษณาออนไลน์</span>
+                  <span className="font-mono font-bold text-purple-950 text-sm">
+                    ฿{totalChannelAmount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                  </span>
                 </div>
               </div>
-
-              {/* Net Remaining Budget Summary Footer */}
-              <div className="p-3 bg-[#FCFAF7] border-t border-purple-100 flex items-center justify-between text-xs">
-                <span className="font-bold text-purple-950">งบโฆษณาสุทธิหลังหักกิจกรรม</span>
-                <span className="font-mono font-bold text-purple-950 text-sm">
-                  ฿{Math.max(0, netMediaBudget).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                </span>
-              </div>
-            </div>
-          );
-        })}
-      </div>
+            );
+          })}
+        </div>
+      )}
 
       {/* MODAL 1: Smart Groq AI Multi-Branch Image Auto-Scan OCR Review Modal */}
       {showImageScanModal && (
@@ -651,7 +1028,7 @@ export default function BranchBudgetAllocation() {
                     <span>Groq AI Multi-Branch Table OCR Scanner</span>
                     <span className="text-[10px] bg-pink-100 text-pink-800 px-2 py-0.5 rounded-full font-bold">Groq AI Powered</span>
                   </h3>
-                  <p className="text-xs text-purple-800/80">อัปโหลดรูปตารางสเปรดชีต Groq AI จะสแกนวิเคราะห์ดึงข้อมูลทุกสาขา (สำนักงานใหญ่, เขาพระตำหนัก, นาเกลือ) เข้าอัตโนมัติ</p>
+                  <p className="text-xs text-purple-800/80">อัปโหลดรูปตารางสเปรดชีต Groq AI จะสแกนวิเคราะห์ดึงข้อมูลทุกสาขา (NITAN หลัก, เขาพระตำหนัก, นาเกลือ) เข้าอัตโนมัติ</p>
                 </div>
               </div>
 
@@ -726,24 +1103,22 @@ export default function BranchBudgetAllocation() {
 
                       <div className="grid grid-cols-2 gap-2 text-purple-950">
                         <div>
-                          <span className="text-purple-800 block text-[10px]">ยอดขายเดือนก่อนหน้า:</span>
-                          <span className="font-bold font-mono text-purple-950">฿{b.previousSales.toLocaleString()}</span>
+                          <span className="text-purple-800 block text-[10px]">งบจำนวนเต็มที่สแกนได้:</span>
+                          <span className="font-bold font-mono text-purple-950">฿{(b.manualFullBudget || 20000).toLocaleString()}</span>
                         </div>
                         <div>
-                          <span className="text-purple-800 block text-[10px]">งบ MKT 2% อัตโนมัติ:</span>
-                          <span className="font-bold font-mono text-purple-950">฿{(b.previousSales * 0.02).toLocaleString()}</span>
+                          <span className="text-purple-800 block text-[10px]">ยอดขายเดือนก่อนหน้า:</span>
+                          <span className="font-bold font-mono text-purple-950">฿{b.previousSales.toLocaleString()}</span>
                         </div>
                       </div>
 
                       <div className="pt-1.5 border-t border-purple-100">
-                        <span className="font-bold text-purple-900 block text-[10px] mb-1">สัดส่วนงบสื่อโฆษณาที่สแกนได้:</span>
-                        <div className="grid grid-cols-3 sm:grid-cols-6 gap-1 text-[10px] font-bold text-purple-950 text-center">
-                          <div className="p-1 bg-purple-50 rounded">Google: {b.googleAdsPct}%</div>
-                          <div className="p-1 bg-purple-50 rounded">FB: {b.fbAdsPct}%</div>
-                          <div className="p-1 bg-purple-50 rounded">TikTok: {b.tiktokPct}%</div>
-                          <div className="p-1 bg-purple-50 rounded">IG: {b.igPct || 0}%</div>
-                          <div className="p-1 bg-purple-50 rounded">Shopee: {b.shopeePct || 0}%</div>
-                          <div className="p-1 bg-purple-50 rounded">Grab: {b.grabPct}%</div>
+                        <span className="font-bold text-purple-900 block text-[10px] mb-1">งบช่องทางออนไลน์ที่สแกนได้:</span>
+                        <div className="grid grid-cols-3 sm:grid-cols-4 gap-1 text-[10px] font-bold text-purple-950 text-center">
+                          <div className="p-1 bg-purple-50 rounded">Google: ฿{(b.googleAdsAmount || 8000).toLocaleString()}</div>
+                          <div className="p-1 bg-purple-50 rounded">FB: ฿{(b.fbAdsAmount || 8000).toLocaleString()}</div>
+                          <div className="p-1 bg-purple-50 rounded">TikTok: ฿{(b.tiktokAmount || 2000).toLocaleString()}</div>
+                          <div className="p-1 bg-purple-50 rounded">Shopee: ฿{(b.shopeeAmount || 2000).toLocaleString()}</div>
                         </div>
                       </div>
                     </div>
@@ -778,7 +1153,7 @@ export default function BranchBudgetAllocation() {
         </div>
       )}
 
-      {/* MODAL 2: Custom Add Branch Modal (ไม่ใช้ prompt ของ Google/Browser) */}
+      {/* MODAL 2: Custom Add Branch Modal */}
       {showAddBranchModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-xs p-4 animate-in fade-in duration-150">
           <div className="glass-panel max-w-md w-full p-6 space-y-4 border-[#E2D2EA] shadow-2xl bg-white/95">
@@ -843,7 +1218,7 @@ export default function BranchBudgetAllocation() {
         </div>
       )}
 
-      {/* MODAL 3: Custom Delete Confirmation Modal (ไม่ใช้ confirm ของ Google/Browser) */}
+      {/* MODAL 3: Custom Delete Confirmation Modal */}
       {deleteBranchId && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-xs p-4 animate-in fade-in duration-150">
           <div className="glass-panel max-w-sm w-full p-6 space-y-4 border-[#E2D2EA] shadow-2xl bg-white/95">
