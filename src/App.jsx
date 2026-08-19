@@ -86,7 +86,7 @@ export default function App() {
         caption: item.caption || '',
         visual_concept: item.visual_concept || '',
         platform: item.platforms || (item.platform ? item.platform.split(/[\s,]+/) : ['facebook']),
-        group: item.content_group || item.group_name || 'Brand Vibe (Atmosphere)',
+        group: item.group_name || 'Brand Vibe (Atmosphere)',
         subCategory: item.sub_category || '',
         status: item.status || 'draft',
         publish_date: item.publish_date ? item.publish_date.split('T')[0] : '2026-08-20',

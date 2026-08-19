@@ -132,12 +132,14 @@ CREATE TABLE IF NOT EXISTS content_items (
     creator_id UUID REFERENCES users(id) ON DELETE SET NULL,
     title VARCHAR(255) NOT NULL,
     caption TEXT,
-    platform content_platform NOT NULL,
+    visual_concept TEXT,
+    platforms TEXT[] DEFAULT '{facebook}',
     status content_status DEFAULT 'draft',
     publish_date TIMESTAMP WITH TIME ZONE NOT NULL,
     media_url VARCHAR(512),
     reference_url VARCHAR(512),
-    content_group VARCHAR(100),
+    group_name VARCHAR(100),
+    sub_category VARCHAR(100),
     
     -- Engagement Performance
     performance JSONB DEFAULT '{"views": 0, "likes": 0, "comments": 0, "shares": 0, "ctr": 0.0}',
@@ -327,10 +329,7 @@ CREATE TABLE IF NOT EXISTS custom_platforms (
 
 -- MIGRATIONS FOR CONTENT ITEMS (Visual Concept, Multi-Platforms, Group Name & Sub Category)
 ALTER TABLE content_items ADD COLUMN IF NOT EXISTS visual_concept TEXT;
-ALTER TABLE content_items ADD COLUMN IF NOT EXISTS platforms TEXT[];
-ALTER TABLE content_items ADD COLUMN IF NOT EXISTS group_name TEXT;
-ALTER TABLE content_items ADD COLUMN IF NOT EXISTS sub_category TEXT;
-ALTER TABLE content_items ALTER COLUMN platform TYPE TEXT USING platform::text;
+
 
 ALTER TABLE custom_platforms DISABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "Allow public all access on custom_platforms" ON custom_platforms;

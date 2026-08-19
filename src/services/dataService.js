@@ -96,13 +96,11 @@ export async function upsertContentItemToSupabase(contentItem) {
       title: contentItem.title || '[Untitled Content]',
       caption: contentItem.caption || '',
       visual_concept: contentItem.visual_concept || '',
-      platform: plats.join(','),
       platforms: plats,
       status: ['draft', 'scheduled', 'published'].includes(contentItem.status) ? contentItem.status : 'draft',
       publish_date: cleanPublishDate,
       media_url: contentItem.media_url || '',
       reference_url: contentItem.reference_url || '',
-      content_group: contentItem.group || '',
       group_name: contentItem.group || '',
       sub_category: contentItem.subCategory || ''
     };

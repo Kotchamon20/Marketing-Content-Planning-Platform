@@ -7,14 +7,14 @@
 -- 1. เพิ่ม column ที่จำเป็นสำหรับ content_items
 ALTER TABLE content_items ADD COLUMN IF NOT EXISTS visual_concept    TEXT;
 ALTER TABLE content_items ADD COLUMN IF NOT EXISTS reference_url     VARCHAR(512);
-ALTER TABLE content_items ADD COLUMN IF NOT EXISTS content_group     VARCHAR(200);
 ALTER TABLE content_items ADD COLUMN IF NOT EXISTS group_name        TEXT;
 ALTER TABLE content_items ADD COLUMN IF NOT EXISTS sub_category      TEXT;
 ALTER TABLE content_items ADD COLUMN IF NOT EXISTS media_url         VARCHAR(512);
 ALTER TABLE content_items ADD COLUMN IF NOT EXISTS platforms         TEXT[];
 
--- 2. ปรับเปลี่ยนประเภทข้อมูล platform ให้เป็น TEXT (ยืดหยุ่นรองรับทุกแพลตฟอร์ม)
-ALTER TABLE content_items ALTER COLUMN platform TYPE TEXT USING platform::text;
+-- 2. ลบคอลัมน์ที่ซ้ำซ้อนหรือไม่ได้ใช้งาน (Cleanup Duplicate/Unused Fields)
+ALTER TABLE content_items DROP COLUMN IF EXISTS platform;
+ALTER TABLE content_items DROP COLUMN IF EXISTS content_group;
 
 -- 3. ปิด RLS เพื่ออนุญาตให้ทั้ง Local และ Production อ่าน/เขียนข้อมูลได้แบบ Real-time Direct
 ALTER TABLE content_items DISABLE ROW LEVEL SECURITY;
