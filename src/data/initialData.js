@@ -159,6 +159,19 @@ export const INITIAL_NOTIFICATION_RULES = [
     line_group_id: 'C1234567890_mkt_team',
     is_active: true,
     custom_template: '📣 [เตรียมภาพโปรโมท] แคมเปญ "{campaign_name}" จะเริ่มในอีก 5 วัน กรุณาเตรียมทำภาพโปรโมทให้พร้อม!'
+  },
+  {
+    id: 'rule-4',
+    team_id: 'team-1',
+    stage: 'todo',
+    title: 'เตือนงานค้างรายวัน (10:00 น.)',
+    template: '⏳ [Follow-up] งาน "{task_name}" ยังไม่เสร็จสิ้น กรุณาอัปเดตสถานะด้วยครับ!',
+    event_type: 'daily_reminder',
+    notify_hours_before: 0, 
+    target_channel: 'line_group',
+    line_group_id: 'C1234567890_mkt_team',
+    is_active: true,
+    custom_template: '⏳ [Follow-up] งาน "{task_name}" ยังไม่เสร็จสิ้น กรุณาอัปเดตสถานะด้วยครับ!'
   }
 ];
 
