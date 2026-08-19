@@ -10,92 +10,111 @@ export default function AutoNotificationJob() {
     const checkAndSendNotifications = async () => {
       if (isChecking.current) return;
       
-      const now = new Date();
-      // Only run if it's 9:00 AM or later
-      if (now.getHours() < 9) return;
+        // ==========================================
+        // 9 AM: CONTENT ALERTS
+        // ==========================================
+        if (now.getHours() >= 9) {
+          const contentItems = await fetchContentItemsFromSupabase();
+          if (contentItems && contentItems.length > 0) {
+            const pendingNotifications = [];
+            
+            contentItems.forEach(item => {
+              if (!item.publish_date) return;
+              
+              const publishDate = new Date(item.publish_date);
+              const publishMidnight = new Date(publishDate);
+              publishMidnight.setHours(0, 0, 0, 0);
+              const nowMidnight = new Date(now);
+              nowMidnight.setHours(0, 0, 0, 0);
 
-      isChecking.current = true;
-      try {
-        console.log('[AutoNotificationJob] Checking for 9 AM daily notifications...');
-        
-        // 1. Fetch today's logs to prevent duplicates
-        const todayLogs = await fetchNotificationLogsForTodayFromSupabase();
-        
-        // 2. Fetch all content items
-        const contentItems = await fetchContentItemsFromSupabase();
-        if (!contentItems || contentItems.length === 0) {
-          isChecking.current = false;
-          return;
+              const diffTime = publishMidnight.getTime() - nowMidnight.getTime();
+              const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+              
+              INITIAL_NOTIFICATION_RULES.forEach(rule => {
+                let ruleApplies = false;
+                if (rule.stage === 't-5' && diffDays === 5) ruleApplies = true;
+                if (rule.stage === 't-2' && diffDays === 2) ruleApplies = true;
+                if (rule.stage === 't-0' && diffDays === 0) ruleApplies = true;
+                
+                if (!ruleApplies) return;
+
+                const uniqueMessage = `Auto-sent: ${rule.title} (ContentID: ${item.id})`;
+                const hasSentToday = todayLogs.some(log => 
+                  log.message === uniqueMessage &&
+                  log.stage === rule.stage
+                );
+
+                if (!hasSentToday) {
+                  pendingNotifications.push({ item, rule, uniqueMessage });
+                }
+              });
+            });
+
+            for (const notif of pendingNotifications) {
+              console.log(`[AutoNotificationJob] Sending Content Alert for ${notif.item.title}`);
+              const alertData = {
+                title: notif.rule.title,
+                campaignName: notif.item.title,
+                platform: (notif.item.platforms || []).join(', ') || 'N/A',
+                publishDate: new Date(notif.item.publish_date).toLocaleDateString('th-TH'),
+                assignedTo: notif.item.creator_id || 'ทีมงาน',
+                status: notif.rule.stage.toUpperCase()
+              };
+
+              const result = await sendLineFlexCardAlert(null, alertData);
+              if (result.success || result.alreadyWelcomed) {
+                await insertNotificationLogToSupabase({
+                  campaign_id: notif.item.campaign_id || null,
+                  stage: notif.rule.stage,
+                  message: notif.uniqueMessage,
+                  status: 'sent',
+                  line_flex_json: alertData
+                });
+              }
+            }
+          }
         }
 
-        // 3. Evaluate rules
-        const pendingNotifications = [];
-        
-        contentItems.forEach(item => {
-          if (!item.publish_date) return;
-          
-          const publishDate = new Date(item.publish_date);
-          // Set both to midnight to count pure days difference
-          const publishMidnight = new Date(publishDate);
-          publishMidnight.setHours(0, 0, 0, 0);
-          const nowMidnight = new Date(now);
-          nowMidnight.setHours(0, 0, 0, 0);
+        // ==========================================
+        // 10 AM: FOLLOW-UP ALERTS (จากส่วนบันทึกการติดตาม)
+        // ==========================================
+        if (now.getHours() >= 10) {
+          const savedFollowups = localStorage.getItem('nitan_todo_followup');
+          if (savedFollowups) {
+            const followups = JSON.parse(savedFollowups);
+            const activeFollowups = followups.filter(f => f.status !== 'completed'); // แจ้งเตือนจนกว่าจะเสร็จสิ้น
 
-          const diffTime = publishMidnight.getTime() - nowMidnight.getTime();
-          const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-          
-          INITIAL_NOTIFICATION_RULES.forEach(rule => {
-            let ruleApplies = false;
-            // Check if rule applies
-            if (rule.stage === 't-5' && diffDays === 5) ruleApplies = true;
-            if (rule.stage === 't-2' && diffDays === 2) ruleApplies = true;
-            if (rule.stage === 't-0' && diffDays === 0) ruleApplies = true;
-            
-            if (!ruleApplies) return;
+            for (const followup of activeFollowups) {
+              const uniqueMessage = `Auto-sent: Follow-up Alert (ID: ${followup.id})`;
+              
+              const hasSentToday = todayLogs.some(log => 
+                log.message === uniqueMessage &&
+                log.stage === 'follow-up'
+              );
 
-            // Use message as a unique identifier for this content item and stage since we don't have content_item_id in notification_logs
-            const uniqueMessage = `Auto-sent: ${rule.title} (ContentID: ${item.id})`;
+              if (!hasSentToday) {
+                console.log(`[AutoNotificationJob] Sending Follow-up Alert for ${followup.title}`);
+                const alertData = {
+                  title: '[Follow-Up Alert] ตามงานประจำวัน',
+                  campaignName: followup.title,
+                  platform: followup.targetPerson || 'ทีมงาน',
+                  publishDate: new Date().toLocaleDateString('th-TH'),
+                  assignedTo: followup.targetPerson || 'ทีมงาน',
+                  status: 'FOLLOW_UP'
+                };
 
-            // Check if already sent today
-            const hasSentToday = todayLogs.some(log => 
-              log.message === uniqueMessage &&
-              log.stage === rule.stage
-            );
-
-            if (!hasSentToday) {
-              pendingNotifications.push({
-                item,
-                rule,
-                uniqueMessage
-              });
+                const result = await sendLineFlexCardAlert(null, alertData);
+                if (result.success || result.alreadyWelcomed) {
+                  await insertNotificationLogToSupabase({
+                    campaign_id: null,
+                    stage: 'follow-up',
+                    message: uniqueMessage,
+                    status: 'sent',
+                    line_flex_json: alertData
+                  });
+                }
+              }
             }
-          });
-        });
-
-        // 4. Send pending notifications
-        for (const notif of pendingNotifications) {
-          console.log(`[AutoNotificationJob] Sending alert for ${notif.item.title} (Rule: ${notif.rule.stage})`);
-          
-          const alertData = {
-            title: notif.rule.title,
-            campaignName: notif.item.title,
-            platform: (notif.item.platforms || []).join(', ') || 'N/A',
-            publishDate: new Date(notif.item.publish_date).toLocaleDateString('th-TH'),
-            assignedTo: notif.item.creator_id || 'ทีมงาน',
-            status: notif.rule.stage.toUpperCase()
-          };
-
-          const result = await sendLineFlexCardAlert(null, alertData);
-          
-          if (result.success || result.alreadyWelcomed) {
-            // Log success to DB
-            await insertNotificationLogToSupabase({
-              campaign_id: notif.item.campaign_id || null, // avoid foreign key violation
-              stage: notif.rule.stage,
-              message: notif.uniqueMessage,
-              status: 'sent',
-              line_flex_json: alertData
-            });
           }
         }
         
