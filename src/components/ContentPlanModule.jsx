@@ -77,8 +77,35 @@ export default function ContentPlanModule({
   const [isSidebarVisible, setIsSidebarVisible] = useState(true);
   const [groupsCollapsed, setGroupsCollapsed] = useState(false);
 
+  // 4 Standard Strategic Content Groups (Matching user request)
+  const DEFAULT_CONTENT_GROUPS = React.useMemo(() => [
+    {
+      id: 'grp-product-plan',
+      name: 'Product Plan & Campaign',
+      color: 'bg-purple-50 text-purple-900 border-purple-200'
+    },
+    {
+      id: 'grp-promo-plan',
+      name: 'แผนโปรโมท (Promotion Plan)',
+      color: 'bg-rose-50 text-rose-900 border-rose-200'
+    },
+    {
+      id: 'grp-always-on',
+      name: 'คอนเทนต์ประจำ (Always-On)',
+      color: 'bg-amber-50 text-amber-900 border-amber-200'
+    },
+    {
+      id: 'grp-general-mkt',
+      name: 'การตลาดทั่วไป (General Marketing)',
+      color: 'bg-sky-50 text-sky-900 border-sky-200'
+    }
+  ], []);
+
+  const effectiveContentGroups = (contentGroups && contentGroups.length > 0) ? contentGroups : DEFAULT_CONTENT_GROUPS;
+
   // Multi-Select Google Calendar Style Group Filter (selectedGroupNames)
   const [selectedGroupNames, setSelectedGroupNames] = useState([]);
+  const [selectedCategoryFilter, setSelectedCategoryFilter] = useState('all');
 
   // Other Filter States
   const [selectedPlatform, setSelectedPlatform] = useState('all');
@@ -133,7 +160,7 @@ export default function ContentPlanModule({
   const [newTitle, setNewTitle] = useState('');
   const [newCaption, setNewCaption] = useState('');
   const [newPlatform, setNewPlatform] = useState('tiktok');
-  const [newGroup, setNewGroup] = useState(contentGroups[0]?.name || 'Promotion (โปรโมชัน)');
+  const [newGroup, setNewGroup] = useState(effectiveContentGroups[0]?.name || 'Product Plan & Campaign');
   const [newPublishDate, setNewPublishDate] = useState('2026-08-20T10:00');
   const [newMediaUrl, setNewMediaUrl] = useState('https://images.unsplash.com/photo-1620916566398-39f1143ab7be?auto=format&fit=crop&w=600&q=80');
   const [newReferenceUrl, setNewReferenceUrl] = useState('');
@@ -746,10 +773,10 @@ export default function ContentPlanModule({
 
   const getGroupBadge = (groupName) => {
     if (!groupName) return null;
-    const groupObj = contentGroups.find(g => g.name === groupName);
-    const colorClass = groupObj?.color || 'bg-pink-50 text-rose-800 border-pink-200';
+    const groupObj = effectiveContentGroups.find(g => g.name === groupName);
+    const colorClass = groupObj?.color || 'bg-purple-50 text-purple-900 border-purple-200';
     return (
-      <span className={`px-2 py-0.5 rounded-full text-[9px] font-medium border ${colorClass} truncate max-w-[110px]`}>
+      <span className={`px-2 py-0.5 rounded-full text-[9px] font-bold border ${colorClass} truncate max-w-[140px]`}>
         {groupName}
       </span>
     );
@@ -883,6 +910,26 @@ export default function ContentPlanModule({
                 <option value="line_oa">LINE OA</option>
               </select>
 
+              {/* Category / Content Group Filter */}
+              <select
+                value={selectedCategoryFilter}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  setSelectedCategoryFilter(val);
+                  if (val === 'all') {
+                    setSelectedGroupNames([]);
+                  } else {
+                    setSelectedGroupNames([val]);
+                  }
+                }}
+                className="bg-white border border-pink-200 text-rose-900 text-xs py-2 px-3 rounded-xl focus:outline-none focus:border-pink-400 cursor-pointer shadow-sm font-semibold"
+              >
+                <option value="all">📁 ทุกหมวดหมู่กลุ่มคอนเทนต์ (All Groups)</option>
+                {effectiveContentGroups.map(grp => (
+                  <option key={grp.id} value={grp.name}>{grp.name}</option>
+                ))}
+              </select>
+
               {/* Status Filter */}
               <select
                 value={selectedStatus}
@@ -1012,7 +1059,7 @@ export default function ContentPlanModule({
 
                     {/* Group Items Checklist */}
                     <div className="space-y-1 max-h-[420px] overflow-y-auto pr-0.5">
-                      {contentGroups.map(grp => {
+                      {effectiveContentGroups.map(grp => {
                         const checked = isGroupChecked(grp.name);
                         const colorOpts = getGroupCheckboxColor(grp.color);
 

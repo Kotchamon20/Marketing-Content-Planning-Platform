@@ -71,7 +71,28 @@ export const INITIAL_CAMPAIGNS = [];
 
 export const INITIAL_CONTENT_ITEMS = [];
 
-export const INITIAL_CONTENT_GROUPS = [];
+export const INITIAL_CONTENT_GROUPS = [
+  {
+    id: 'grp-product-plan',
+    name: 'Product Plan & Campaign',
+    color: 'bg-purple-50 text-purple-900 border-purple-200'
+  },
+  {
+    id: 'grp-promo-plan',
+    name: 'แผนโปรโมท (Promotion Plan)',
+    color: 'bg-rose-50 text-rose-900 border-rose-200'
+  },
+  {
+    id: 'grp-always-on',
+    name: 'คอนเทนต์ประจำ (Always-On)',
+    color: 'bg-amber-50 text-amber-900 border-amber-200'
+  },
+  {
+    id: 'grp-general-mkt',
+    name: 'การตลาดทั่วไป (General Marketing)',
+    color: 'bg-sky-50 text-sky-900 border-sky-200'
+  }
+];
 
 export const INITIAL_IDEA_VAULT = [];
 
