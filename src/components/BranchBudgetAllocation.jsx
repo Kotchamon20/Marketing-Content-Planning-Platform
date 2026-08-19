@@ -42,11 +42,11 @@ export default function BranchBudgetAllocation() {
   const [selectedMonth, setSelectedMonth] = useState('08');
   const [selectedYear, setSelectedYear] = useState('2026');
 
-  // Google Search Sub-Campaign Breakdown State for Main Branch (NITAN หลัก)
+  // Google Search Sub-Campaign Breakdown State (Supports % OR Baht ฿ input for every item)
   const [googleSearchBreakdown, setGoogleSearchBreakdown] = useState({
-    generalSearch: 283.72,
-    leadsSearch: 283.72,
-    naJomtienSearch: 567.43
+    generalSearch: { percent: 25, amount: 283.72 },
+    leadsSearch: { percent: 25, amount: 283.72 },
+    naJomtienSearch: { percent: 50, amount: 567.43 }
   });
 
   // Toggle state to expand/collapse Google Ads Breakdown box inside cards
@@ -134,15 +134,51 @@ export default function BranchBudgetAllocation() {
     }));
   };
 
-  const handleUpdateChannelAmount = (branchId, channelId, value) => {
+  const handleUpdateChannelPercent = (branchId, channelId, percentVal, netMediaBudget) => {
+    const pct = Number(percentVal) || 0;
+    const calcAmount = Math.round((netMediaBudget * pct) / 100);
+
     updateCurrentBranches(prev => prev.map(b => {
       if (b.id === branchId) {
         return {
           ...b,
-          channelAllocations: b.channelAllocations.map(c => c.id === channelId ? { ...c, amount: Number(value) || 0 } : c)
+          channelAllocations: b.channelAllocations.map(c => c.id === channelId ? { ...c, percent: pct, amount: calcAmount } : c)
         };
       }
       return b;
+    }));
+  };
+
+  const handleUpdateChannelAmount = (branchId, channelId, amountVal, netMediaBudget) => {
+    const amt = Number(amountVal) || 0;
+    const calcPercent = netMediaBudget > 0 ? Number(((amt / netMediaBudget) * 100).toFixed(1)) : 0;
+
+    updateCurrentBranches(prev => prev.map(b => {
+      if (b.id === branchId) {
+        return {
+          ...b,
+          channelAllocations: b.channelAllocations.map(c => c.id === channelId ? { ...c, amount: amt, percent: calcPercent } : c)
+        };
+      }
+      return b;
+    }));
+  };
+
+  const handleUpdateGoogleSubPercent = (key, percentVal, googleDailyBudget) => {
+    const pct = Number(percentVal) || 0;
+    const calcAmt = Number(((googleDailyBudget * pct) / 100).toFixed(2));
+    setGoogleSearchBreakdown(prev => ({
+      ...prev,
+      [key]: { percent: pct, amount: calcAmt }
+    }));
+  };
+
+  const handleUpdateGoogleSubAmount = (key, amountVal, googleDailyBudget) => {
+    const amt = Number(amountVal) || 0;
+    const calcPct = googleDailyBudget > 0 ? Number(((amt / googleDailyBudget) * 100).toFixed(1)) : 0;
+    setGoogleSearchBreakdown(prev => ({
+      ...prev,
+      [key]: { percent: calcPct, amount: amt }
     }));
   };
 
@@ -258,9 +294,9 @@ export default function BranchBudgetAllocation() {
     return sum + fullB;
   }, 0);
 
-  const totalGoogleSearchSubAmount = Number(googleSearchBreakdown.generalSearch || 0) + 
-                                     Number(googleSearchBreakdown.leadsSearch || 0) + 
-                                     Number(googleSearchBreakdown.naJomtienSearch || 0);
+  const totalGoogleSearchSubAmount = Number(googleSearchBreakdown.generalSearch?.amount || 0) + 
+                                     Number(googleSearchBreakdown.leadsSearch?.amount || 0) + 
+                                     Number(googleSearchBreakdown.naJomtienSearch?.amount || 0);
 
   const currentMonthObj = monthsList.find(m => m.value === selectedMonth) || monthsList[7];
 
@@ -624,72 +660,120 @@ export default function BranchBudgetAllocation() {
                                 </button>
                               )}
 
-                              <div className="flex items-center gap-1">
-                                <span className="text-purple-700 text-[10px]">฿</span>
+                              {/* Dual Input: % AND ฿ (บาท) */}
+                              <div className="flex items-center gap-1 text-[11px]">
                                 <input
                                   type="number"
-                                  value={channel.amount}
-                                  onChange={(e) => handleUpdateChannelAmount(branch.id, channel.id, e.target.value)}
-                                  className="w-28 px-2 py-0.5 bg-white border border-[#E2D2EA] rounded-md text-right font-mono font-bold text-purple-950 focus:outline-none text-xs"
+                                  step="0.1"
+                                  placeholder="%"
+                                  value={channel.percent || ''}
+                                  onChange={(e) => handleUpdateChannelPercent(branch.id, channel.id, e.target.value, netMediaBudget)}
+                                  className="w-12 px-1 py-0.5 bg-white border border-[#E2D2EA] rounded-md text-right font-mono font-bold text-purple-950 focus:outline-none text-xs"
+                                />
+                                <span className="text-purple-800 font-bold text-[10px]">%</span>
+
+                                <span className="text-purple-700 text-[10px] ml-1">฿</span>
+                                <input
+                                  type="number"
+                                  placeholder="บาท"
+                                  value={channel.amount || ''}
+                                  onChange={(e) => handleUpdateChannelAmount(branch.id, channel.id, e.target.value, netMediaBudget)}
+                                  className="w-24 px-1.5 py-0.5 bg-white border border-[#E2D2EA] rounded-md text-right font-mono font-bold text-purple-950 focus:outline-none text-xs"
                                 />
                               </div>
                             </div>
                           </div>
 
-                          {/* Nested Google Ads Search Campaign Breakdown Component */}
+                          {/* Nested Google Ads Search Campaign Breakdown Component (Supports % and ฿/วัน) */}
                           {isGoogleChannel && isGoogleExpanded && (
                             <div className="p-3 bg-[#E6F2FF]/60 rounded-xl border border-purple-200 space-y-2 animate-in fade-in duration-200">
                               <div className="flex items-center justify-between border-b border-purple-200/80 pb-1">
                                 <span className="font-bold text-purple-950 text-[11px] flex items-center gap-1">
                                   <Search className="w-3.5 h-3.5 text-purple-700" />
-                                  <span>แยกสัดส่วนงบย่อย Google Search (บาท/วัน):</span>
+                                  <span>แยกสัดส่วนงบย่อย Google Search (กรอกเป็น % หรือ ฿/วัน ได้ทุกอัน):</span>
                                 </span>
                                 <span className="text-[10px] font-mono font-bold text-purple-950">
                                   รวม ฿{totalGoogleSearchSubAmount.toFixed(2)}/วัน
                                 </span>
                               </div>
 
-                              <div className="space-y-1 text-[11px]">
+                              <div className="space-y-1.5 text-[11px]">
+                                {/* Item 1: General Search */}
                                 <div className="flex items-center justify-between">
                                   <span className="text-purple-900 font-medium">1. การค้นหา (General Search):</span>
                                   <div className="flex items-center gap-1">
-                                    <span className="text-purple-700 text-[10px]">฿</span>
+                                    <input
+                                      type="number"
+                                      step="0.1"
+                                      placeholder="%"
+                                      value={googleSearchBreakdown.generalSearch?.percent || ''}
+                                      onChange={(e) => handleUpdateGoogleSubPercent('generalSearch', e.target.value, dailyChannelAmount > 0 ? dailyChannelAmount : 1135)}
+                                      className="w-12 px-1 py-0.5 bg-white border border-[#E2D2EA] rounded text-right font-mono font-bold text-purple-950 text-xs"
+                                    />
+                                    <span className="text-[10px] text-purple-800 font-bold">%</span>
+
+                                    <span className="text-purple-700 text-[10px] ml-1">฿</span>
                                     <input
                                       type="number"
                                       step="0.01"
-                                      value={googleSearchBreakdown.generalSearch}
-                                      onChange={(e) => setGoogleSearchBreakdown(prev => ({ ...prev, generalSearch: Number(e.target.value) || 0 }))}
-                                      className="w-24 px-1.5 py-0.5 bg-white border border-[#E2D2EA] rounded text-right font-mono font-bold text-purple-950 text-xs"
+                                      placeholder="บาท"
+                                      value={googleSearchBreakdown.generalSearch?.amount || ''}
+                                      onChange={(e) => handleUpdateGoogleSubAmount('generalSearch', e.target.value, dailyChannelAmount > 0 ? dailyChannelAmount : 1135)}
+                                      className="w-20 px-1.5 py-0.5 bg-white border border-[#E2D2EA] rounded text-right font-mono font-bold text-purple-950 text-xs"
                                     />
                                     <span className="text-[10px] text-purple-700">/วัน</span>
                                   </div>
                                 </div>
 
+                                {/* Item 2: Leads-Search */}
                                 <div className="flex items-center justify-between">
                                   <span className="text-purple-900 font-medium">2. Leads-Search:</span>
                                   <div className="flex items-center gap-1">
-                                    <span className="text-purple-700 text-[10px]">฿</span>
+                                    <input
+                                      type="number"
+                                      step="0.1"
+                                      placeholder="%"
+                                      value={googleSearchBreakdown.leadsSearch?.percent || ''}
+                                      onChange={(e) => handleUpdateGoogleSubPercent('leadsSearch', e.target.value, dailyChannelAmount > 0 ? dailyChannelAmount : 1135)}
+                                      className="w-12 px-1 py-0.5 bg-white border border-[#E2D2EA] rounded text-right font-mono font-bold text-purple-950 text-xs"
+                                    />
+                                    <span className="text-[10px] text-purple-800 font-bold">%</span>
+
+                                    <span className="text-purple-700 text-[10px] ml-1">฿</span>
                                     <input
                                       type="number"
                                       step="0.01"
-                                      value={googleSearchBreakdown.leadsSearch}
-                                      onChange={(e) => setGoogleSearchBreakdown(prev => ({ ...prev, leadsSearch: Number(e.target.value) || 0 }))}
-                                      className="w-24 px-1.5 py-0.5 bg-white border border-[#E2D2EA] rounded text-right font-mono font-bold text-purple-950 text-xs"
+                                      placeholder="บาท"
+                                      value={googleSearchBreakdown.leadsSearch?.amount || ''}
+                                      onChange={(e) => handleUpdateGoogleSubAmount('leadsSearch', e.target.value, dailyChannelAmount > 0 ? dailyChannelAmount : 1135)}
+                                      className="w-20 px-1.5 py-0.5 bg-white border border-[#E2D2EA] rounded text-right font-mono font-bold text-purple-950 text-xs"
                                     />
                                     <span className="text-[10px] text-purple-700">/วัน</span>
                                   </div>
                                 </div>
 
+                                {/* Item 3: ค้นหาร้านนาจอมเทียน */}
                                 <div className="flex items-center justify-between">
                                   <span className="text-purple-900 font-medium">3. ค้นหาร้านนาจอมเทียน:</span>
                                   <div className="flex items-center gap-1">
-                                    <span className="text-purple-700 text-[10px]">฿</span>
+                                    <input
+                                      type="number"
+                                      step="0.1"
+                                      placeholder="%"
+                                      value={googleSearchBreakdown.naJomtienSearch?.percent || ''}
+                                      onChange={(e) => handleUpdateGoogleSubPercent('naJomtienSearch', e.target.value, dailyChannelAmount > 0 ? dailyChannelAmount : 1135)}
+                                      className="w-12 px-1 py-0.5 bg-white border border-[#E2D2EA] rounded text-right font-mono font-bold text-purple-950 text-xs"
+                                    />
+                                    <span className="text-[10px] text-purple-800 font-bold">%</span>
+
+                                    <span className="text-purple-700 text-[10px] ml-1">฿</span>
                                     <input
                                       type="number"
                                       step="0.01"
-                                      value={googleSearchBreakdown.naJomtienSearch}
-                                      onChange={(e) => setGoogleSearchBreakdown(prev => ({ ...prev, naJomtienSearch: Number(e.target.value) || 0 }))}
-                                      className="w-24 px-1.5 py-0.5 bg-white border border-[#E2D2EA] rounded text-right font-mono font-bold text-purple-950 text-xs"
+                                      placeholder="บาท"
+                                      value={googleSearchBreakdown.naJomtienSearch?.amount || ''}
+                                      onChange={(e) => handleUpdateGoogleSubAmount('naJomtienSearch', e.target.value, dailyChannelAmount > 0 ? dailyChannelAmount : 1135)}
+                                      className="w-20 px-1.5 py-0.5 bg-white border border-[#E2D2EA] rounded text-right font-mono font-bold text-purple-950 text-xs"
                                     />
                                     <span className="text-[10px] text-purple-700">/วัน</span>
                                   </div>
