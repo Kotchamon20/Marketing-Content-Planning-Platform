@@ -299,28 +299,41 @@ export default function ContentPlanModule({
 
   // Sub-Category Management States & Handlers
   const [newSubCategoryInput, setNewSubCategoryInput] = useState({});
+  const [newSubCategoryColor, setNewSubCategoryColor] = useState({});  // { [groupId]: colorValue }
   const [editingSubCategory, setEditingSubCategory] = useState(null);
+
+  // เปลี่ยนสี Tag ของหมวดหมู่ย่อย
+  const handleSetSubCategoryColor = (groupId, subName, colorValue) => {
+    const currentGroups = effectiveContentGroups.map(grp => {
+      if (grp.id !== groupId) return grp;
+      const existing = grp.subCategoryColors || {};
+      return { ...grp, subCategoryColors: { ...existing, [subName]: colorValue } };
+    });
+    if (onUpdateContentGroups) onUpdateContentGroups(currentGroups);
+  };
 
   const handleAddSubCategory = (groupId, customName) => {
     const nameToAdd = (customName || newSubCategoryInput[groupId] || '').trim();
     if (!nameToAdd) return;
+    const colorToUse = newSubCategoryColor[groupId] || DEFAULT_SUB_CAT_COLOR;
 
     const currentGroups = effectiveContentGroups.map(grp => {
       if (grp.id === groupId) {
         const existingSubs = grp.subCategories || [];
         if (existingSubs.includes(nameToAdd)) return grp;
+        const existingColors = grp.subCategoryColors || {};
         return {
           ...grp,
-          subCategories: [...existingSubs, nameToAdd]
+          subCategories: [...existingSubs, nameToAdd],
+          subCategoryColors: { ...existingColors, [nameToAdd]: colorToUse }
         };
       }
       return grp;
     });
 
-    if (onUpdateContentGroups) {
-      onUpdateContentGroups(currentGroups);
-    }
+    if (onUpdateContentGroups) onUpdateContentGroups(currentGroups);
     setNewSubCategoryInput(prev => ({ ...prev, [groupId]: '' }));
+    setNewSubCategoryColor(prev => ({ ...prev, [groupId]: DEFAULT_SUB_CAT_COLOR }));
   };
 
   const handleEditSubCategory = (groupId, oldName, newName) => {
@@ -498,6 +511,23 @@ export default function ContentPlanModule({
     { label: 'Sky Blue', value: 'bg-sky-50 text-sky-800 border-sky-200', checkBg: 'bg-sky-500 border-sky-500', checkBorder: 'border-sky-400' },
     { label: 'Indigo Teal', value: 'bg-indigo-50 text-indigo-800 border-indigo-200', checkBg: 'bg-indigo-500 border-indigo-500', checkBorder: 'border-indigo-400' }
   ];
+
+  // สี Tag หมวดหมู่ย่อย (Sub-Category Badge Colors)
+  const SUB_CATEGORY_COLORS = [
+    { label: '🟡 Amber Gold',     value: 'bg-amber-50 text-amber-900 border-amber-400',     dot: 'bg-amber-400' },
+    { label: '🟣 Soft Purple',    value: 'bg-purple-50 text-purple-900 border-purple-300',   dot: 'bg-purple-400' },
+    { label: '🔵 Sky Blue',       value: 'bg-sky-50 text-sky-900 border-sky-400',           dot: 'bg-sky-400' },
+    { label: '🟢 Emerald Green',  value: 'bg-emerald-50 text-emerald-900 border-emerald-400', dot: 'bg-emerald-400' },
+    { label: '🔴 Rose Pink',      value: 'bg-rose-50 text-rose-900 border-rose-300',         dot: 'bg-rose-400' },
+    { label: '🟠 Orange',         value: 'bg-orange-50 text-orange-900 border-orange-400',   dot: 'bg-orange-400' },
+    { label: '🟤 Warm Brown',     value: 'bg-stone-100 text-stone-800 border-stone-400',     dot: 'bg-stone-500' },
+    { label: '⚪ Slate Gray',      value: 'bg-slate-100 text-slate-800 border-slate-400',     dot: 'bg-slate-500' },
+    { label: '💚 Teal',           value: 'bg-teal-50 text-teal-900 border-teal-400',         dot: 'bg-teal-400' },
+    { label: '🟦 Indigo',         value: 'bg-indigo-50 text-indigo-900 border-indigo-300',   dot: 'bg-indigo-400' },
+    { label: '💗 Light Blue',     value: 'bg-blue-50 text-blue-900 border-blue-300',         dot: 'bg-blue-400' },
+    { label: '💞 Fuchsia',        value: 'bg-fuchsia-50 text-fuchsia-900 border-fuchsia-300', dot: 'bg-fuchsia-400' },
+  ];
+  const DEFAULT_SUB_CAT_COLOR = SUB_CATEGORY_COLORS[0].value;
 
   // Helper to parse Thai, Excel Serial, and Standard Date strings into YYYY-MM-DD format (Date Only, No Time)
   const parseThaiDateTime = (rawVal) => {
@@ -1537,11 +1567,20 @@ export default function ContentPlanModule({
     );
   };
 
-  // แสดง Badge สำหรับหมวดหมู่ย่อย (Sub-Category)
+  // แสดง Badge สำหรับหมวดหมู่ย่อย (Sub-Category) — สีจาก subCategoryColors map
   const getSubCategoryBadge = (subCat) => {
     if (!subCat || !subCat.trim()) return null;
+    // หาสีจาก subCategoryColors ของทุก Group
+    let colorClass = DEFAULT_SUB_CAT_COLOR;
+    for (const grp of effectiveContentGroups) {
+      const colors = grp.subCategoryColors || {};
+      if (colors[subCat]) {
+        colorClass = colors[subCat];
+        break;
+      }
+    }
     return (
-      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-bold border bg-amber-50 text-amber-900 border-amber-300 truncate max-w-[160px]">
+      <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-bold border ${colorClass} truncate max-w-[160px]`}>
         <Tag className="w-2.5 h-2.5 shrink-0" />
         {subCat}
       </span>
@@ -3365,7 +3404,7 @@ export default function ContentPlanModule({
                           <tr key={idx} className="hover:bg-pink-50/50 transition">
                             <td className="p-3 text-center text-rose-400 font-bold">{idx + 1}</td>
                             <td className="p-3 font-bold text-slate-900 leading-snug">{item.title}</td>
-                             <td className="p-3 text-slate-700 font-medium">{item.subCategory || <span className="text-slate-400 italic text-[11px]">-</span>}</td>
+                             <td className="p-3">{item.subCategory ? getSubCategoryBadge(item.subCategory) : <span className="text-slate-400 italic text-[11px]">-</span>}</td>
                             <td className="p-3 text-slate-700 leading-snug">{item.visual_concept || '-'}</td>
                             <td className="p-3 text-slate-800 font-normal leading-relaxed whitespace-pre-line">{item.caption || '-'}</td>
                             <td className="p-3">{getPlatformBadge(item.platform)}</td>
@@ -3708,6 +3747,7 @@ export default function ContentPlanModule({
                       <div className="flex flex-wrap gap-1.5 items-center">
                         {subCats.map((sub, sIdx) => {
                           const isEditingThis = editingSubCategory?.groupId === grp.id && editingSubCategory?.oldName === sub;
+                          const subColor = (grp.subCategoryColors || {})[sub] || DEFAULT_SUB_CAT_COLOR;
 
                           if (isEditingThis) {
                             return (
@@ -3723,6 +3763,17 @@ export default function ContentPlanModule({
                                   }}
                                   className="w-36 bg-amber-50/50 border border-amber-200 text-purple-950 px-1.5 py-0.5 rounded-md font-semibold text-xs focus:outline-none"
                                 />
+                                {/* Color picker in edit mode */}
+                                <select
+                                  defaultValue={subColor}
+                                  onChange={(e) => handleSetSubCategoryColor(grp.id, sub, e.target.value)}
+                                  className="bg-white border border-amber-300 text-amber-900 text-[10px] font-bold rounded-lg px-1 py-0.5 cursor-pointer max-w-[110px]"
+                                  title="เลือกสี Tag"
+                                >
+                                  {SUB_CATEGORY_COLORS.map(c => (
+                                    <option key={c.value} value={c.value}>{c.label}</option>
+                                  ))}
+                                </select>
                                 <button
                                   type="button"
                                   onClick={() => handleEditSubCategory(grp.id, sub, editingSubCategory.name)}
@@ -3746,23 +3797,24 @@ export default function ContentPlanModule({
                           return (
                             <div
                               key={sIdx}
-                              className="group/sub flex items-center gap-1.5 bg-white border border-amber-200/90 text-purple-950 px-2.5 py-1 rounded-xl text-xs font-semibold shadow-2xs hover:border-amber-400 transition"
+                              className={`group/sub flex items-center gap-1.5 px-2.5 py-1 rounded-xl text-xs font-semibold shadow-2xs border transition ${subColor}`}
                             >
+                              <Tag className="w-2.5 h-2.5 shrink-0" />
                               <span>{sub}</span>
                               <div className="flex items-center gap-0.5 opacity-60 group-hover/sub:opacity-100 transition">
                                 <button
                                   type="button"
                                   onClick={() => setEditingSubCategory({ groupId: grp.id, oldName: sub, name: sub })}
-                                  className="p-0.5 text-purple-600 hover:text-purple-900 rounded cursor-pointer"
-                                  title="แก้ไขชื่อหมวดหมู่ย่อย"
+                                  className="p-0.5 hover:opacity-100 rounded cursor-pointer"
+                                  title="แก้ไข"
                                 >
                                   <Edit3 className="w-3 h-3" />
                                 </button>
                                 <button
                                   type="button"
                                   onClick={() => handleDeleteSubCategory(grp.id, sub)}
-                                  className="p-0.5 text-rose-400 hover:text-rose-700 rounded cursor-pointer"
-                                  title="ลบหมวดหมู่ย่อยนี้"
+                                  className="p-0.5 text-rose-500 hover:text-rose-700 rounded cursor-pointer"
+                                  title="ลบ"
                                 >
                                   <Trash2 className="w-3 h-3" />
                                 </button>
