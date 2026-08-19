@@ -1,0 +1,202 @@
+@import url('https://fonts.googleapis.com/css2?family=Kanit:ital,wght@0,300;0,400;0,500;0,600;0,700;1,300;1,400&display=swap');
+
+:root {
+  --font-heading: 'Kanit', sans-serif;
+  --font-body: 'Kanit', sans-serif;
+  
+  /* Color Palette #61 Whisper-Soft Pastel Tokens */
+  --palette-lavender-soft: #F0E6F5;
+  --palette-pink-soft: #FFEBF3;
+  --palette-rose-soft: #FFF0F6;
+  --palette-sky-light: #F0F7FF;
+  --palette-sky-blue: #E6F2FF;
+  
+  --color-bg: #FCFAF7;
+  --color-card-bg: rgba(255, 255, 255, 0.96);
+  --color-border: #EFE4F3;
+  --color-text-main: #3C2A4D;
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: var(--font-body);
+  font-weight: 400;
+  background-color: #FCFAF7;
+  color: #3C2A4D;
+  min-height: 100vh;
+  overflow-x: hidden;
+  /* Whisper-Soft Ambient Background Mesh Glow (Ultra Light Opacity ~10-15%) */
+  background-image: 
+    radial-gradient(circle at 12% 8%, rgba(205, 180, 219, 0.15) 0%, transparent 45%),
+    radial-gradient(circle at 88% 12%, rgba(255, 175, 204, 0.12) 0%, transparent 45%),
+    radial-gradient(circle at 50% 88%, rgba(189, 224, 254, 0.15) 0%, transparent 50%),
+    radial-gradient(circle at 82% 82%, rgba(162, 210, 255, 0.12) 0%, transparent 40%);
+  background-attachment: fixed;
+}
+
+/* Reduced Font Weight for Sleek & Refined Typography */
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--font-heading);
+  font-weight: 600 !important;
+  letter-spacing: -0.01em;
+}
+
+.font-black {
+  font-weight: 600 !important;
+}
+
+.font-extrabold {
+  font-weight: 600 !important;
+}
+
+.font-bold {
+  font-weight: 500 !important;
+}
+
+.font-semibold {
+  font-weight: 500 !important;
+}
+
+/* Ultra Light Whisper-Soft Palette #61 Glass Cards */
+.glass-panel {
+  background: rgba(255, 255, 255, 0.96);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  border: 1px solid rgba(239, 228, 243, 0.8);
+  border-radius: 1.25rem;
+  box-shadow: 0 4px 18px -2px rgba(205, 180, 219, 0.08);
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.glass-panel:hover {
+  border-color: rgba(205, 180, 219, 0.4);
+  box-shadow: 0 8px 22px -4px rgba(189, 224, 254, 0.12);
+}
+
+.glass-panel-interactive {
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.glass-panel-interactive:hover {
+  border-color: #E2D2EA;
+  transform: translateY(-2px);
+  box-shadow: 0 16px 28px -5px rgba(205, 180, 219, 0.14);
+}
+
+/* Feather-Light Pastel Gradients */
+.bg-gradient-palette {
+  background: linear-gradient(135deg, #F3ECF7 0%, #FFF0F6 50%, #EEF6FF 100%);
+}
+
+.bg-gradient-palette-soft {
+  background: linear-gradient(135deg, #FFF0F6 0%, #FFF6FA 50%, #F2F8FF 100%);
+}
+
+.bg-gradient-palette-sky {
+  background: linear-gradient(135deg, #EEF6FF 0%, #E6F2FF 50%, #F3ECF7 100%);
+}
+
+.btn-soft-primary {
+  background: linear-gradient(135deg, #F0E6F5 0%, #FFEBF3 50%, #E6F2FF 100%);
+  color: #3C2A4D;
+  border: 1px solid #E2D2EA;
+  font-weight: 500;
+  box-shadow: 0 2px 6px rgba(205, 180, 219, 0.12);
+  transition: all 0.2s ease;
+}
+
+.btn-soft-primary:hover {
+  background: linear-gradient(135deg, #EADAF2 0%, #FFE3F0 50%, #DDEEFF 100%);
+  box-shadow: 0 4px 10px rgba(205, 180, 219, 0.18);
+}
+
+/* Soft Glowing Borders */
+.glow-border {
+  position: relative;
+}
+.glow-border::after {
+  content: '';
+  position: absolute;
+  inset: -1px;
+  background: linear-gradient(135deg, rgba(205, 180, 219, 0.2), rgba(162, 210, 255, 0.2));
+  border-radius: inherit;
+  z-index: -1;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+.glow-border:hover::after {
+  opacity: 1;
+}
+
+/* Custom Scrollbar in Palette #61 Soft */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: #FCFAF7;
+}
+::-webkit-scrollbar-thumb {
+  background: #E2D2EA;
+  border-radius: 9999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #CDB4DB;
+}
+
+/* Keyframes Animations */
+@keyframes floatSlow {
+  0%, 100% { transform: translateY(0px); }
+  50% { transform: translateY(-4px); }
+}
+
+.animate-float {
+  animation: floatSlow 4s infinite ease-in-out;
+}
+
+/* Platform Badges (Feather-Light Pastel Edition) */
+.badge-platform-tiktok {
+  background: #F5EEF8;
+  color: #4A2E5D;
+  border: 1px solid #E2D2EA;
+}
+.badge-platform-facebook {
+  background: #F0F7FF;
+  color: #1A4268;
+  border: 1px solid #D6E8FF;
+}
+.badge-platform-instagram {
+  background: #FFF0F6;
+  color: #682436;
+  border: 1px solid #FFE0ED;
+}
+.badge-platform-line {
+  background: #F2FAF4;
+  color: #1A5A32;
+  border: 1px solid #D4EFE0;
+}
+.badge-platform-youtube {
+  background: #FFF5F5;
+  color: #681C17;
+  border: 1px solid #FFE3E3;
+}
+.badge-platform-shopee {
+  background: #FFF9F2;
+  color: #7E3508;
+  border: 1px solid #FFE8D6;
+}
+
+/* Mobile responsive helper classes */
+@media (max-width: 768px) {
+  .mobile-stack {
+    flex-direction: column !important;
+  }
+  .mobile-full-width {
+    width: 100% !important;
+  }
+}

@@ -1,0 +1,296 @@
+import React, { useState } from 'react';
+import confetti from 'canvas-confetti';
+import NavigationHeader from './components/NavigationHeader';
+import DashboardOverview from './components/DashboardOverview';
+import ContentPlanModule from './components/ContentPlanModule';
+import MarketingPlanModule from './components/MarketingPlanModule';
+import ProductPlanModule from './components/ProductPlanModule';
+import KpiAnalyticsModule from './components/KpiAnalyticsModule';
+import SchemaViewerModal from './components/SchemaViewerModal';
+
+import {
+  INITIAL_TEAMS,
+  INITIAL_USERS,
+  INITIAL_PRODUCTS,
+  INITIAL_MARKETING_PLANS,
+  INITIAL_CAMPAIGN_IDEAS,
+  INITIAL_CAMPAIGNS,
+  INITIAL_CONTENT_ITEMS,
+  INITIAL_CONTENT_GROUPS,
+  INITIAL_IDEA_VAULT,
+  INITIAL_NOTIFICATION_RULES,
+  INITIAL_NOTIFICATION_LOGS
+} from './data/initialData';
+
+export default function App() {
+  // Global State
+  const [teams, setTeams] = useState(INITIAL_TEAMS);
+  const [activeTeamId, setActiveTeamId] = useState('team-1');
+
+  const [users, setUsers] = useState(INITIAL_USERS);
+  const [activeUserId, setActiveUserId] = useState('user-1');
+
+  const [activeTab, setActiveTab] = useState('dashboard');
+  const [schemaModalOpen, setSchemaModalOpen] = useState(false);
+
+  // Module Data States
+  const [products, setProducts] = useState(INITIAL_PRODUCTS);
+  const [marketingPlans, setMarketingPlans] = useState(INITIAL_MARKETING_PLANS);
+  const [campaignIdeas, setCampaignIdeas] = useState(INITIAL_CAMPAIGN_IDEAS);
+  const [campaigns, setCampaigns] = useState(INITIAL_CAMPAIGNS);
+  const [contentItems, setContentItems] = useState(INITIAL_CONTENT_ITEMS);
+  const [contentGroups, setContentGroups] = useState(INITIAL_CONTENT_GROUPS);
+  const [ideaVault, setIdeaVault] = useState(INITIAL_IDEA_VAULT);
+  const [notificationRules, setNotificationRules] = useState(INITIAL_NOTIFICATION_RULES);
+  const [notificationLogs, setNotificationLogs] = useState(INITIAL_NOTIFICATION_LOGS);
+
+  // Filtered by Tenant (team_id)
+  const currentTeamContent = contentItems.filter(c => c.team_id === activeTeamId);
+  const currentTeamCampaigns = campaigns.filter(c => c.team_id === activeTeamId);
+  const currentTeamProducts = products.filter(p => p.team_id === activeTeamId);
+  const currentTeamMarketingPlans = marketingPlans.filter(m => m.team_id === activeTeamId);
+  const currentTeamIdeas = campaignIdeas.filter(i => i.team_id === activeTeamId);
+  const currentTeamVault = ideaVault.filter(v => v.team_id === activeTeamId);
+  const currentTeamRules = notificationRules.filter(r => r.team_id === activeTeamId);
+  const currentTeamLogs = notificationLogs.filter(l => l.team_id === activeTeamId);
+
+  // Handlers for Module 1: Content Plan
+  const handleAddContentItem = (newItem) => {
+    setContentItems(prev => [newItem, ...prev]);
+    confetti({ particleCount: 50, spread: 60, origin: { y: 0.8 } });
+  };
+
+  const handleUpdateContentStatus = (id, newStatus) => {
+    setContentItems(prev => prev.map(item => item.id === id ? { ...item, status: newStatus } : item));
+  };
+
+  const handleEditContentItem = (updatedItem) => {
+    setContentItems(prev => prev.map(item => item.id === updatedItem.id ? { ...item, ...updatedItem } : item));
+  };
+
+  const handleDeleteContentItem = (id) => {
+    setContentItems(prev => prev.filter(item => item.id !== id));
+  };
+
+  const handleAddContentGroup = (newGroup) => {
+    setContentGroups(prev => [...prev, newGroup]);
+  };
+
+  const handleDeleteContentGroup = (groupId) => {
+    setContentGroups(prev => prev.filter(g => g.id !== groupId));
+  };
+
+  const handleAddVaultIdea = (newIdea) => {
+    setIdeaVault(prev => [newIdea, ...prev]);
+  };
+
+  const handleConvertVaultIdeaToContent = (idea) => {
+    const newContent = {
+      id: `cnt-${Date.now()}`,
+      team_id: activeTeamId,
+      campaign_id: currentTeamCampaigns[0]?.id || '',
+      creator_id: activeUserId,
+      title: `[Draft Plan] ${idea.title}`,
+      caption: idea.notes,
+      platform: idea.platforms[0] || 'tiktok',
+      status: 'draft',
+      publish_date: new Date(Date.now() + 86400000 * 3).toISOString(),
+      media_url: 'https://images.unsplash.com/photo-1620916566398-39f1143ab7be?auto=format&fit=crop&w=600&q=80',
+      performance: { views: 0, likes: 0, comments: 0, shares: 0, ctr: 0 }
+    };
+
+    setContentItems(prev => [newContent, ...prev]);
+    setIdeaVault(prev => prev.map(v => v.id === idea.id ? { ...v, is_used: true } : v));
+    setActiveTab('content-plan');
+  };
+
+  // Handlers for Module 2: Marketing Plan
+  const handleUpdateStrategyCanvas = (planId, updatedFields) => {
+    setMarketingPlans(prev => prev.map(plan => plan.id === planId ? { ...plan, ...updatedFields } : plan));
+  };
+
+  const handleUpvoteIdea = (ideaId) => {
+    setCampaignIdeas(prev => prev.map(idea => idea.id === ideaId ? { ...idea, upvotes: idea.upvotes + 1 } : idea));
+  };
+
+  const handleAddCampaignIdea = (newIdea) => {
+    setCampaignIdeas(prev => [newIdea, ...prev]);
+  };
+
+  // Handlers for Module 3: Product Plan
+  const handleToggleStageChecklist = (campaignId, stageField) => {
+    setCampaigns(prev => prev.map(camp => {
+      if (camp.id === campaignId) {
+        const updated = { ...camp, [stageField]: !camp[stageField] };
+
+        // Auto-update stage status
+        if (updated.image_ready && updated.scheduled && updated.posted) {
+          updated.stage_status = 't_minus_0';
+          updated.status = 'completed';
+        } else if (updated.image_ready && updated.scheduled) {
+          updated.stage_status = 't_minus_2';
+        }
+        return updated;
+      }
+      return camp;
+    }));
+  };
+
+  const handleAddCampaign = (newCamp) => {
+    setCampaigns(prev => [newCamp, ...prev]);
+    confetti({ particleCount: 60, spread: 70, origin: { y: 0.7 } });
+  };
+
+  // Handlers for Module 4: Notification Engine
+  const handleUpdateRuleTemplate = (ruleId, newTemplate) => {
+    setNotificationRules(prev => prev.map(rule => rule.id === ruleId ? { ...rule, template: newTemplate } : rule));
+  };
+
+  const handleToggleRuleActive = (ruleId) => {
+    setNotificationRules(prev => prev.map(rule => rule.id === ruleId ? { ...rule, is_active: !rule.is_active } : rule));
+  };
+
+  const handleTriggerNotification = (campaignId) => {
+    const targetCamp = campaigns.find(c => c.id === campaignId) || campaigns[0];
+    const currentUser = users.find(u => u.id === activeUserId) || users[0];
+
+    const newLog = {
+      id: `log-${Date.now()}`,
+      team_id: activeTeamId,
+      campaign_id: targetCamp.id,
+      recipient_name: currentUser.name,
+      recipient_line: currentUser.line_display_name,
+      stage: targetCamp.stage_status || 't_minus_2',
+      message: `[LINE Alert Engine] แจ้งเตือนแคมเปญ "${targetCamp.name}" สถานะ: ${targetCamp.stage_status.toUpperCase()}`,
+      sent_at: new Date().toISOString().replace('T', ' ').substring(0, 19),
+      status: 'sent',
+      escalation_count: targetCamp.stage_status === 'overdue' ? 2 : 0
+    };
+
+    setNotificationLogs(prev => [newLog, ...prev]);
+    confetti({ particleCount: 40, spread: 50, origin: { y: 0.6 } });
+    alert(`ส่งข้อความแจ้งเตือนผ่าน LINE OA ถึง ${currentUser.name} เรียบร้อยแล้ว!`);
+  };
+
+  const handleGenerateDigest = () => {
+    const currentUser = users.find(u => u.id === activeUserId) || users[0];
+    const newLog = {
+      id: `log-${Date.now()}`,
+      team_id: activeTeamId,
+      campaign_id: currentTeamCampaigns[0]?.id || '',
+      recipient_name: currentUser.name,
+      recipient_line: currentUser.line_display_name,
+      stage: 't_minus_5',
+      message: `[Daily Digest Summary] รวมสรุปสถานะแคมเปญ ${currentTeamCampaigns.length} แคมเปญ และคอนเทนต์ ${currentTeamContent.length} รายการ`,
+      sent_at: new Date().toISOString().replace('T', ' ').substring(0, 19),
+      status: 'sent',
+      escalation_count: 0
+    };
+
+    setNotificationLogs(prev => [newLog, ...prev]);
+    confetti({ particleCount: 70, spread: 80, origin: { y: 0.7 } });
+    alert('สร้างและยิงรายงานสรุป Digest เข้า LINE สำเร็จ!');
+  };
+
+  return (
+    <div className="min-h-screen bg-slate-50 text-slate-800 flex flex-col justify-between">
+
+      <div>
+        {/* Navigation Header */}
+        <NavigationHeader
+          teams={teams}
+          activeTeamId={activeTeamId}
+          onSelectTeam={setActiveTeamId}
+          users={users}
+          activeUserId={activeUserId}
+          onSelectUser={setActiveUserId}
+          activeTab={activeTab}
+          onSelectTab={setActiveTab}
+          notificationLogs={currentTeamLogs}
+          onOpenSchemaModal={() => setSchemaModalOpen(true)}
+        />
+
+        {/* Main Content Area - Full Widescreen Layout */}
+        <main className="w-full max-w-[1920px] mx-auto px-4 sm:px-6 lg:px-10 xl:px-12 py-8">
+          {activeTab === 'dashboard' && (
+            <DashboardOverview
+              campaigns={currentTeamCampaigns}
+              contentItems={currentTeamContent}
+              marketingPlans={currentTeamMarketingPlans}
+              notificationLogs={currentTeamLogs}
+              onNavigateTab={setActiveTab}
+              onTriggerNotification={handleTriggerNotification}
+            />
+          )}
+
+          {activeTab === 'content-plan' && (
+            <ContentPlanModule
+              contentItems={currentTeamContent}
+              contentGroups={contentGroups}
+              ideaVault={currentTeamVault}
+              campaigns={currentTeamCampaigns}
+              onAddContentItem={handleAddContentItem}
+              onUpdateContentStatus={handleUpdateContentStatus}
+              onEditContentItem={handleEditContentItem}
+              onDeleteContentItem={handleDeleteContentItem}
+              onAddContentGroup={handleAddContentGroup}
+              onDeleteContentGroup={handleDeleteContentGroup}
+              onAddVaultIdea={handleAddVaultIdea}
+              onConvertVaultIdeaToContent={handleConvertVaultIdeaToContent}
+            />
+          )}
+
+          {activeTab === 'marketing-plan' && (
+            <MarketingPlanModule
+              marketingPlans={currentTeamMarketingPlans}
+              campaignIdeas={currentTeamIdeas}
+              campaigns={currentTeamCampaigns}
+              onUpdateStrategyCanvas={handleUpdateStrategyCanvas}
+              onUpvoteIdea={handleUpvoteIdea}
+              onAddCampaignIdea={handleAddCampaignIdea}
+            />
+          )}
+
+          {activeTab === 'product-plan' && (
+            <ProductPlanModule
+              campaigns={currentTeamCampaigns}
+              products={currentTeamProducts}
+              onToggleStageChecklist={handleToggleStageChecklist}
+              onAddCampaign={handleAddCampaign}
+            />
+          )}
+
+          {activeTab === 'kpi-analytics' && (
+            <KpiAnalyticsModule
+              campaigns={currentTeamCampaigns}
+              products={currentTeamProducts}
+            />
+          )}
+
+
+        </main>
+      </div>
+
+      {/* Database Schema Modal */}
+      <SchemaViewerModal
+        isOpen={schemaModalOpen}
+        onClose={() => setSchemaModalOpen(false)}
+      />
+
+      {/* Footer */}
+      <footer className="border-t border-slate-200/80 bg-white/80 backdrop-blur-md py-6 mt-12 text-center text-xs text-slate-600">
+        <div className="w-full max-w-[1920px] mx-auto px-4 sm:px-6 lg:px-10 flex flex-col sm:flex-row items-center justify-between gap-4">
+          <div className="flex items-center gap-2">
+            <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse shadow-sm shadow-emerald-500" />
+            <span className="font-extrabold text-slate-900">Marketing & Content Planning Platform</span>
+            <span className="text-emerald-700 bg-emerald-50 px-2.5 py-0.5 rounded-full border border-emerald-200 font-bold">v1.0 Clean Pastel</span>
+          </div>
+          <p className="text-slate-500 font-medium">
+            ระบบบริหารจัดการการตลาด คอนเทนต์ แคมเปญสินค้า และแจ้งเตือนอัตโนมัติผ่าน LINE
+          </p>
+        </div>
+      </footer>
+
+    </div>
+  );
+}
