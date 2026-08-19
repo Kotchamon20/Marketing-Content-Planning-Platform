@@ -159,8 +159,7 @@ export async function sendLineFlexCardAlert(targetId, alertData, token = LINE_CH
     platform = 'TikTok / Facebook',
     publishDate = '-',
     assignedTo = 'ทีมงาน Marketing',
-    status = 'T-2 (เหลือ 2 วัน)',
-    imageUrl = 'https://images.unsplash.com/photo-1620916566398-39f1143ab7be?auto=format&fit=crop&w=600&q=80'
+    status = 'T-2 (เหลือ 2 วัน)'
   } = alertData || {};
 
   const flexMessagePayload = {
@@ -183,14 +182,6 @@ export async function sendLineFlexCardAlert(targetId, alertData, token = LINE_CH
             size: 'md'
           }
         ]
-      },
-      hero: {
-        type: 'image',
-        url: imageUrl,
-        size: 'full',
-        aspectRatio: '20:13',
-        aspectMode: 'cover'
-      },
       body: {
         type: 'box',
         layout: 'vertical',
