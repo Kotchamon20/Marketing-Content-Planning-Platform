@@ -114,12 +114,21 @@ export default function BranchBudgetAllocation() {
   const currentMonthKey = `${selectedYear}-${selectedMonth}`;
 
   React.useEffect(() => {
-    setSaveStatus('saving');
     localStorage.setItem('nitan_monthly_budgets_data', JSON.stringify(monthlyBudgetsData));
 
+    const filledBranchesToSync = (monthlyBudgetsData[currentMonthKey] || []).filter(
+      b => b.previousSales > 0 || b.manualFullBudget > 0 || b.channelAllocations?.some(c => c.amount > 0 || c.percent > 0)
+    );
+
+    if (filledBranchesToSync.length === 0) {
+      setSaveStatus('saved');
+      return;
+    }
+
+    setSaveStatus('saving');
+
     const syncTimer = setTimeout(() => {
-      const branchesToSync = monthlyBudgetsData[currentMonthKey] || [];
-      branchesToSync.forEach(b => {
+      filledBranchesToSync.forEach(b => {
         upsertBranchBudgetToSupabase(b, currentMonthKey);
       });
       setSaveStatus('saved');
