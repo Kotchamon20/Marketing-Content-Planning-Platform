@@ -22,7 +22,10 @@ import {
   Megaphone,
   X,
   AlertCircle,
-  TrendingUp
+  TrendingUp,
+  Settings,
+  Save,
+  Check
 } from 'lucide-react';
 import LineFlexModal from './LineFlexModal';
 
@@ -31,17 +34,25 @@ export default function PromotionPlanModule({
   campaigns = [],
   onTriggerNotification
 }) {
+  // Dynamic Promo Categories State (Add, Edit, Delete categories)
+  const [categories, setCategories] = useState([
+    { id: 'cat-1', name: 'Product Promotion', label: 'แผนโปรโมทสินค้า (Product)' },
+    { id: 'cat-2', name: 'Branch Promotion', label: 'แผนโปรโมทสาขา (Branch)' },
+    { id: 'cat-3', name: 'Brand Campaign', label: 'แคมเปญแบรนด์ (Brand)' },
+    { id: 'cat-4', name: 'Seasonal Promo', label: 'โปรโมชันตามเทศกาล (Seasonal)' }
+  ]);
+
   // Initial Mock Promotion Plans Data
   const [promotionPlans, setPromotionPlans] = useState([
     {
       id: 'promo-1',
       code: 'PROMO-2026-08A',
       title: 'ซื้อ 1 แถม 1 Sunscreen Aqua Gel ฉลองเปิดตัวสูตรใหม่',
-      category: 'Product Promotion', // Product Promotion | Branch Promotion | Brand Campaign | Seasonal Promo
+      category: 'Product Promotion',
       targetProductId: 'prod-1',
       targetProductName: 'Sunscreen Aqua Gel (กันแดดสูตรน้ำ)',
       targetBranch: 'ทุกสาขา',
-      status: 'active', // active | planned | completed
+      status: 'active',
       discountOffer: 'Buy 1 Get 1 Free (ซื้อ 1 แถม 1)',
       startDate: '2026-08-01',
       endDate: '2026-08-31',
@@ -124,18 +135,24 @@ export default function PromotionPlanModule({
   ]);
 
   // Filters State
-  const [selectedCategory, setSelectedCategory] = useState('all'); // 'all' | 'Product Promotion' | 'Branch Promotion' | 'Brand Campaign' | 'Seasonal Promo'
+  const [selectedCategory, setSelectedCategory] = useState('all');
   const [selectedProduct, setSelectedProduct] = useState('all');
   const [selectedBranch, setSelectedBranch] = useState('all');
-  const [selectedStatus, setSelectedStatus] = useState('all'); // 'all' | 'active' | 'planned' | 'completed'
+  const [selectedStatus, setSelectedStatus] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
 
   // Modals State
   const [showAddModal, setShowAddModal] = useState(false);
+  const [showManageCategoriesModal, setShowManageCategoriesModal] = useState(false);
   const [editingPlan, setEditingPlan] = useState(null);
   const [lineModalItem, setLineModalItem] = useState(null);
 
-  // Form State for Add / Edit Modal
+  // Category Manager Modal Inputs State
+  const [newCategoryName, setNewCategoryName] = useState('');
+  const [editingCategoryId, setEditingCategoryId] = useState(null);
+  const [editingCategoryName, setEditingCategoryName] = useState('');
+
+  // Form State for Add / Edit Plan Modal
   const [formData, setFormData] = useState({
     title: '',
     category: 'Product Promotion',
@@ -151,12 +168,46 @@ export default function PromotionPlanModule({
     channelsStr: 'Facebook Ads, TikTok, หน้าร้าน'
   });
 
-  // Open Add Modal
+  // Category Management Handlers
+  const handleAddCategory = (e) => {
+    e.preventDefault();
+    if (!newCategoryName.trim()) return;
+
+    const newCatName = newCategoryName.trim();
+    const newCat = {
+      id: `cat-${Date.now()}`,
+      name: newCatName,
+      label: newCatName
+    };
+
+    setCategories(prev => [...prev, newCat]);
+    setNewCategoryName('');
+  };
+
+  const handleStartEditCategory = (cat) => {
+    setEditingCategoryId(cat.id);
+    setEditingCategoryName(cat.name);
+  };
+
+  const handleSaveEditCategory = (catId) => {
+    if (!editingCategoryName.trim()) return;
+
+    const updatedName = editingCategoryName.trim();
+    setCategories(prev => prev.map(c => c.id === catId ? { ...c, name: updatedName, label: updatedName } : c));
+    setEditingCategoryId(null);
+    setEditingCategoryName('');
+  };
+
+  const handleDeleteCategory = (catId) => {
+    setCategories(prev => prev.filter(c => c.id !== catId));
+  };
+
+  // Open Add Plan Modal
   const handleOpenAddModal = () => {
     setEditingPlan(null);
     setFormData({
       title: '',
-      category: 'Product Promotion',
+      category: categories[0]?.name || 'Product Promotion',
       targetProductName: products[0]?.name || 'Sunscreen Aqua Gel (กันแดดสูตรน้ำ)',
       targetBranch: 'ทุกสาขา',
       status: 'planned',
@@ -171,7 +222,7 @@ export default function PromotionPlanModule({
     setShowAddModal(true);
   };
 
-  // Open Edit Modal
+  // Open Edit Plan Modal
   const handleOpenEditModal = (plan) => {
     setEditingPlan(plan);
     setFormData({
@@ -191,7 +242,7 @@ export default function PromotionPlanModule({
     setShowAddModal(true);
   };
 
-  // Save Add or Edit
+  // Save Add or Edit Plan
   const handleSaveForm = (e) => {
     e.preventDefault();
     const channelsList = formData.channelsStr.split(',').map(c => c.trim()).filter(Boolean);
@@ -297,6 +348,14 @@ export default function PromotionPlanModule({
 
           <div className="flex items-center gap-3 flex-wrap">
             <button
+              onClick={() => setShowManageCategoriesModal(true)}
+              className="px-3.5 py-2.5 bg-white hover:bg-purple-50 text-purple-950 font-bold rounded-xl text-xs transition border border-[#E2D2EA] flex items-center gap-2 cursor-pointer shadow-xs"
+            >
+              <Settings className="w-4 h-4 text-purple-700" />
+              <span>จัดการประเภทแผนโปรโมท</span>
+            </button>
+
+            <button
               onClick={handleOpenAddModal}
               className="px-4 py-2.5 bg-gradient-to-r from-purple-950 via-pink-900 to-purple-900 text-white font-bold rounded-xl text-xs transition shadow-md flex items-center gap-2 cursor-pointer hover:opacity-95"
             >
@@ -358,31 +417,46 @@ export default function PromotionPlanModule({
       <div className="glass-panel p-4 border-[#E2D2EA] space-y-4">
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3 text-xs">
           
-          {/* Category Filter Tabs */}
+          {/* Category Filter Tabs with Edit/Add capability */}
           <div className="flex items-center gap-1.5 overflow-x-auto pb-1">
             <span className="font-bold text-purple-900 flex items-center gap-1 shrink-0 mr-1">
               <Filter className="w-3.5 h-3.5 text-purple-600" />
               <span>กรองประเภทแผน:</span>
             </span>
 
-            {[
-              { value: 'all', label: 'ทั้งหมด' },
-              { value: 'Product Promotion', label: 'แผนโปรโมทสินค้า (Product)' },
-              { value: 'Branch Promotion', label: 'แผนโปรโมทสาขา (Branch)' },
-              { value: 'Brand Campaign', label: 'แคมเปญแบรนด์ (Brand)' }
-            ].map(tab => (
+            <button
+              onClick={() => setSelectedCategory('all')}
+              className={`px-3 py-1.5 rounded-xl font-bold transition whitespace-nowrap cursor-pointer ${
+                selectedCategory === 'all'
+                  ? 'bg-purple-950 text-white shadow-xs'
+                  : 'bg-white text-purple-900 hover:bg-purple-50 border border-[#E2D2EA]'
+              }`}
+            >
+              ทั้งหมด
+            </button>
+
+            {categories.map(cat => (
               <button
-                key={tab.value}
-                onClick={() => setSelectedCategory(tab.value)}
+                key={cat.id}
+                onClick={() => setSelectedCategory(cat.name)}
                 className={`px-3 py-1.5 rounded-xl font-bold transition whitespace-nowrap cursor-pointer ${
-                  selectedCategory === tab.value
+                  selectedCategory === cat.name
                     ? 'bg-purple-950 text-white shadow-xs'
                     : 'bg-white text-purple-900 hover:bg-purple-50 border border-[#E2D2EA]'
                 }`}
               >
-                {tab.label}
+                {cat.label || cat.name}
               </button>
             ))}
+
+            <button
+              onClick={() => setShowManageCategoriesModal(true)}
+              className="px-2.5 py-1.5 rounded-xl font-bold bg-[#FFEBF3] hover:bg-pink-200 text-purple-950 border border-[#E2D2EA] transition flex items-center gap-1 shrink-0 cursor-pointer shadow-xs"
+              title="แก้ไข / เพิ่มประเภทแผนโปรโมท"
+            >
+              <Plus className="w-3.5 h-3.5 text-purple-700" />
+              <span>เพิ่ม/แก้ไขประเภท</span>
+            </button>
           </div>
 
           {/* Search Box */}
@@ -471,13 +545,7 @@ export default function PromotionPlanModule({
                       {plan.code}
                     </span>
 
-                    <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold border ${
-                      plan.category === 'Product Promotion' 
-                        ? 'bg-[#FFEBF3] text-purple-950 border-[#E2D2EA]' 
-                        : plan.category === 'Branch Promotion'
-                        ? 'bg-[#E6F2FF] text-purple-950 border-[#E2D2EA]'
-                        : 'bg-[#FEF9C3] text-purple-950 border-[#E2D2EA]'
-                    }`}>
+                    <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-[#FFEBF3] text-purple-950 border border-[#E2D2EA]">
                       {plan.category}
                     </span>
                   </div>
@@ -676,10 +744,11 @@ export default function PromotionPlanModule({
                     onChange={(e) => setFormData(prev => ({ ...prev, category: e.target.value }))}
                     className="w-full px-3 py-2 bg-white border border-[#E2D2EA] rounded-xl text-purple-950 font-bold focus:outline-none shadow-xs"
                   >
-                    <option value="Product Promotion">แผนโปรโมทสินค้า (Product Promotion)</option>
-                    <option value="Branch Promotion">แผนโปรโมทสาขา (Branch Promotion)</option>
-                    <option value="Brand Campaign">แคมเปญแบรนด์ (Brand Campaign)</option>
-                    <option value="Seasonal Promo">โปรโมชันตามเทศกาล (Seasonal Promo)</option>
+                    {categories.map(cat => (
+                      <option key={cat.id} value={cat.name}>
+                        {cat.label || cat.name}
+                      </option>
+                    ))}
                   </select>
                 </div>
 
@@ -825,6 +894,109 @@ export default function PromotionPlanModule({
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL 2: Dynamic Category Manager Modal (Add, Edit, Delete Promo Categories) */}
+      {showManageCategoriesModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-xs p-4 animate-in fade-in duration-150 overflow-y-auto">
+          <div className="glass-panel max-w-lg w-full p-6 space-y-4 border-[#E2D2EA] shadow-2xl bg-white/95 my-8">
+            <div className="flex items-center justify-between border-b border-purple-100 pb-3">
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded-xl bg-[#FFEBF3] text-purple-800 flex items-center justify-center border border-[#E2D2EA]">
+                  <Settings className="w-4 h-4" />
+                </div>
+                <div>
+                  <h3 className="text-base font-bold text-purple-950">จัดการประเภทแผนโปรโมท (Dynamic Categories)</h3>
+                  <p className="text-xs text-purple-800/80">เพิ่ม แก้ไข หรือลบหมวดหมู่ประเภทแผนโปรโมทสำหรับกรอกและคัดกรอง</p>
+                </div>
+              </div>
+              <button onClick={() => setShowManageCategoriesModal(false)} className="text-purple-400 hover:text-purple-700 font-bold cursor-pointer">
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            {/* Add New Category Input Form */}
+            <form onSubmit={handleAddCategory} className="flex gap-2">
+              <input
+                type="text"
+                required
+                placeholder="เช่น Flash Sale 9.9 / VIP Influencer Pack / โปรโมชันวันแม่"
+                value={newCategoryName}
+                onChange={(e) => setNewCategoryName(e.target.value)}
+                className="flex-1 px-3 py-2 bg-white border border-[#E2D2EA] rounded-xl text-purple-950 text-xs font-medium focus:outline-none shadow-xs"
+              />
+              <button
+                type="submit"
+                className="px-4 py-2 bg-purple-950 hover:bg-purple-900 text-white font-bold rounded-xl text-xs transition flex items-center gap-1 cursor-pointer shadow-xs shrink-0"
+              >
+                <Plus className="w-4 h-4" />
+                <span>+ เพิ่มประเภท</span>
+              </button>
+            </form>
+
+            {/* Existing Categories List */}
+            <div className="space-y-2 max-h-60 overflow-y-auto pt-2">
+              <span className="text-xs font-bold text-purple-900 block">รายการประเภทแผนโปรโมทปัจจุบัน ({categories.length}):</span>
+              
+              {categories.map(cat => {
+                const isEditing = editingCategoryId === cat.id;
+
+                return (
+                  <div key={cat.id} className="p-3 bg-purple-50/60 rounded-xl border border-purple-100 flex items-center justify-between gap-2 text-xs">
+                    {isEditing ? (
+                      <input
+                        type="text"
+                        value={editingCategoryName}
+                        onChange={(e) => setEditingCategoryName(e.target.value)}
+                        className="flex-1 px-2.5 py-1 bg-white border border-purple-300 rounded-lg text-purple-950 font-bold focus:outline-none text-xs"
+                      />
+                    ) : (
+                      <span className="font-bold text-purple-950">{cat.label || cat.name}</span>
+                    )}
+
+                    <div className="flex items-center gap-1.5 shrink-0">
+                      {isEditing ? (
+                        <button
+                          onClick={() => handleSaveEditCategory(cat.id)}
+                          className="px-2.5 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg font-bold text-[11px] flex items-center gap-1 cursor-pointer"
+                        >
+                          <Check className="w-3 h-3" />
+                          <span>บันทึก</span>
+                        </button>
+                      ) : (
+                        <button
+                          onClick={() => handleStartEditCategory(cat)}
+                          className="p-1 text-purple-600 hover:bg-purple-100 rounded-md transition cursor-pointer"
+                          title="แก้ไขชื่อประเภท"
+                        >
+                          <Edit3 className="w-3.5 h-3.5" />
+                        </button>
+                      )}
+
+                      <button
+                        onClick={() => handleDeleteCategory(cat.id)}
+                        className="p-1 text-rose-500 hover:bg-rose-100 rounded-md transition cursor-pointer"
+                        title="ลบประเภทนี้"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
+            <div className="pt-3 border-t border-purple-100 flex justify-end">
+              <button
+                type="button"
+                onClick={() => setShowManageCategoriesModal(false)}
+                className="px-5 py-2 bg-gradient-to-r from-purple-950 via-pink-900 to-purple-900 text-white font-bold rounded-xl text-xs transition shadow-md cursor-pointer"
+              >
+                เสร็จสิ้น
+              </button>
+            </div>
           </div>
         </div>
       )}
