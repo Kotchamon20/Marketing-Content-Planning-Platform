@@ -241,6 +241,31 @@ export async function fetchLineGroupsFromSupabase() {
   }
 }
 
+export async function upsertLineGroupToSupabase(groupId, groupName = 'Nitan Line Group') {
+  try {
+    const payload = {
+      group_id: groupId,
+      group_name: groupName,
+      is_active: true,
+      updated_at: new Date().toISOString()
+    };
+
+    const { data, error } = await supabase
+      .from('line_groups')
+      .upsert([payload], { onConflict: 'group_id' })
+      .select();
+
+    if (error) {
+      console.warn('Supabase upsertLineGroup error:', error.message);
+      return null;
+    }
+    return data;
+  } catch (err) {
+    console.error('Supabase upsertLineGroup catch:', err);
+    return null;
+  }
+}
+
 // ------------------------------------------------------------------------------
 // 6. BRANCH BUDGETS ALLOCATION (branch_budgets table)
 // ------------------------------------------------------------------------------
@@ -287,6 +312,104 @@ export async function upsertBranchBudgetToSupabase(branch, monthYear = '2026-08'
     return data;
   } catch (err) {
     console.error('Supabase upsertBranchBudget catch:', err);
+    return null;
+  }
+}
+
+// ------------------------------------------------------------------------------
+// 7. TODO TASKS (todo_tasks table)
+// ------------------------------------------------------------------------------
+export async function upsertTodoTaskToSupabase(task) {
+  try {
+    const payload = {
+      title: task.title || 'งานที่ต้องทำ',
+      due_date: task.dueDate || new Date().toISOString().split('T')[0],
+      priority: task.priority || 'medium',
+      assigned_to: task.assignedTo || 'Marketing Team',
+      status: task.status || 'pending',
+      category: task.category || 'general'
+    };
+
+    const { data, error } = await supabase
+      .from('todo_tasks')
+      .upsert([payload])
+      .select();
+
+    if (error) {
+      console.warn('Supabase upsertTodoTask error:', error.message);
+      return null;
+    }
+    return data;
+  } catch (err) {
+    console.error('Supabase upsertTodoTask catch:', err);
+    return null;
+  }
+}
+
+// ------------------------------------------------------------------------------
+// 8. KPI ITEMS & PAID ADS (kpi_items table)
+// ------------------------------------------------------------------------------
+export async function upsertKpiItemToSupabase(kpi) {
+  try {
+    const payload = {
+      title: kpi.title,
+      category: kpi.category || 'shopee',
+      sub_group: kpi.subGroup || 'Shopee Official Store',
+      target_revenue: Number(kpi.targetRevenue) || 0,
+      actual_revenue: Number(kpi.actualRevenue) || 0,
+      orders_count: Number(kpi.ordersCount) || 0,
+      roas: Number(kpi.roas) || 0,
+      cpa: Number(kpi.cpa) || 0,
+      is_ads_running: Boolean(kpi.isAdsRunning),
+      ads_budget: Number(kpi.adsBudget) || 0,
+      actual_ads_spend: Number(kpi.actualAdsSpend) || 0,
+      ads_channel: kpi.adsChannel || 'Online Ads'
+    };
+
+    const { data, error } = await supabase
+      .from('kpi_items')
+      .upsert([payload])
+      .select();
+
+    if (error) {
+      console.warn('Supabase upsertKpiItem error:', error.message);
+      return null;
+    }
+    return data;
+  } catch (err) {
+    console.error('Supabase upsertKpiItem catch:', err);
+    return null;
+  }
+}
+
+// ------------------------------------------------------------------------------
+// 9. PROMOTION PLANS (promotion_plans table)
+// ------------------------------------------------------------------------------
+export async function upsertPromotionPlanToSupabase(plan) {
+  try {
+    const payload = {
+      title: plan.title,
+      category: plan.category || 'discount',
+      product_id: plan.productId || 'p-1',
+      product_name: plan.productName || 'สินค้าทุกรายการ',
+      discount_text: plan.discountText || '',
+      start_date: plan.startDate || new Date().toISOString().split('T')[0],
+      end_date: plan.endDate || new Date(Date.now() + 86400000 * 30).toISOString().split('T')[0],
+      status: plan.status || 'active'
+    };
+
+    const { data, error } = await supabase
+      .from('promotion_plans')
+      .upsert([payload])
+      .select();
+
+    if (error) {
+      console.warn('Supabase upsertPromotionPlan error:', error.message);
+      return null;
+    }
+    return data;
+  } catch (err) {
+    console.error('Supabase upsertPromotionPlan catch:', err);
     return null;
   }
 }

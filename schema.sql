@@ -207,6 +207,50 @@ CREATE TABLE IF NOT EXISTS branch_budgets (
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
+-- 14. TODO TASKS (Module 5 - Priority Tasks & Work Followup)
+CREATE TABLE IF NOT EXISTS todo_tasks (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    title VARCHAR(255) NOT NULL,
+    due_date DATE,
+    priority VARCHAR(20) DEFAULT 'medium',
+    assigned_to VARCHAR(100) DEFAULT 'Marketing Team',
+    status VARCHAR(20) DEFAULT 'pending',
+    category VARCHAR(50) DEFAULT 'general',
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- 15. KPI ITEMS & PAID ADS (Module 6 - Performance & Paid Spend)
+CREATE TABLE IF NOT EXISTS kpi_items (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    title VARCHAR(255) NOT NULL,
+    category VARCHAR(100) DEFAULT 'shopee',
+    sub_group VARCHAR(100) DEFAULT 'Shopee Official Store',
+    target_revenue DECIMAL(12, 2) DEFAULT 0.00,
+    actual_revenue DECIMAL(12, 2) DEFAULT 0.00,
+    orders_count INTEGER DEFAULT 0,
+    roas DECIMAL(6, 2) DEFAULT 0.00,
+    cpa DECIMAL(10, 2) DEFAULT 0.00,
+    is_ads_running BOOLEAN DEFAULT FALSE,
+    ads_budget DECIMAL(12, 2) DEFAULT 0.00,
+    actual_ads_spend DECIMAL(12, 2) DEFAULT 0.00,
+    ads_channel VARCHAR(255) DEFAULT 'Online Ads',
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- 16. PROMOTION PLANS (Module 4 - Related Product Promotion Plans)
+CREATE TABLE IF NOT EXISTS promotion_plans (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    title VARCHAR(255) NOT NULL,
+    category VARCHAR(100) DEFAULT 'discount',
+    product_id VARCHAR(100) DEFAULT 'p-1',
+    product_name VARCHAR(255) DEFAULT 'สินค้าทุกรายการ',
+    discount_text VARCHAR(100),
+    start_date DATE,
+    end_date DATE,
+    status VARCHAR(20) DEFAULT 'active',
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
 -- DISABLE RLS TO ALLOW FULL DIRECT ANONYMOUS READ/WRITE ACCESS FROM LOCAL AND PRODUCTION
 ALTER TABLE teams DISABLE ROW LEVEL SECURITY;
 ALTER TABLE users DISABLE ROW LEVEL SECURITY;
@@ -220,6 +264,9 @@ ALTER TABLE notification_rules DISABLE ROW LEVEL SECURITY;
 ALTER TABLE notification_logs DISABLE ROW LEVEL SECURITY;
 ALTER TABLE line_groups DISABLE ROW LEVEL SECURITY;
 ALTER TABLE branch_budgets DISABLE ROW LEVEL SECURITY;
+ALTER TABLE todo_tasks DISABLE ROW LEVEL SECURITY;
+ALTER TABLE kpi_items DISABLE ROW LEVEL SECURITY;
+ALTER TABLE promotion_plans DISABLE ROW LEVEL SECURITY;
 
 -- SAFE PUBLIC ALL ACCESS POLICIES
 DROP POLICY IF EXISTS "Allow public all access on line_groups" ON line_groups;
@@ -227,6 +274,15 @@ CREATE POLICY "Allow public all access on line_groups" ON line_groups FOR ALL US
 
 DROP POLICY IF EXISTS "Allow public all access on branch_budgets" ON branch_budgets;
 CREATE POLICY "Allow public all access on branch_budgets" ON branch_budgets FOR ALL USING (true);
+
+DROP POLICY IF EXISTS "Allow public all access on todo_tasks" ON todo_tasks;
+CREATE POLICY "Allow public all access on todo_tasks" ON todo_tasks FOR ALL USING (true);
+
+DROP POLICY IF EXISTS "Allow public all access on kpi_items" ON kpi_items;
+CREATE POLICY "Allow public all access on kpi_items" ON kpi_items FOR ALL USING (true);
+
+DROP POLICY IF EXISTS "Allow public all access on promotion_plans" ON promotion_plans;
+CREATE POLICY "Allow public all access on promotion_plans" ON promotion_plans FOR ALL USING (true);
 
 DROP POLICY IF EXISTS "Allow public all access on teams" ON teams;
 CREATE POLICY "Allow public all access on teams" ON teams FOR ALL USING (true);
