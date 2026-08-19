@@ -46,127 +46,8 @@ export default function PromotionPlanModule({
     { id: 'cat-4', name: 'Seasonal Promo', label: 'โปรโมชันตามเทศกาล (Seasonal)' }
   ]);
 
-  // Initial Mock Promotion Plans Data with Doc Content (Campaign Brief)
-  const [promotionPlans, setPromotionPlans] = useState([
-    {
-      id: 'promo-1',
-      code: 'PROMO-2026-08A',
-      title: 'ซื้อ 1 แถม 1 Sunscreen Aqua Gel ฉลองเปิดตัวสูตรใหม่',
-      category: 'Product Promotion',
-      targetProductId: 'prod-1',
-      targetProductName: 'Sunscreen Aqua Gel (กันแดดสูตรน้ำ)',
-      targetBranch: 'ทุกสาขา',
-      status: 'active',
-      discountOffer: 'Buy 1 Get 1 Free (ซื้อ 1 แถม 1)',
-      startDate: '2026-08-01',
-      endDate: '2026-08-31',
-      budget: 35000,
-      projectedSales: 450000,
-      channels: ['Facebook Ads', 'TikTok Shop', 'Shopee', 'หน้าร้านทุกสาขา'],
-      description: 'แคมเปญกระตุ้นยอดขายครีมกันแดดรับช่วงซัมเมอร์ แจกเทสเตอร์ฟรีเมื่อซื้อครบ 800 บาท',
-      docContent: `=====================================================
-เอกสารบรีฟแผนโปรโมชัน (CAMPAIGN STRATEGY & PROMOTION DOC)
-รหัสแคมเปญ: PROMO-2026-08A
-ชื่อแคมเปญ: ซื้อ 1 แถม 1 Sunscreen Aqua Gel ฉลองเปิดตัวสูตรใหม่
-=====================================================
-
-1. วัตถุประสงค์เชิงกลยุทธ์ (Strategic Objectives)
-- กระตุ้นยอดขายครีมกันแดด Sunscreen Aqua Gel ให้เติบโต +150% ในเดือนสิงหาคม
-- สร้างการรับรู้สูตรปรับปรุงใหม่ (Upgraded SPF50+ PA++++ Non-Greasy Formula)
-- เพิ่มยอดสั่งซื้อเฉลี่ยต่อบิล (AOV) ผ่านข้อเสนอซื้อ 1 แถม 1
-
-2. กลุ่มเป้าหมายหลัก (Target Audience)
-- กลุ่มหญิงและชาย อายุ 22-45 ปี ที่ชื่นชอบกิจกรรมกลางแจ้งและใส่ใจสุขภาพผิว
-- ลูกค้าที่สอยสินค้าประเภทครีมกันแดดออนไลน์ (Shopee / TikTok Shop / Lazada)
-
-3. เงื่อนไขและข้อเสนอโปรโมชัน (Promotion Offer & Conditions)
-- เมื่อซื้อ Sunscreen Aqua Gel ขนาด 50ml 1 ชิ้น ราคาปกติ ฿590 รับฟรีอีก 1 ชิ้นทันที
-- พิเศษ! สั่งซื้อครบ ฿800 รับเพิ่ม Nitan Pouch Bag & Tester Mask 1 ชิ้น (จำกัด 500 สิทธิ์แรก)
-- โปรโมชันนี้ใช้ได้ทั้งหน้าร้านทุกสาขา และช่องทางออนไลน์
-
-4. สื่อและสคริปต์โฆษณา (Ad Copy & Creative Brief)
-- Hook 3 วินาทีแรก: "แดดเมืองไทยร้อนแรงขนาดนี้ กันแดดตัวเดิมเอาอยู่จริงเหรอ?"
-- Body Concept: โชว์ซูมเนื้อกันแดดแตกตัวเป็นน้ำ ซึมไว ไม่เหนียวเหนอะหนะ
-- Call to Action (CTA): "กดตระกร้าด่วน! ซื้อ 1 แถม 1 เฉพาะสัปดาห์นี้เท่านั้น"
-
-5. งบประมาณและการจัดสรรสื่อ (Budget Breakdown)
-- Facebook & Instagram Ads: ฿15,000 (43%)
-- TikTok Video Ads & Creator Commissions: ฿12,000 (34%)
-- ป้ายและสื่อ POSM หน้าร้านทุกสาขา: ฿8,000 (23%)`,
-      checklist: [
-        { task: 'จัดทำอาร์ตเวิร์คและคลิปวิดีโอ TikTok', completed: true },
-        { task: 'เซ็ตอัปโฆษณา Facebook & TikTok Ads', completed: true },
-        { task: 'กระจายสื่อ POSM และป้ายโปรโมชันหน้าร้านทุกสาขา', completed: true },
-        { task: 'สรุปยอดขายและ ROAS ประจำสัปดาห์', completed: false }
-      ]
-    },
-    {
-      id: 'promo-2',
-      code: 'PROMO-2026-08B',
-      title: 'Festival ลดกระหน่ำ 30% เฉพาะสาขาเขาพระตำหนัก พัทยา',
-      category: 'Branch Promotion',
-      targetProductId: 'all',
-      targetProductName: 'สินค้าทุกรายการในร้าน',
-      targetBranch: 'NITAN เขาพระตำหนัก',
-      status: 'active',
-      discountOffer: 'Discount 30% Off ทุกบิล',
-      startDate: '2026-08-15',
-      endDate: '2026-08-25',
-      budget: 20000,
-      projectedSales: 300000,
-      channels: ['Local FB Ads', 'Line OA สาขา', 'ป้ายหน้าร้าน'],
-      description: 'โปรโมชันฉลองครบรอบสาขาเขาพระตำหนัก ดึงดูดนักท่องเที่ยวและลูกค้าประจำในพื้นที่พัทยา',
-      docContent: `=====================================================
-เอกสารบรีฟแผนโปรโมชันสาขา (BRANCH PROMOTION DOC)
-รหัสแคมเปญ: PROMO-2026-08B
-ชื่อแคมเปญ: Festival ลดกระหน่ำ 30% เฉพาะสาขาเขาพระตำหนัก พัทยา
-=====================================================
-
-1. วัตถุประสงค์สาขา (Branch Target)
-- ดึงดูดสัญจรนักท่องเที่ยวในพื้นที่พัทยา เขาพระตำหนัก เข้าสู่หน้าร้าน
-- เพิ่มยอดขายสาขาเขาพระตำหนักแตะ ฿300,000 ภายใน 10 วัน
-
-2. ข้อเสนอและของแถม (Offer Details)
-- ส่วนลด 30% ทันทีเมื่อเช็กอินและกดไลก์เพจร้าน NITAN เขาพระตำหนัก
-- คูปอง Line OA รับส่วนลดเพิ่ม ฿50 ในการซื้อครั้งถัดไป`,
-      checklist: [
-        { task: 'จัดทำคูปองส่วนลด Line OA พัทยา', completed: true },
-        { task: 'ยิงโฆษณา รัศมี 10 กม. รอบสาขาเขาพระตำหนัก', completed: true },
-        { task: 'อบรมพนักงานหน้าร้านเชียร์ขายสินค้าแถมเพิ่ม', completed: false }
-      ]
-    },
-    {
-      id: 'promo-3',
-      code: 'PROMO-2026-09A',
-      title: 'Melasma Clear Serum เซ็ตฟื้นฟูผิวฝ้าแดด ซื้อ 2 ชิ้นลด 40%',
-      category: 'Product Promotion',
-      targetProductId: 'prod-2',
-      targetProductName: 'Melasma Clear Serum (เซรั่มสลายฝ้า)',
-      targetBranch: 'ทุกสาขา',
-      status: 'planned',
-      discountOffer: 'Discount 40% เมื่อซื้อเซ็ตคู่ 2 ชิ้น',
-      startDate: '2026-09-01',
-      endDate: '2026-09-15',
-      budget: 25000,
-      projectedSales: 380000,
-      channels: ['Facebook Ads', 'Instagram', 'Shopee Official Store'],
-      description: 'เน้นกลุ่มลูกค้าที่มีปัญหาฝ้า กระ จุดด่างดำจากการโดนแดดจัดช่วงวันหยุด',
-      docContent: `=====================================================
-เอกสารบรีฟแผนโปรโมชัน (CAMPAIGN DOC)
-รหัสแคมเปญ: PROMO-2026-09A
-ชื่อแคมเปญ: Melasma Clear Serum เซ็ตฟื้นฟูผิวฝ้าแดด ซื้อ 2 ชิ้นลด 40%
-=====================================================
-
-1. แนวทางการบรีฟ Influencer
-- ให้ Influencer เล่าถึงปัญหาฝ้าแดดหลังไปเที่ยวทะเล แล้วแนะนำเซรั่ม Melasma Clear
-- โชว์ Texture เซรั่มใส ซึมเร็ว และผลลัพธ์หลังใช้ต่อเนื่อง 14 วัน`,
-      checklist: [
-        { task: 'เตรียมบรีฟ Influencer สายสกินแคร์ 5 ท่าน', completed: true },
-        { task: 'ออกแบบแพ็กเกจจิ้งเซ็ตคู่พร้อมกล่องของขวัญ', completed: false },
-        { task: 'ตั้งราคาโปรโมชันบนระบบ POS และ Shopee', completed: false }
-      ]
-    }
-  ]);
+  // Clean Initial Promotion Plans Data State (Cleared Mockup Data)
+  const [promotionPlans, setPromotionPlans] = useState([]);
 
   // Filters State
   const [selectedCategory, setSelectedCategory] = useState('all');
@@ -244,7 +125,7 @@ export default function PromotionPlanModule({
     setFormData({
       title: '',
       category: categories[0]?.name || 'Product Promotion',
-      targetProductName: products[0]?.name || 'Sunscreen Aqua Gel (กันแดดสูตรน้ำ)',
+      targetProductName: products[0]?.name || 'สินค้าโปรโมชัน',
       targetBranch: 'ทุกสาขา',
       status: 'planned',
       discountOffer: 'Discount 20% Off',
@@ -524,9 +405,9 @@ export default function PromotionPlanModule({
               className="bg-transparent font-bold text-purple-950 focus:outline-none text-xs"
             >
               <option value="all">สินค้าทั้งหมด (All Products)</option>
-              <option value="Sunscreen">Sunscreen Aqua Gel (กันแดด)</option>
-              <option value="Melasma">Melasma Clear Serum (เซรั่มฝ้า)</option>
-              <option value="Collagen">Collagen Brightening Mask</option>
+              {products.map(p => (
+                <option key={p.id} value={p.name}>{p.name}</option>
+              ))}
             </select>
           </div>
 
@@ -569,186 +450,205 @@ export default function PromotionPlanModule({
       </div>
 
       {/* Promotion Plans Cards Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {filteredPlans.map(plan => {
-          const completedTasksCount = plan.checklist.filter(c => c.completed).length;
-          const totalTasksCount = plan.checklist.length;
-          const progressPercent = totalTasksCount > 0 ? (completedTasksCount / totalTasksCount * 100).toFixed(0) : 0;
+      {filteredPlans.length === 0 ? (
+        <div className="glass-panel p-12 text-center border-[#E2D2EA] space-y-3">
+          <div className="w-12 h-12 rounded-2xl bg-[#FFEBF3] text-purple-800 flex items-center justify-center border border-[#E2D2EA] mx-auto">
+            <Megaphone className="w-6 h-6" />
+          </div>
+          <h3 className="font-bold text-purple-950 text-sm">ยังไม่มีแผนการโปรโมทในระบบ</h3>
+          <p className="text-xs text-purple-800/80 max-w-md mx-auto">
+            กดปุ่มด้านล่างเพื่อเริ่มสร้างแผนการโปรโมทสินค้าหรือแคมเปญส่งเสริมการขายใหม่
+          </p>
+          <button
+            onClick={handleOpenAddModal}
+            className="px-4 py-2 bg-gradient-to-r from-purple-950 via-pink-900 to-purple-900 text-white font-bold rounded-xl text-xs shadow-md hover:opacity-95 transition cursor-pointer inline-flex items-center gap-2"
+          >
+            <Plus className="w-4 h-4 text-pink-300" />
+            <span>+ สร้างแผนโปรโมทใหม่</span>
+          </button>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          {filteredPlans.map(plan => {
+            const completedTasksCount = plan.checklist.filter(c => c.completed).length;
+            const totalTasksCount = plan.checklist.length;
+            const progressPercent = totalTasksCount > 0 ? (completedTasksCount / totalTasksCount * 100).toFixed(0) : 0;
 
-          return (
-            <div key={plan.id} className="glass-panel p-5 border-[#E2D2EA] flex flex-col justify-between space-y-4 hover:shadow-md transition">
-              <div>
-                {/* Header Badge Row */}
-                <div className="flex items-center justify-between gap-2 mb-2">
-                  <div className="flex items-center gap-2">
-                    <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-purple-950 text-white shadow-xs">
-                      {plan.code}
-                    </span>
+            return (
+              <div key={plan.id} className="glass-panel p-5 border-[#E2D2EA] flex flex-col justify-between space-y-4 hover:shadow-md transition">
+                <div>
+                  {/* Header Badge Row */}
+                  <div className="flex items-center justify-between gap-2 mb-2">
+                    <div className="flex items-center gap-2">
+                      <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-purple-950 text-white shadow-xs">
+                        {plan.code}
+                      </span>
 
-                    <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-[#FFEBF3] text-purple-950 border border-[#E2D2EA]">
-                      {plan.category}
-                    </span>
-                  </div>
-
-                  <div className="flex items-center gap-1.5">
-                    <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold flex items-center gap-1 ${
-                      plan.status === 'active'
-                        ? 'bg-emerald-100 text-emerald-800 border border-emerald-200'
-                        : plan.status === 'planned'
-                        ? 'bg-amber-100 text-amber-900 border border-amber-200'
-                        : 'bg-slate-100 text-slate-700 border border-slate-200'
-                    }`}>
-                      <span className={`w-1.5 h-1.5 rounded-full ${plan.status === 'active' ? 'bg-emerald-500 animate-pulse' : 'bg-amber-500'}`} />
-                      <span>{plan.status === 'active' ? 'Active' : plan.status === 'planned' ? 'Planned' : 'Completed'}</span>
-                    </span>
-
-                    <button
-                      onClick={() => handleOpenEditModal(plan)}
-                      className="p-1 text-purple-600 hover:bg-purple-50 rounded-lg transition cursor-pointer"
-                      title="แก้ไขแผนโปรโมท"
-                    >
-                      <Edit3 className="w-3.5 h-3.5" />
-                    </button>
-
-                    <button
-                      onClick={() => handleDeletePlan(plan.id)}
-                      className="p-1 text-rose-500 hover:bg-rose-50 rounded-lg transition cursor-pointer"
-                      title="ลบแผนโปรโมท"
-                    >
-                      <Trash2 className="w-3.5 h-3.5" />
-                    </button>
-                  </div>
-                </div>
-
-                {/* Plan Title & Offer Box */}
-                <h3 className="font-bold text-purple-950 text-base leading-snug">
-                  {plan.title}
-                </h3>
-
-                <div className="mt-3 p-3 bg-purple-50/70 rounded-xl border border-purple-100 space-y-2 text-xs">
-                  <div className="flex items-center justify-between">
-                    <span className="text-purple-900 font-bold flex items-center gap-1">
-                      <Gift className="w-3.5 h-3.5 text-purple-700" />
-                      <span>ข้อเสนอโปรโมชัน (Offer):</span>
-                    </span>
-                    <span className="font-mono font-extrabold text-pink-700 bg-white px-2 py-0.5 rounded border border-purple-200 shadow-xs">
-                      {plan.discountOffer}
-                    </span>
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-2 pt-1 border-t border-dashed border-purple-200/80 text-[11px]">
-                    <div>
-                      <span className="text-purple-800 font-medium block">สินค้าเป้าหมาย:</span>
-                      <span className="font-bold text-purple-950 flex items-center gap-1 mt-0.5">
-                        <Package className="w-3 h-3 text-purple-600 shrink-0" />
-                        <span className="truncate">{plan.targetProductName}</span>
+                      <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-[#FFEBF3] text-purple-950 border border-[#E2D2EA]">
+                        {plan.category}
                       </span>
                     </div>
 
-                    <div>
-                      <span className="text-purple-800 font-medium block">สาขาที่จัดโปรโมชัน:</span>
-                      <span className="font-bold text-purple-950 flex items-center gap-1 mt-0.5">
-                        <Building2 className="w-3 h-3 text-purple-600 shrink-0" />
-                        <span>{plan.targetBranch}</span>
+                    <div className="flex items-center gap-1.5">
+                      <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold flex items-center gap-1 ${
+                        plan.status === 'active'
+                          ? 'bg-emerald-100 text-emerald-800 border border-emerald-200'
+                          : plan.status === 'planned'
+                          ? 'bg-amber-100 text-amber-900 border border-amber-200'
+                          : 'bg-slate-100 text-slate-700 border border-slate-200'
+                      }`}>
+                        <span className={`w-1.5 h-1.5 rounded-full ${plan.status === 'active' ? 'bg-emerald-500 animate-pulse' : 'bg-amber-500'}`} />
+                        <span>{plan.status === 'active' ? 'Active' : plan.status === 'planned' ? 'Planned' : 'Completed'}</span>
                       </span>
+
+                      <button
+                        onClick={() => handleOpenEditModal(plan)}
+                        className="p-1 text-purple-600 hover:bg-purple-50 rounded-lg transition cursor-pointer"
+                        title="แก้ไขแผนโปรโมท"
+                      >
+                        <Edit3 className="w-3.5 h-3.5" />
+                      </button>
+
+                      <button
+                        onClick={() => handleDeletePlan(plan.id)}
+                        className="p-1 text-rose-500 hover:bg-rose-50 rounded-lg transition cursor-pointer"
+                        title="ลบแผนโปรโมท"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
                     </div>
                   </div>
-                </div>
 
-                {/* Channels & Date Range */}
-                <div className="mt-3 space-y-2 text-xs">
-                  <div className="flex items-center justify-between text-[11px]">
-                    <span className="text-purple-800 font-medium flex items-center gap-1">
-                      <Calendar className="w-3.5 h-3.5 text-purple-600" />
-                      <span>ระยะเวลาโปรโมชัน:</span>
-                    </span>
-                    <span className="font-mono font-bold text-purple-950">
-                      {plan.startDate} ถึง {plan.endDate}
-                    </span>
-                  </div>
+                  {/* Plan Title & Offer Box */}
+                  <h3 className="font-bold text-purple-950 text-base leading-snug">
+                    {plan.title}
+                  </h3>
 
-                  <div className="flex items-center gap-1.5 flex-wrap">
-                    <span className="text-[10px] text-purple-800 font-bold">ช่องทางที่สื่อสาร:</span>
-                    {plan.channels.map((ch, cIdx) => (
-                      <span key={cIdx} className="px-2 py-0.5 rounded-md bg-white border border-[#E2D2EA] text-[10px] font-bold text-purple-950 shadow-xs">
-                        {ch}
+                  <div className="mt-3 p-3 bg-purple-50/70 rounded-xl border border-purple-100 space-y-2 text-xs">
+                    <div className="flex items-center justify-between">
+                      <span className="text-purple-900 font-bold flex items-center gap-1">
+                        <Gift className="w-3.5 h-3.5 text-purple-700" />
+                        <span>ข้อเสนอโปรโมชัน (Offer):</span>
                       </span>
-                    ))}
-                  </div>
-                </div>
+                      <span className="font-mono font-extrabold text-pink-700 bg-white px-2 py-0.5 rounded border border-purple-200 shadow-xs">
+                        {plan.discountOffer}
+                      </span>
+                    </div>
 
-                {/* Financial Impact Row */}
-                <div className="grid grid-cols-2 gap-2 mt-3 p-2.5 bg-gradient-to-r from-[#F0E6F5] via-[#FFEBF3] to-[#E6F2FF] rounded-xl border border-[#E2D2EA] text-xs">
-                  <div>
-                    <span className="text-purple-800 text-[10px] font-medium block">งบโปรโมชันที่จัดสรร:</span>
-                    <span className="font-mono font-bold text-purple-950">฿{plan.budget.toLocaleString()}</span>
-                  </div>
-                  <div>
-                    <span className="text-purple-800 text-[10px] font-medium block">เป้าหมายยอดขาย (Sales):</span>
-                    <span className="font-mono font-bold text-emerald-800">฿{plan.projectedSales.toLocaleString()}</span>
-                  </div>
-                </div>
-
-                {/* Checklist Progress Bar */}
-                <div className="mt-4 space-y-2 text-xs">
-                  <div className="flex items-center justify-between text-[11px] font-bold text-purple-950">
-                    <span>รายการจัดเตรียมแคมเปญ (Checklist):</span>
-                    <span className="font-mono">{completedTasksCount}/{totalTasksCount} ({progressPercent}%)</span>
-                  </div>
-
-                  <div className="w-full h-1.5 bg-purple-100 rounded-full overflow-hidden">
-                    <div className="h-full bg-gradient-to-r from-purple-950 via-pink-600 to-purple-900 transition-all duration-300" style={{ width: `${progressPercent}%` }} />
-                  </div>
-
-                  <div className="space-y-1 pt-1">
-                    {plan.checklist.map((item, idx) => (
-                      <label key={idx} className="flex items-center gap-2 text-[11px] text-purple-900 cursor-pointer hover:bg-purple-50/50 p-1 rounded transition">
-                        <input
-                          type="checkbox"
-                          checked={item.completed}
-                          onChange={() => handleToggleChecklist(plan.id, idx)}
-                          className="rounded text-purple-900 focus:ring-purple-500 w-3.5 h-3.5 cursor-pointer"
-                        />
-                        <span className={item.completed ? 'line-through text-purple-400 font-medium' : 'font-semibold'}>
-                          {item.task}
+                    <div className="grid grid-cols-2 gap-2 pt-1 border-t border-dashed border-purple-200/80 text-[11px]">
+                      <div>
+                        <span className="text-purple-800 font-medium block">สินค้าเป้าหมาย:</span>
+                        <span className="font-bold text-purple-950 flex items-center gap-1 mt-0.5">
+                          <Package className="w-3 h-3 text-purple-600 shrink-0" />
+                          <span className="truncate">{plan.targetProductName}</span>
                         </span>
-                      </label>
-                    ))}
+                      </div>
+
+                      <div>
+                        <span className="text-purple-800 font-medium block">สาขาที่จัดโปรโมชัน:</span>
+                        <span className="font-bold text-purple-950 flex items-center gap-1 mt-0.5">
+                          <Building2 className="w-3 h-3 text-purple-600 shrink-0" />
+                          <span>{plan.targetBranch}</span>
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Channels & Date Range */}
+                  <div className="mt-3 space-y-2 text-xs">
+                    <div className="flex items-center justify-between text-[11px]">
+                      <span className="text-purple-800 font-medium flex items-center gap-1">
+                        <Calendar className="w-3.5 h-3.5 text-purple-600" />
+                        <span>ระยะเวลาโปรโมชัน:</span>
+                      </span>
+                      <span className="font-mono font-bold text-purple-950">
+                        {plan.startDate} ถึง {plan.endDate}
+                      </span>
+                    </div>
+
+                    <div className="flex items-center gap-1.5 flex-wrap">
+                      <span className="text-[10px] text-purple-800 font-bold">ช่องทางที่สื่อสาร:</span>
+                      {plan.channels.map((ch, cIdx) => (
+                        <span key={cIdx} className="px-2 py-0.5 rounded-md bg-white border border-[#E2D2EA] text-[10px] font-bold text-purple-950 shadow-xs">
+                          {ch}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Financial Impact Row */}
+                  <div className="grid grid-cols-2 gap-2 mt-3 p-2.5 bg-gradient-to-r from-[#F0E6F5] via-[#FFEBF3] to-[#E6F2FF] rounded-xl border border-[#E2D2EA] text-xs">
+                    <div>
+                      <span className="text-purple-800 text-[10px] font-medium block">งบโปรโมชันที่จัดสรร:</span>
+                      <span className="font-mono font-bold text-purple-950">฿{plan.budget.toLocaleString()}</span>
+                    </div>
+                    <div>
+                      <span className="text-purple-800 text-[10px] font-medium block">เป้าหมายยอดขาย (Sales):</span>
+                      <span className="font-mono font-bold text-emerald-800">฿{plan.projectedSales.toLocaleString()}</span>
+                    </div>
+                  </div>
+
+                  {/* Checklist Progress Bar */}
+                  <div className="mt-4 space-y-2 text-xs">
+                    <div className="flex items-center justify-between text-[11px] font-bold text-purple-950">
+                      <span>รายการจัดเตรียมแคมเปญ (Checklist):</span>
+                      <span className="font-mono">{completedTasksCount}/{totalTasksCount} ({progressPercent}%)</span>
+                    </div>
+
+                    <div className="w-full h-1.5 bg-purple-100 rounded-full overflow-hidden">
+                      <div className="h-full bg-gradient-to-r from-purple-950 via-pink-600 to-purple-900 transition-all duration-300" style={{ width: `${progressPercent}%` }} />
+                    </div>
+
+                    <div className="space-y-1 pt-1">
+                      {plan.checklist.map((item, idx) => (
+                        <label key={idx} className="flex items-center gap-2 text-[11px] text-purple-900 cursor-pointer hover:bg-purple-50/50 p-1 rounded transition">
+                          <input
+                            type="checkbox"
+                            checked={item.completed}
+                            onChange={() => handleToggleChecklist(plan.id, idx)}
+                            className="rounded text-purple-900 focus:ring-purple-500 w-3.5 h-3.5 cursor-pointer"
+                          />
+                          <span className={item.completed ? 'line-through text-purple-400 font-medium' : 'font-semibold'}>
+                            {item.task}
+                          </span>
+                        </label>
+                      ))}
+                    </div>
                   </div>
                 </div>
-              </div>
 
-              {/* Card Footer Actions */}
-              <div className="pt-3 border-t border-purple-100 flex items-center justify-between text-xs flex-wrap gap-2">
-                {/* Doc Brief Format Button */}
-                <button
-                  onClick={() => setViewDocPlan(plan)}
-                  className="px-3 py-1.5 bg-[#E6F2FF] hover:bg-blue-100 text-purple-950 font-bold rounded-xl border border-[#E2D2EA] transition flex items-center gap-1.5 text-xs shadow-xs cursor-pointer"
-                >
-                  <FileText className="w-3.5 h-3.5 text-purple-700" />
-                  <span>ดูเอกสาร Doc แคมเปญ</span>
-                </button>
+                {/* Card Footer Actions */}
+                <div className="pt-3 border-t border-purple-100 flex items-center justify-between text-xs flex-wrap gap-2">
+                  {/* Doc Brief Format Button */}
+                  <button
+                    onClick={() => setViewDocPlan(plan)}
+                    className="px-3 py-1.5 bg-[#E6F2FF] hover:bg-blue-100 text-purple-950 font-bold rounded-xl border border-[#E2D2EA] transition flex items-center gap-1.5 text-xs shadow-xs cursor-pointer"
+                  >
+                    <FileText className="w-3.5 h-3.5 text-purple-700" />
+                    <span>ดูเอกสาร Doc แคมเปญ</span>
+                  </button>
 
-                <button
-                  onClick={() => setLineModalItem({
-                    id: plan.id,
-                    title: plan.title,
-                    platform: plan.channels.join(', '),
-                    publish_date: `${plan.startDate} - ${plan.endDate}`,
-                    assigned_to: plan.targetBranch,
-                    status: plan.status.toUpperCase(),
-                    media_url: 'https://images.unsplash.com/photo-1620916566398-39f1143ab7be?auto=format&fit=crop&w=600&q=80'
-                  })}
-                  className="px-3 py-1.5 bg-[#FFEBF3] hover:bg-pink-200 text-purple-950 font-bold rounded-xl border border-[#E2D2EA] transition flex items-center gap-1.5 text-xs shadow-xs cursor-pointer"
-                >
-                  <Send className="w-3.5 h-3.5 text-purple-700" />
-                  <span>ยิงส่งแผนโปรโมทเข้า LINE</span>
-                </button>
+                  <button
+                    onClick={() => setLineModalItem({
+                      id: plan.id,
+                      title: plan.title,
+                      platform: plan.channels.join(', '),
+                      publish_date: `${plan.startDate} - ${plan.endDate}`,
+                      assigned_to: plan.targetBranch,
+                      status: plan.status.toUpperCase(),
+                      media_url: 'https://images.unsplash.com/photo-1620916566398-39f1143ab7be?auto=format&fit=crop&w=600&q=80'
+                    })}
+                    className="px-3 py-1.5 bg-[#FFEBF3] hover:bg-pink-200 text-purple-950 font-bold rounded-xl border border-[#E2D2EA] transition flex items-center gap-1.5 text-xs shadow-xs cursor-pointer"
+                  >
+                    <Send className="w-3.5 h-3.5 text-purple-700" />
+                    <span>ยิงส่งแผนโปรโมทเข้า LINE</span>
+                  </button>
+                </div>
               </div>
-            </div>
-          );
-        })}
-      </div>
+            );
+          })}
+        </div>
+      )}
 
       {/* MODAL 1: Add or Edit Promotion Plan Modal (with Doc Brief Support) */}
       {showAddModal && (

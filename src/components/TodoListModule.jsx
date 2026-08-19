@@ -31,64 +31,8 @@ export default function TodoListModule({
   users = [],
   onTriggerNotification
 }) {
-  // Initial Tasks Data State
-  const [tasks, setTasks] = useState([
-    {
-      id: 'task-1',
-      title: 'จัดทำอาร์ตเวิร์คและวิดีโอโปรโมชัน Sunscreen Aqua Gel 1 แถม 1',
-      category: 'Promotion Plan', // Content Plan | Marketing Plan | Promotion Plan | Product Campaign | General
-      priority: 'high', // high | medium | low
-      status: 'in_progress', // pending | in_progress | completed
-      assignedTo: 'ทีมกราฟิก & ตัดต่อ',
-      dueDate: '2026-08-22',
-      description: 'ตัดคลิป TikTok 3 เวอร์ชั่น แบบมีเสียงพากย์ และอาร์ตเวิร์คป้ายหน้าร้านขนาด A2',
-      completed: false
-    },
-    {
-      id: 'task-2',
-      title: 'เซ็ตอัปโฆษณา Facebook & TikTok Ads แคมเปญ 8.8 Flash Sale',
-      category: 'Marketing Plan',
-      priority: 'high',
-      status: 'pending',
-      assignedTo: 'ทีมยิงแอด (Media Buyer)',
-      dueDate: '2026-08-20',
-      description: 'ตั้งค่า Target Audience รัศมี 10 กม. รอบสาขาเขาพระตำหนัก และยิง Lookalike 1%',
-      completed: false
-    },
-    {
-      id: 'task-3',
-      title: 'บรอดแคสต์ข้อความส่วนลด LINE OA ประจำสัปดาห์',
-      category: 'Content Plan',
-      priority: 'medium',
-      status: 'completed',
-      assignedTo: 'แอดมิน LINE OA',
-      dueDate: '2026-08-18',
-      description: 'ส่ง Flex Message คูปองส่วนลด ฿100 สำหรับลูกค้า VIP Nitan Club',
-      completed: true
-    },
-    {
-      id: 'task-4',
-      title: 'ตรวจเช็กสต็อกสินค้า Sunscreen Aqua Gel และ POSM หน้าร้านทุกสาขา',
-      category: 'Product Campaign',
-      priority: 'medium',
-      status: 'in_progress',
-      assignedTo: 'พนักงานหน้าร้าน',
-      dueDate: '2026-08-25',
-      description: 'ตรวจสอบความพร้อมของสินค้าแถม และติดป้ายโปรโมชันที่เคาน์เตอร์แคชเชียร์',
-      completed: false
-    },
-    {
-      id: 'task-5',
-      title: 'สรุปรายงานยอดขายและ ROI ประจำเดือนสิงหาคม',
-      category: 'Marketing Plan',
-      priority: 'low',
-      status: 'pending',
-      assignedTo: 'การตลาด (Marketing Lead)',
-      dueDate: '2026-08-31',
-      description: 'สรุปยอดขายแยกตามช่องทาง และคำนวณ CAC & ROAS รายแคมเปญ',
-      completed: false
-    }
-  ]);
+  // Cleared Tasks Data State (Ready for User Real Data Entry)
+  const [tasks, setTasks] = useState([]);
 
   // View Mode State: 'card' (default) | 'list'
   const [viewMode, setViewMode] = useState('card');
@@ -409,8 +353,21 @@ export default function TodoListModule({
 
       {/* Task Displays Container (Card View vs List View) */}
       {filteredTasks.length === 0 ? (
-        <div className="glass-panel p-10 text-center text-purple-400 font-medium text-xs">
-          ไม่พบรายการงาน To-Do ตามเงื่อนไขที่เลือก
+        <div className="glass-panel p-12 text-center border-[#E2D2EA] space-y-3">
+          <div className="w-12 h-12 rounded-2xl bg-[#FFEBF3] text-purple-800 flex items-center justify-center border border-[#E2D2EA] mx-auto">
+            <CheckSquare className="w-6 h-6" />
+          </div>
+          <h3 className="font-bold text-purple-950 text-sm">ยังไม่มีรายการงาน To-Do ในระบบ</h3>
+          <p className="text-xs text-purple-800/80 max-w-md mx-auto">
+            กดปุ่มด้านล่างเพื่อเริ่มสร้างรายการงาน To-Do การบ้านการตลาดใหม่
+          </p>
+          <button
+            onClick={handleOpenAddModal}
+            className="px-4 py-2 bg-gradient-to-r from-purple-950 via-pink-900 to-purple-900 text-white font-bold rounded-xl text-xs shadow-md hover:opacity-95 transition cursor-pointer inline-flex items-center gap-2"
+          >
+            <Plus className="w-4 h-4 text-pink-300" />
+            <span>+ เพิ่มงาน To-Do ใหม่</span>
+          </button>
         </div>
       ) : viewMode === 'card' ? (
         /* CARD VIEW MODE GRID */
