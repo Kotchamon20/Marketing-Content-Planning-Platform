@@ -568,21 +568,32 @@ export default function ContentPlanModule({
     return `${year}-${month}-${day}`;
   };
 
-  // Helper to format ISO date string for display (e.g. "13/08/2026" - Date Only, No Time)
-  const formatDisplayDate = (isoVal) => {
-    if (!isoVal) return '-';
+  // Helper to format date string for display (e.g. "31/08/2026" - Date Only, No Time)
+  const formatDisplayDate = (rawVal) => {
+    if (!rawVal) return '-';
     try {
-      const dt = new Date(isoVal);
-      if (isNaN(dt.getTime())) {
-        const cleanStr = String(isoVal).split('T')[0].split(' ')[0];
-        return cleanStr || String(isoVal);
+      const parsedIso = parseThaiDateTime(rawVal);
+      if (parsedIso && parsedIso.match(/^\d{4}-\d{2}-\d{2}$/)) {
+        const [y, m, d] = parsedIso.split('-');
+        return `${d}/${m}/${y}`;
       }
-      const day = String(dt.getDate()).padStart(2, '0');
-      const month = String(dt.getMonth() + 1).padStart(2, '0');
-      const year = dt.getFullYear();
-      return `${day}/${month}/${year}`;
+      return String(rawVal);
     } catch (e) {
-      return String(isoVal).split('T')[0].split(' ')[0];
+      return String(rawVal);
+    }
+  };
+
+  // Helper to format date value for <input type="date"> (e.g. "2026-08-31")
+  const formatIsoDateInput = (rawVal) => {
+    if (!rawVal) return '2026-08-20';
+    try {
+      const parsedIso = parseThaiDateTime(rawVal);
+      if (parsedIso && parsedIso.match(/^\d{4}-\d{2}-\d{2}$/)) {
+        return parsedIso;
+      }
+      return '2026-08-20';
+    } catch (e) {
+      return '2026-08-20';
     }
   };
 
@@ -2203,8 +2214,8 @@ export default function ContentPlanModule({
                           
                           <div className="mt-3 pt-3 border-t border-pink-100/80 text-[11px] text-rose-700 font-medium flex items-center justify-between">
                             <span className="flex items-center gap-1 font-medium">
-                              <Clock className="w-3.5 h-3.5 text-pink-400" />
-                              {new Date(item.publish_date).toLocaleString('th-TH', { dateStyle: 'medium', timeStyle: 'short' })}
+                              <CalendarIcon className="w-3.5 h-3.5 text-pink-400" />
+                              {formatDisplayDate(item.publish_date)}
                             </span>
 
                             <button
@@ -2487,8 +2498,8 @@ export default function ContentPlanModule({
                               {/* 5. Date Picker Cell */}
                               <td className="p-1">
                                 <input
-                                  type="datetime-local"
-                                  value={item.publish_date ? item.publish_date.substring(0, 16) : '2026-08-20T10:00'}
+                                  type="date"
+                                  value={formatIsoDateInput(item.publish_date)}
                                   onFocus={() => setSelectedGridCell({ row: rowIdx, col: 5 })}
                                   onPaste={(e) => handleGridCellPaste(e, rowIdx, 5)}
                                   onChange={(e) => {
@@ -2681,7 +2692,7 @@ export default function ContentPlanModule({
                       <td className="p-3 font-bold text-rose-950">{item.title}</td>
                       <td className="p-3">{getPlatformBadge(item.platform)}</td>
                       <td className="p-3">{getGroupBadge(item.group)}</td>
-                      <td className="p-3 text-rose-800">{new Date(item.publish_date).toLocaleDateString('th-TH')}</td>
+                      <td className="p-3 text-rose-800">{formatDisplayDate(item.publish_date)}</td>
                       <td className="p-3 text-right font-bold text-rose-600">{item.performance.views.toLocaleString()}</td>
                       <td className="p-3 text-right text-pink-700 font-medium">{item.performance.likes.toLocaleString()}</td>
                       <td className="p-3 text-right text-rose-600 font-medium">{item.performance.shares.toLocaleString()}</td>
@@ -2837,7 +2848,7 @@ export default function ContentPlanModule({
                     <label className="block text-rose-800 font-bold mb-1">กำหนดวันโพสต์ (Publish Date)</label>
                     <input
                       type="date"
-                      value={editPublishDate ? editPublishDate.substring(0, 10) : ''}
+                      value={formatIsoDateInput(editPublishDate)}
                       onChange={(e) => setEditPublishDate(e.target.value)}
                       className="w-full bg-pink-50/40 border border-pink-200 text-rose-950 p-2 rounded-xl font-medium"
                     />
@@ -2968,8 +2979,8 @@ export default function ContentPlanModule({
                   <h4 className="font-bold text-rose-950 text-base leading-snug">{selectedDetailContent.title}</h4>
                   <div className="flex items-center gap-4 text-xs text-rose-700 font-medium pt-1 border-t border-pink-100/80">
                     <span className="flex items-center gap-1.5 font-medium">
-                      <Clock className="w-4 h-4 text-pink-500" />
-                      กำหนดการโพสต์: <span className="font-semibold text-rose-950">{new Date(selectedDetailContent.publish_date).toLocaleString('th-TH', { dateStyle: 'long', timeStyle: 'short' })}</span>
+                      <CalendarIcon className="w-4 h-4 text-pink-500" />
+                      กำหนดวันโพสต์: <span className="font-semibold text-rose-950">{formatDisplayDate(selectedDetailContent.publish_date)}</span>
                     </span>
                   </div>
                 </div>
@@ -3462,7 +3473,7 @@ export default function ContentPlanModule({
                   <label className="block text-xs font-bold text-slate-800 mb-1.5">กำหนดวันโพสต์ (Publish Date)</label>
                   <input
                     type="date"
-                    value={newPublishDate ? newPublishDate.substring(0, 10) : ''}
+                    value={formatIsoDateInput(newPublishDate)}
                     onChange={(e) => setNewPublishDate(e.target.value)}
                     className="w-full bg-white border border-slate-200 text-slate-900 p-3 rounded-xl font-bold focus:ring-2 focus:ring-pink-400 transition shadow-2xs"
                   />

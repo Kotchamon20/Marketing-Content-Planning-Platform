@@ -28,6 +28,8 @@ export async function fetchContentItemsFromSupabase() {
   }
 }
 
+const isUuid = (str) => typeof str === 'string' && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(str);
+
 export async function upsertContentItemToSupabase(contentItem) {
   try {
     const rawPlat = contentItem.platform;
@@ -45,21 +47,52 @@ export async function upsertContentItemToSupabase(contentItem) {
       platform: Array.isArray(contentItem.platform) ? contentItem.platform.join(', ') : (contentItem.platform || 'facebook'),
       platforms: platformsArr,
       status: contentItem.status || 'draft',
-      publish_date: contentItem.publish_date || new Date().toISOString(),
+      publish_date: contentItem.publish_date ? contentItem.publish_date.split('T')[0] : new Date().toISOString().split('T')[0],
       media_url: contentItem.media_url || '',
       reference_url: contentItem.reference_url || '',
       content_group: contentItem.group || ''
     };
 
-    const { data, error } = await supabase
+    // Only include foreign keys and ID if they are valid UUIDs
+    if (isUuid(contentItem.id)) payload.id = contentItem.id;
+    if (isUuid(contentItem.team_id)) payload.team_id = contentItem.team_id;
+    if (isUuid(contentItem.campaign_id)) payload.campaign_id = contentItem.campaign_id;
+    if (isUuid(contentItem.creator_id)) payload.creator_id = contentItem.creator_id;
+
+    // First attempt: full payload with new columns
+    let { data, error } = await supabase
       .from('content_items')
       .upsert([payload])
       .select();
 
     if (error) {
-      console.warn('Supabase upsertContentItem error:', error.message);
-      return null;
+      console.warn('Supabase full upsert warning:', error.message);
+
+      // Fallback attempt: core columns only (if DB schema hasn't executed ALTER TABLE yet)
+      const corePayload = {
+        title: contentItem.title,
+        caption: contentItem.caption || '',
+        platform: Array.isArray(contentItem.platform) ? contentItem.platform.join(', ') : (contentItem.platform || 'facebook'),
+        status: contentItem.status || 'draft',
+        publish_date: contentItem.publish_date ? contentItem.publish_date.split('T')[0] : new Date().toISOString().split('T')[0],
+        media_url: contentItem.media_url || '',
+        reference_url: contentItem.reference_url || ''
+      };
+      if (isUuid(contentItem.id)) corePayload.id = contentItem.id;
+      if (isUuid(contentItem.team_id)) corePayload.team_id = contentItem.team_id;
+
+      const fallbackRes = await supabase
+        .from('content_items')
+        .upsert([corePayload])
+        .select();
+
+      if (fallbackRes.error) {
+        console.error('Supabase fallback upsert error:', fallbackRes.error.message);
+        return null;
+      }
+      return fallbackRes.data;
     }
+
     return data;
   } catch (err) {
     console.error('Supabase upsertContentItem catch:', err);
