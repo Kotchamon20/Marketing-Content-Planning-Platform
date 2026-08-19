@@ -12,6 +12,9 @@ import KpiAnalyticsModule from './components/KpiAnalyticsModule';
 import SchemaViewerModal from './components/SchemaViewerModal';
 import {
   fetchContentItemsFromSupabase,
+  fetchCampaignsFromSupabase,
+  fetchMarketingPlansFromSupabase,
+  fetchProductsFromSupabase,
   subscribeToContentItems,
   upsertContentItemToSupabase,
   deleteContentItemFromSupabase,
