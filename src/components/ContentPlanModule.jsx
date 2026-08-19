@@ -399,23 +399,11 @@ export default function ContentPlanModule({
     const existingSubs = grpObj.subCategories || [];
     const exists = existingSubs.some(s => s.toLowerCase() === trimmedSub.toLowerCase());
     if (!exists) {
-      // สุ่มเลือกสีคงที่จากชื่อ SubCategory
-      let hash = 0;
-      for (let i = 0; i < trimmedSub.length; i++) {
-        hash = trimmedSub.charCodeAt(i) + ((hash << 5) - hash);
-      }
-      const index = Math.abs(hash) % SUB_CATEGORY_COLORS.length;
-      const autoColor = SUB_CATEGORY_COLORS[index].value;
-
       const updatedGroups = effectiveContentGroups.map(g => {
         if (g.name === groupName) {
           return {
             ...g,
-            subCategories: [...(g.subCategories || []), trimmedSub],
-            subCategoryColors: {
-              ...(g.subCategoryColors || {}),
-              [trimmedSub]: autoColor
-            }
+            subCategories: [...(g.subCategories || []), trimmedSub]
           };
         }
         return g;
@@ -1095,9 +1083,17 @@ export default function ContentPlanModule({
 
   // Dynamically calculate sub-categories belonging to currently CHECKED main groups
   const activeCheckedGroups = effectiveContentGroups.filter(g => isGroupChecked(g.name));
-  const availableSubCategories = activeCheckedGroups.flatMap(g =>
+  const availableSubCategories = [];
+  const _seenSubNames = new Set();
+  activeCheckedGroups.flatMap(g =>
     (g.subCategories || []).map(s => ({ groupId: g.id, groupName: g.name, subName: s }))
-  );
+  ).forEach(item => {
+    const lowerName = item.subName.trim().toLowerCase();
+    if (!_seenSubNames.has(lowerName)) {
+      _seenSubNames.add(lowerName);
+      availableSubCategories.push({ ...item, subName: item.subName.trim() });
+    }
+  });
 
   const toggleSubCategorySelection = (subName) => {
     const allSubNames = availableSubCategories.map(s => s.subName);
@@ -1634,17 +1630,17 @@ export default function ContentPlanModule({
     const groupObj = effectiveContentGroups.find(g => g.name === groupName);
     const colorClass = groupObj?.color || 'bg-purple-50 text-purple-900 border-purple-200';
     return (
-      <span className={`inline-block px-2.5 py-0.5 rounded-full text-[9px] font-bold border ${colorClass} max-w-full truncate shadow-2xs leading-tight`}>
+      <span className={`px-2 py-0.5 rounded-full text-[9px] font-bold border ${colorClass} truncate max-w-[140px]`}>
         {groupName}
       </span>
     );
   };
 
-  // แสดง Badge สำหรับหมวดหมู่ย่อย (Sub-Category) — มินิมอลทรง Pill สไตล์ต้นแบบ
+  // แสดง Badge สำหรับหมวดหมู่ย่อย (Sub-Category) — สีจาก subCategoryColors map
   const getSubCategoryBadge = (subCat) => {
     if (!subCat || !subCat.trim()) return null;
-    // 1. หาสีจาก subCategoryColors ของทุก Group
-    let colorClass = null;
+    // หาสีจาก subCategoryColors ของทุก Group
+    let colorClass = DEFAULT_SUB_CAT_COLOR;
     for (const grp of effectiveContentGroups) {
       const colors = grp.subCategoryColors || {};
       if (colors[subCat]) {
@@ -1652,19 +1648,9 @@ export default function ContentPlanModule({
         break;
       }
     }
-
-    // 2. ถ้าไม่พบสี ให้ใช้สุ่มสีคงที่ตามชื่อ SubCategory เพื่อให้ไม่ใช้สี Amber ทองทั้งหมด
-    if (!colorClass) {
-       let hash = 0;
-       for (let i = 0; i < subCat.length; i++) {
-         hash = subCat.charCodeAt(i) + ((hash << 5) - hash);
-       }
-       const index = Math.abs(hash) % SUB_CATEGORY_COLORS.length;
-       colorClass = SUB_CATEGORY_COLORS[index].value;
-    }
-
     return (
-      <span className={`inline-block px-2.5 py-0.5 rounded-full text-[9px] font-bold border ${colorClass} max-w-full truncate shadow-2xs leading-tight`}>
+      <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-bold border ${colorClass} truncate max-w-[160px]`}>
+        <Tag className="w-2.5 h-2.5 shrink-0" />
         {subCat}
       </span>
     );
