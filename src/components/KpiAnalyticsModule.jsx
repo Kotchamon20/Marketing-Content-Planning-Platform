@@ -39,9 +39,9 @@ export default function KpiAnalyticsModule({ campaigns = [], products = [] }) {
 
   // Dynamic Categories State (Add, Edit, Delete categories)
   const [categories, setCategories] = useState([
-    { id: 'shopee', name: '🛒 Shopee & E-Commerce' },
-    { id: 'branch', name: '🏢 โปรโมชันสาขาหน้าร้าน' },
-    { id: 'social', name: '📱 Social Media & Influencers' }
+    { id: 'shopee', name: 'Shopee & E-Commerce' },
+    { id: 'branch', name: 'โปรโมชันสาขาหน้าร้าน' },
+    { id: 'social', name: 'Social Media & Influencers' }
   ]);
 
   // Active Filter Category: 'all' or category id
@@ -259,7 +259,7 @@ export default function KpiAnalyticsModule({ campaigns = [], products = [] }) {
                 }`}
               >
                 <ShoppingBag className="w-3.5 h-3.5" />
-                <span>🛒 1. KPI แคมเปญการขายสินค้าออนไลน์ (Shopee & E-Commerce)</span>
+                <span>1. KPI แคมเปญการขายสินค้าออนไลน์ (Shopee & E-Commerce)</span>
               </button>
 
               <button
@@ -274,7 +274,7 @@ export default function KpiAnalyticsModule({ campaigns = [], products = [] }) {
                 }`}
               >
                 <Store className="w-3.5 h-3.5" />
-                <span>🏢 2. KPI โปรโมชันสาขาหน้าร้าน (Branch Promotions)</span>
+                <span>2. KPI โปรโมชันสาขาหน้าร้าน (Branch Promotions)</span>
               </button>
 
               <button
@@ -289,7 +289,7 @@ export default function KpiAnalyticsModule({ campaigns = [], products = [] }) {
                 }`}
               >
                 <Share2 className="w-3.5 h-3.5" />
-                <span>📱 3. KPI สำหรับโพสต์และโซเชียลมีเดีย (Social Media & Facebook)</span>
+                <span>3. KPI สำหรับโพสต์และโซเชียลมีเดีย (Social Media & Facebook)</span>
               </button>
             </div>
           </div>
@@ -307,7 +307,7 @@ export default function KpiAnalyticsModule({ campaigns = [], products = [] }) {
               className="px-3.5 py-2.5 bg-gradient-to-r from-purple-900 via-pink-800 to-purple-950 text-white font-bold rounded-xl text-xs transition shadow-md flex items-center gap-2 cursor-pointer hover:opacity-95"
             >
               <Bot className="w-4 h-4 text-pink-300 animate-pulse" />
-              <span>🤖 Groq AI วิเคราะห์ผลงาน KPI</span>
+              <span>Groq AI วิเคราะห์ผลงาน KPI</span>
             </button>
 
             <button

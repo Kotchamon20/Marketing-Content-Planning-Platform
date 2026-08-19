@@ -750,7 +750,7 @@ export default function ContentPlanModule({
     const colorClass = groupObj?.color || 'bg-pink-50 text-rose-800 border-pink-200';
     return (
       <span className={`px-2 py-0.5 rounded-full text-[9px] font-medium border ${colorClass} truncate max-w-[110px]`}>
-        🏷️ {groupName}
+        {groupName}
       </span>
     );
   };
@@ -937,7 +937,7 @@ export default function ContentPlanModule({
                 title="เลือกไฟล์ .xlsx หรือ .csv เพื่อนำเข้าข้อมูลเข้าปฏิทิน"
               >
                 <FileSpreadsheet className="w-4 h-4 text-emerald-600" />
-                <span>📥 นำเข้าไฟล์ Excel</span>
+                <span>นำเข้าไฟล์ Excel</span>
               </button>
 
               {/* EXPORT TO EXCEL BUTTON */}
@@ -947,7 +947,7 @@ export default function ContentPlanModule({
                 title="ส่งออกตารางคอนเทนต์ปัจจุบันเป็นไฟล์ Excel (.xlsx)"
               >
                 <Download className="w-4 h-4 text-pink-600" />
-                <span>📤 ส่งออก Excel</span>
+                <span>ส่งออก Excel</span>
               </button>
 
               <button
@@ -1527,7 +1527,7 @@ export default function ContentPlanModule({
                                 >
                                   {contentGroups.map(g => (
                                     <option key={g.id} value={g.name}>
-                                      🏷️ {g.name}
+                                      {g.name}
                                     </option>
                                   ))}
                                 </select>
@@ -1830,7 +1830,7 @@ export default function ContentPlanModule({
                   title="ยิงส่งการ์ด Flex Message แจ้งเตือนคอนเทนต์นี้เข้ากลุ่ม LINE"
                 >
                   <Send className="w-3.5 h-3.5 text-purple-700" />
-                  <span>📲 ยิงเข้า LINE</span>
+                  <span>ยิงเข้า LINE</span>
                 </button>
 
                 {/* Mode Switcher Button */}
@@ -1903,7 +1903,7 @@ export default function ContentPlanModule({
                     >
                       {contentGroups.map(g => (
                         <option key={g.id} value={g.name}>
-                          🏷️ {g.name}
+                          {g.name}
                         </option>
                       ))}
                     </select>
@@ -2197,21 +2197,21 @@ export default function ContentPlanModule({
                     className="px-3 py-1 bg-emerald-500 hover:bg-emerald-600 text-white border border-emerald-600 rounded-lg text-[11px] font-bold transition cursor-pointer shadow-xs flex items-center gap-1"
                   >
                     <FileSpreadsheet className="w-3.5 h-3.5" />
-                    <span>📥 เลือกไฟล์ Excel</span>
+                    <span>เลือกไฟล์ Excel</span>
                   </button>
                   <button
                     type="button"
                     onClick={handlePasteSampleTable}
                     className="px-2.5 py-1 bg-white hover:bg-pink-100 text-pink-700 border border-pink-200 rounded-lg text-[11px] font-semibold transition cursor-pointer shadow-xs"
                   >
-                    📋 วางตารางตัวอย่าง
+                    วางตารางตัวอย่าง
                   </button>
                   <button
                     type="button"
                     onClick={() => handleParseBulkText('')}
                     className="px-2.5 py-1 bg-white hover:bg-rose-50 text-rose-600 border border-pink-200 rounded-lg text-[11px] font-semibold transition cursor-pointer shadow-xs"
                   >
-                    🧹 ล้างข้อมูล
+                    ล้างข้อมูล
                   </button>
                 </div>
               </div>
@@ -2356,7 +2356,7 @@ export default function ContentPlanModule({
                   >
                     {contentGroups.map(g => (
                       <option key={g.id} value={g.name}>
-                        🏷️ {g.name}
+                        {g.name}
                       </option>
                     ))}
                   </select>
@@ -2440,7 +2440,7 @@ export default function ContentPlanModule({
               {contentGroups.map(grp => (
                 <div key={grp.id} className="p-2.5 rounded-xl bg-pink-50/40 border border-pink-100 flex items-center justify-between text-xs">
                   <span className={`px-2.5 py-0.5 rounded-full text-xs font-medium border ${grp.color}`}>
-                    🏷️ {grp.name}
+                    {grp.name}
                   </span>
                   <button
                     onClick={() => onDeleteContentGroup && onDeleteContentGroup(grp.id)}

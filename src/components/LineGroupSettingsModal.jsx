@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Settings, Users, MessageSquare, CheckCircle2, Save, ShieldAlert, Sparkles } from 'lucide-react';
+import { Settings, Users, MessageSquare, CheckCircle2, Save, ShieldAlert, Sparkles, Palette, Megaphone, Building2, Crown, X } from 'lucide-react';
 
 export default function LineGroupSettingsModal({ isOpen, onClose }) {
   const [contentGroupId, setContentGroupId] = useState('');
@@ -38,38 +38,39 @@ export default function LineGroupSettingsModal({ isOpen, onClose }) {
       updated_at: new Date().toISOString()
     };
 
-    localStorage.setItem('nitan_line_group_settings', JSON.stringify(payload));
-    setSavedSuccess(true);
-    setTimeout(() => {
-      setSavedSuccess(false);
-      onClose();
-    }, 1200);
+    try {
+      localStorage.setItem('nitan_line_group_settings', JSON.stringify(payload));
+      setSavedSuccess(true);
+      setTimeout(() => {
+        setSavedSuccess(false);
+        onClose();
+      }, 1200);
+    } catch (err) {
+      console.error('Error saving LINE group settings:', err);
+    }
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-xs p-4 animate-in fade-in duration-150">
-      <div className="glass-panel max-w-md w-full p-6 space-y-4 border-[#E2D2EA]">
+    <div className="fixed inset-0 z-[1000] flex items-center justify-center bg-slate-950/60 backdrop-blur-xs p-4 animate-in fade-in duration-200">
+      <div className="glass-panel max-w-lg w-full p-6 space-y-4 border-[#E2D2EA] shadow-2xl bg-white/95 my-8">
         
-        {/* Modal Header */}
+        {/* Header */}
         <div className="flex items-center justify-between border-b border-purple-100 pb-3">
           <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-xl bg-[#FFEBF3] text-purple-900 flex items-center justify-center border border-[#E2D2EA]">
-              <Settings className="w-4 h-4" />
+            <div className="w-9 h-9 rounded-2xl bg-[#FFEBF3] text-purple-900 flex items-center justify-center border border-[#E2D2EA]">
+              <Settings className="w-5 h-5" />
             </div>
             <div>
-              <h3 className="text-base font-bold text-purple-950 leading-none">
-                ตั้งค่า Group ID รายฝ่าย (Group Routing)
-              </h3>
-              <p className="text-xs text-purple-800/80 font-medium mt-1">
-                ระบุ Group ID ของแต่ละทีม เพื่อให้ยิงส่ง Flex Card ตรงถึงกลุ่มที่เกี่ยวข้อง
-              </p>
+              <h3 className="text-base font-bold text-purple-950">ตั้งค่า LINE Webhook & Group ID</h3>
+              <p className="text-xs text-purple-800/80">ระบุรหัส Group ID ของแต่ละทีมเพื่อส่งแจ้งเตือนการตลาดเข้ากลุ่ม LINE จริง</p>
             </div>
           </div>
-          <button 
+
+          <button
             onClick={onClose}
-            className="text-purple-400 hover:text-purple-700 font-bold"
+            className="p-1 rounded-xl text-purple-400 hover:bg-purple-50 cursor-pointer transition"
           >
-            ✕
+            <X className="w-5 h-5" />
           </button>
         </div>
 
@@ -78,7 +79,8 @@ export default function LineGroupSettingsModal({ isOpen, onClose }) {
           {/* Department 1 */}
           <div>
             <label className="block text-purple-950 font-bold mb-1 flex items-center gap-1.5">
-              <span>🎨 กลุ่มทีม Content & Graphic Design</span>
+              <Palette className="w-4 h-4 text-purple-700" />
+              <span>กลุ่มทีม Content & Graphic Design</span>
             </label>
             <input
               type="text"
@@ -92,7 +94,8 @@ export default function LineGroupSettingsModal({ isOpen, onClose }) {
           {/* Department 2 */}
           <div>
             <label className="block text-purple-950 font-bold mb-1 flex items-center gap-1.5">
-              <span>📢 กลุ่มทีม Marketing & Media Planning</span>
+              <Megaphone className="w-4 h-4 text-purple-700" />
+              <span>กลุ่มทีม Marketing & Media Planning</span>
             </label>
             <input
               type="text"
@@ -106,7 +109,8 @@ export default function LineGroupSettingsModal({ isOpen, onClose }) {
           {/* Department 3 */}
           <div>
             <label className="block text-purple-950 font-bold mb-1 flex items-center gap-1.5">
-              <span>🏢 กลุ่มทีมสาขาหน้าร้าน / Sales Representatives</span>
+              <Building2 className="w-4 h-4 text-purple-700" />
+              <span>กลุ่มทีมสาขาหน้าร้าน / Sales Representatives</span>
             </label>
             <input
               type="text"
@@ -120,7 +124,8 @@ export default function LineGroupSettingsModal({ isOpen, onClose }) {
           {/* Department 4 */}
           <div>
             <label className="block text-purple-950 font-bold mb-1 flex items-center gap-1.5">
-              <span>👑 กลุ่มผู้บริหาร / Management (Escalation Alert)</span>
+              <Crown className="w-4 h-4 text-purple-700" />
+              <span>กลุ่มผู้บริหาร / Management (Escalation Alert)</span>
             </label>
             <input
               type="text"
@@ -138,7 +143,7 @@ export default function LineGroupSettingsModal({ isOpen, onClose }) {
             </div>
           )}
 
-          <div className="pt-2 flex justify-end gap-2">
+          <div className="pt-3 border-t border-purple-100 flex justify-end gap-2 text-xs">
             <button
               type="button"
               onClick={onClose}
@@ -146,12 +151,13 @@ export default function LineGroupSettingsModal({ isOpen, onClose }) {
             >
               ยกเลิก
             </button>
+
             <button
               type="submit"
-              className="px-5 py-2 bg-gradient-to-r from-[#F0E6F5] via-[#FFEBF3] to-[#E6F2FF] text-purple-950 font-bold rounded-xl shadow-xs border border-[#E2D2EA] hover:opacity-90 transition cursor-pointer flex items-center gap-1.5"
+              className="px-5 py-2 bg-gradient-to-r from-purple-950 via-pink-900 to-purple-900 hover:opacity-95 text-white font-bold rounded-xl shadow-md transition flex items-center gap-2 cursor-pointer"
             >
-              <Save className="w-3.5 h-3.5 text-purple-700" />
-              <span>บันทึกตั้งค่ากลุ่ม</span>
+              <Save className="w-4 h-4 text-pink-300" />
+              <span>บันทึกการตั้งค่า</span>
             </button>
           </div>
         </form>

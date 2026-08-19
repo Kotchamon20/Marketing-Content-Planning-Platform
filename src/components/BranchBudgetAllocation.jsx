@@ -457,7 +457,7 @@ export default function BranchBudgetAllocation() {
                 title="คำนวณงบประมาณ 2% อัตโนมัติจากยอดขายเดือนก่อนหน้า"
               >
                 <Zap className="w-3.5 h-3.5 text-yellow-300" />
-                <span>⚡ Auto (คำนวณ 2% อัตโนมัติ)</span>
+                <span>Auto (คำนวณ 2% อัตโนมัติ)</span>
               </button>
 
               <button
@@ -470,7 +470,7 @@ export default function BranchBudgetAllocation() {
                 title="เปิดให้กรอกงบจำนวนเต็มเองอิสระ (Manual Output)"
               >
                 <Edit3 className="w-3.5 h-3.5 text-pink-300" />
-                <span>✏️ Manual (กรอกงบจำนวนเต็มเอง)</span>
+                <span>Manual (กรอกงบจำนวนเต็มเอง)</span>
               </button>
             </div>
 
@@ -510,7 +510,7 @@ export default function BranchBudgetAllocation() {
               className="px-4 py-2.5 bg-gradient-to-r from-purple-950 via-pink-900 to-purple-900 text-white font-bold rounded-xl text-xs transition shadow-md flex items-center gap-2 cursor-pointer hover:opacity-95"
             >
               <Bot className="w-4 h-4 text-pink-300 animate-pulse" />
-              <span>📷 Groq AI สแกนรูปภาพตาราง (Auto)</span>
+              <span>Groq AI สแกนรูปภาพตาราง (Auto)</span>
             </button>
 
             <button
@@ -552,7 +552,7 @@ export default function BranchBudgetAllocation() {
                       : 'bg-white text-purple-900 hover:bg-[#FFEBF3]/60 border border-[#E2D2EA]'
                   }`}
                 >
-                  {isActive ? <Check className="w-3.5 h-3.5 text-pink-300" /> : <span>📅</span>}
+                  {isActive ? <Check className="w-3.5 h-3.5 text-pink-300" /> : <Calendar className="w-3.5 h-3.5 text-purple-600" />}
                   <span>{tab.label}</span>
                 </button>
               );
@@ -991,7 +991,7 @@ export default function BranchBudgetAllocation() {
                 onClick={handleApplyAllScannedBranches}
                 className="px-5 py-2 bg-gradient-to-r from-purple-600 via-pink-600 to-purple-700 hover:opacity-90 text-white font-bold rounded-xl shadow-md transition flex items-center gap-2 cursor-pointer disabled:opacity-40"
               >
-                <span>✨ อนุมัติ & อัปเดตตารางงบทุกสาขาจากรูปภาพสแกน 100%</span>
+                <span>อนุมัติ & อัปเดตตารางงบทุกสาขาจากรูปภาพสแกน 100%</span>
                 <ArrowRight className="w-4 h-4" />
               </button>
             </div>

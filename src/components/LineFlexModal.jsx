@@ -233,7 +233,7 @@ export default function LineFlexModal({ isOpen, onClose, defaultCampaign }) {
                   <option value="T-5 (เหลือเวลา 5 วัน)">T-5 (เหลือเวลา 5 วัน)</option>
                   <option value="T-2 (เหลือเวลา 2 วัน)">T-2 (เหลือเวลา 2 วัน)</option>
                   <option value="T-0 (กำหนดโพสต์วันนี้!)">T-0 (กำหนดโพสต์วันนี้!)</option>
-                  <option value="⚠️ งานเกินกำหนด (Overdue)">⚠️ งานเกินกำหนด (Overdue)</option>
+                  <option value="งานเกินกำหนด (Overdue)">งานเกินกำหนด (Overdue)</option>
                 </select>
               </div>
             </div>
@@ -277,7 +277,7 @@ export default function LineFlexModal({ isOpen, onClose, defaultCampaign }) {
                 ) : (
                   <>
                     <Send className="w-4 h-4" />
-                    <span>📲 ยิงส่งแจ้งเตือน Flex Card เข้า LINE จริง</span>
+                    <span>ยิงส่งแจ้งเตือน Flex Card เข้า LINE จริง</span>
                   </>
                 )}
               </button>
@@ -300,7 +300,6 @@ export default function LineFlexModal({ isOpen, onClose, defaultCampaign }) {
                 {/* Header */}
                 <div className="bg-[#F5EEF8] p-3 border-b border-purple-100">
                   <span className="font-bold text-purple-950 text-xs flex items-center gap-1">
-                    <span>📌</span>
                     <span>Nitan Content Alert</span>
                   </span>
                 </div>
@@ -323,19 +322,19 @@ export default function LineFlexModal({ isOpen, onClose, defaultCampaign }) {
 
                   <div className="space-y-1 text-[10px] text-purple-900">
                     <div className="flex justify-between">
-                      <span className="text-purple-500">📱 ช่องทาง</span>
+                      <span className="text-purple-500">ช่องทาง</span>
                       <span className="font-bold">{platform}</span>
                     </div>
                     <div className="flex justify-between">
-                      <span className="text-purple-500">📅 โพสต์วัน</span>
+                      <span className="text-purple-500">โพสต์วัน</span>
                       <span className="font-bold">{publishDate}</span>
                     </div>
                     <div className="flex justify-between">
-                      <span className="text-purple-500">👤 ผู้ดูแล</span>
+                      <span className="text-purple-500">ผู้ดูแล</span>
                       <span className="font-bold">{assignedTo}</span>
                     </div>
                     <div className="flex justify-between">
-                      <span className="text-purple-500">⚠️ สถานะ</span>
+                      <span className="text-purple-500">สถานะ</span>
                       <span className="font-bold text-pink-600">{status}</span>
                     </div>
                   </div>

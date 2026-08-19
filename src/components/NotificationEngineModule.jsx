@@ -418,13 +418,13 @@ export default function NotificationEngineModule({
           {/* Digest Output Box */}
           <div className="p-5 rounded-xl bg-slate-900 border border-slate-800 font-mono text-xs text-slate-200 leading-relaxed space-y-3">
             <div className="text-emerald-400 font-bold">
-              📊 [Nitan Marketing Digest Summary] - ประจำวันที่ {new Date().toLocaleDateString('th-TH')}
+              [Nitan Marketing Digest Summary] - ประจำวันที่ {new Date().toLocaleDateString('th-TH')}
             </div>
             <p>--------------------------------------------------</p>
-            <p>🚀 แคมเปญที่ดำเนินงานอยู่: 2 แคมเปญ</p>
-            <p>🚨 แคมเปญที่เลยกำหนด (Overdue): 1 แคมเปญ (ดันยอด Sunscreen Aqua Gel)</p>
-            <p>📑 คอนเทนต์รอตั้งเวลา/โพสต์สัปดาห์นี้: 3 รายการ</p>
-            <p>💰 รวมยอดขายแคมเปญล่าสุด: ฿1,900,000 บาท (+284% ROI)</p>
+            <p>แคมเปญที่ดำเนินงานอยู่: 2 แคมเปญ</p>
+            <p>แคมเปญที่เลยกำหนด (Overdue): 1 แคมเปญ (ดันยอด Sunscreen Aqua Gel)</p>
+            <p>คอนเทนต์รอตั้งเวลา/โพสต์สัปดาห์นี้: 3 รายการ</p>
+            <p>รวมยอดขายแคมเปญล่าสุด: ฿1,900,000 บาท (+284% ROI)</p>
             <p>--------------------------------------------------</p>
             <p className="text-slate-400 text-[11px]">
               *ระบบส่ง Digest อัตโนมัติทุกวันเวลา 08:30 น. และวันจันทร์เวลา 09:00 น.
