@@ -124,6 +124,9 @@ export const INITIAL_NOTIFICATION_RULES = [
   {
     id: 'rule-1',
     team_id: 'team-1',
+    stage: 'content',
+    title: 'เตือนคอนเทนต์ใกล้ถึงกำหนดส่ง',
+    template: '🚨 [แจ้งเตือน] คอนเทนต์ "{title}" มีกำหนดส่งในอีก 24 ชม.',
     event_type: 'content_due_soon',
     notify_hours_before: 24,
     target_channel: 'line_group',
@@ -134,12 +137,28 @@ export const INITIAL_NOTIFICATION_RULES = [
   {
     id: 'rule-2',
     team_id: 'team-1',
+    stage: 'campaign',
+    title: 'เตือนงานเกินกำหนด',
+    template: '⚠️ [เตือนงานเกินกำหนด] แคมเปญ "{campaign_name}" ขั้นตอน "{stage_name}" เกินกำหนดส่งแล้ว',
     event_type: 'stage_overdue',
     notify_hours_before: 0,
     target_channel: 'line_group',
     line_group_id: 'C0987654321_exec_team',
     is_active: true,
     custom_template: '⚠️ [เตือนงานเกินกำหนด] แคมเปญ "{campaign_name}" ขั้นตอน "{stage_name}" เกินกำหนดส่งแล้ว'
+  },
+  {
+    id: 'rule-3',
+    team_id: 'team-1',
+    stage: 'preparation',
+    title: 'เตือนเตรียมภาพโปรโมทล่วงหน้า 5 วัน',
+    template: '📣 [เตรียมภาพโปรโมท] แคมเปญ "{campaign_name}" จะเริ่มในอีก 5 วัน กรุณาเตรียมทำภาพโปรโมทให้พร้อม!',
+    event_type: 'campaign_preparation',
+    notify_hours_before: 120, // 5 days * 24 hours
+    target_channel: 'line_group',
+    line_group_id: 'C1234567890_mkt_team',
+    is_active: true,
+    custom_template: '📣 [เตรียมภาพโปรโมท] แคมเปญ "{campaign_name}" จะเริ่มในอีก 5 วัน กรุณาเตรียมทำภาพโปรโมทให้พร้อม!'
   }
 ];
 
