@@ -238,15 +238,7 @@ export default function LineFlexModal({ isOpen, onClose, defaultCampaign }) {
               </div>
             </div>
 
-            <div>
-              <label className="block text-purple-950 font-bold mb-1">รูปภาพประกอบการ์ด Flex (URL)</label>
-              <input
-                type="text"
-                value={imageUrl}
-                onChange={(e) => setImageUrl(e.target.value)}
-                className="w-full px-3 py-2 bg-white border border-[#E2D2EA] rounded-xl text-purple-950 font-medium text-[11px] focus:outline-none"
-              />
-            </div>
+
 
             {/* Notification Result Banner */}
             {sendResult && (
@@ -304,15 +296,7 @@ export default function LineFlexModal({ isOpen, onClose, defaultCampaign }) {
                   </span>
                 </div>
 
-                {/* Hero Image */}
-                <div className="w-full h-32 bg-purple-100 overflow-hidden relative">
-                  <img 
-                    src={imageUrl} 
-                    alt="Preview" 
-                    className="w-full h-full object-cover"
-                    onError={(e) => { e.target.src = 'https://images.unsplash.com/photo-1620916566398-39f1143ab7be?auto=format&fit=crop&w=600&q=80'; }}
-                  />
-                </div>
+
 
                 {/* Content Body */}
                 <div className="p-3 space-y-2 text-[11px]">

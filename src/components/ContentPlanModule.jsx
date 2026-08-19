@@ -3105,36 +3105,39 @@ export default function ContentPlanModule({
               /* VIEW MODE: CONTENT DETAILS */
               <div className="p-6 overflow-y-auto space-y-5 text-xs text-rose-900">
 
-                {/* Top Banner Image & Campaign Info */}
-                <div className="relative rounded-2xl overflow-hidden border border-pink-100 bg-pink-50/50 shadow-inner max-h-56 flex items-center justify-center">
-                  <img
-                    src={selectedDetailContent.media_url || 'https://images.unsplash.com/photo-1620916566398-39f1143ab7be?auto=format&fit=crop&w=600&q=80'}
-                    alt={selectedDetailContent.title}
-                    className="w-full h-52 object-cover"
-                  />
-                  <div className="absolute inset-0 bg-gradient-to-t from-slate-950/70 via-transparent to-transparent flex items-end p-4">
-                    <div className="text-white space-y-1 w-full flex items-end justify-between">
-                      <div>
-                        <span className="px-2.5 py-0.5 rounded-full text-[10px] font-medium bg-pink-500 text-white shadow-sm inline-flex items-center gap-1 mb-1">
-                          <Layers className="w-3 h-3" />
-                          {campaigns.find(c => c.id === selectedDetailContent.campaign_id)?.name || 'Nitan Campaign'}
-                        </span>
-                        <h4 className="text-sm font-bold text-white line-clamp-1">{selectedDetailContent.title}</h4>
-                      </div>
-
-                      {selectedDetailContent.media_url && (
-                        <a
-                          href={selectedDetailContent.media_url}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="px-2.5 py-1 bg-white/20 hover:bg-white/30 text-white rounded-lg backdrop-blur-md text-[10px] font-medium border border-white/30 transition flex items-center gap-1"
-                        >
-                          <ExternalLink className="w-3 h-3" /> ดูรูปขนาดเต็ม
-                        </a>
-                      )}
+                {/* Campaign Info Header */}
+                <div className="p-4 rounded-2xl border border-pink-100 bg-pink-50/50 shadow-inner">
+                  <div className="space-y-1 w-full flex flex-col justify-center">
+                    <div className="flex items-center justify-between">
+                      <span className="px-2.5 py-0.5 rounded-full text-[10px] font-medium bg-pink-500 text-white shadow-sm inline-flex items-center gap-1 mb-1">
+                        <Layers className="w-3 h-3" />
+                        {campaigns.find(c => c.id === selectedDetailContent.campaign_id)?.name || 'Nitan Campaign'}
+                      </span>
                     </div>
+                    <h4 className="text-sm font-bold text-rose-950 line-clamp-2">{selectedDetailContent.title}</h4>
                   </div>
                 </div>
+
+                {/* Media URL / External Link (If Present) */}
+                {selectedDetailContent.media_url && (
+                  <div className="p-3.5 rounded-2xl bg-gradient-to-r from-[#F5EEF8] via-[#FFF0F6] to-[#EEF6FF] text-purple-950 border border-[#E2D2EA] flex items-center justify-between shadow-xs mt-3">
+                    <div className="flex items-center gap-2">
+                      <ExternalLink className="w-4 h-4 text-pink-200" />
+                      <div>
+                        <div className="font-bold text-xs">ลิงก์สื่อ / ภาพประกอบ</div>
+                        <div className="text-[10px] text-pink-500 font-mono truncate max-w-xs">{selectedDetailContent.media_url}</div>
+                      </div>
+                    </div>
+                    <a
+                      href={selectedDetailContent.media_url}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="px-3 py-1.5 bg-white hover:bg-pink-50 text-pink-700 rounded-xl text-[10px] font-bold border border-[#E2D2EA] transition flex items-center gap-1 shadow-2xs whitespace-nowrap"
+                    >
+                      เปิดดูสื่อ
+                    </a>
+                  </div>
+                )}
 
                 {/* External Link Attachment Bar (If Present) */}
                 {selectedDetailContent.reference_url && (
