@@ -125,7 +125,57 @@ export async function upsertCampaignToSupabase(campaign) {
 }
 
 // ------------------------------------------------------------------------------
-// 3. PRODUCTS CATALOG (products table)
+// 3. MODULE 3: MARKETING PLANS (marketing_plans table)
+// ------------------------------------------------------------------------------
+export async function fetchMarketingPlansFromSupabase() {
+  try {
+    const { data, error } = await supabase
+      .from('marketing_plans')
+      .select('*')
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      console.warn('Supabase fetchMarketingPlans warning:', error.message);
+      return null;
+    }
+    return data;
+  } catch (err) {
+    console.error('Supabase fetchMarketingPlans error:', err);
+    return null;
+  }
+}
+
+export async function upsertMarketingPlanToSupabase(plan) {
+  try {
+    const payload = {
+      title: plan.title || 'แผนการตลาด Nitan',
+      objective: plan.objective || 'สร้างการรับรู้และเพิ่มยอดขาย',
+      stp_segmentation: plan.stp_segmentation || '',
+      stp_targeting: plan.stp_targeting || '',
+      stp_positioning: plan.stp_positioning || '',
+      total_budget: Number(plan.total_budget || plan.budget) || 0,
+      start_date: plan.start_date || new Date().toISOString().split('T')[0],
+      end_date: plan.end_date || new Date(Date.now() + 86400000 * 30).toISOString().split('T')[0]
+    };
+
+    const { data, error } = await supabase
+      .from('marketing_plans')
+      .upsert([payload])
+      .select();
+
+    if (error) {
+      console.warn('Supabase upsertMarketingPlan error:', error.message);
+      return null;
+    }
+    return data;
+  } catch (err) {
+    console.error('Supabase upsertMarketingPlan catch:', err);
+    return null;
+  }
+}
+
+// ------------------------------------------------------------------------------
+// 4. PRODUCTS CATALOG (products table)
 // ------------------------------------------------------------------------------
 export async function fetchProductsFromSupabase() {
   try {
@@ -171,7 +221,7 @@ export async function upsertProductToSupabase(product) {
 }
 
 // ------------------------------------------------------------------------------
-// 4. LINE GROUPS (line_groups table)
+// 5. LINE GROUPS (line_groups table)
 // ------------------------------------------------------------------------------
 export async function fetchLineGroupsFromSupabase() {
   try {
