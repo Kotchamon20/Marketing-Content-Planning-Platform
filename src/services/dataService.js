@@ -165,6 +165,66 @@ export async function deleteContentItemFromSupabase(id) {
   }
 }
 
+export async function deleteAllContentItemsFromSupabase() {
+  try {
+    const { error } = await supabase
+      .from('content_items')
+      .delete()
+      .neq('id', '00000000-0000-0000-0000-000000000000'); // Delete all rows
+
+    if (error) {
+      console.warn('Supabase deleteAllContentItems error:', error.message);
+    }
+  } catch (err) {
+    console.error('Supabase deleteAllContentItems catch:', err);
+  }
+}
+
+export async function deleteCampaignFromSupabase(id) {
+  try {
+    const { error } = await supabase
+      .from('campaigns')
+      .delete()
+      .eq('id', id);
+
+    if (error) {
+      console.warn('Supabase deleteCampaign error:', error.message);
+    }
+  } catch (err) {
+    console.error('Supabase deleteCampaign catch:', err);
+  }
+}
+
+export async function deleteMarketingPlanFromSupabase(id) {
+  try {
+    const { error } = await supabase
+      .from('marketing_plans')
+      .delete()
+      .eq('id', id);
+
+    if (error) {
+      console.warn('Supabase deleteMarketingPlan error:', error.message);
+    }
+  } catch (err) {
+    console.error('Supabase deleteMarketingPlan catch:', err);
+  }
+}
+
+export async function deleteProductFromSupabase(id) {
+  try {
+    const { error } = await supabase
+      .from('products')
+      .delete()
+      .eq('id', id);
+
+    if (error) {
+      console.warn('Supabase deleteProduct error:', error.message);
+    }
+  } catch (err) {
+    console.error('Supabase deleteProduct catch:', err);
+  }
+}
+
 // ------------------------------------------------------------------------------
 // 2. MODULE 2 & 4: CAMPAIGNS (campaigns table)
 // ------------------------------------------------------------------------------

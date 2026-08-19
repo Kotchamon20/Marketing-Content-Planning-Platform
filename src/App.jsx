@@ -18,7 +18,9 @@ import {
   subscribeToContentItems,
   upsertContentItemToSupabase,
   deleteContentItemFromSupabase,
+  deleteAllContentItemsFromSupabase,
   upsertCampaignToSupabase,
+  upsertMarketingPlanToSupabase,
   upsertProductToSupabase
 } from './services/dataService';
 
@@ -225,7 +227,8 @@ export default function App() {
   const handleClearAllContent = () => {
     setContentItems([]);
     localStorage.removeItem('nitan_contentItems');
-    showSaveToast('ล้างรายการคอนเทนต์ทั้งหมดเรียบร้อยแล้ว!');
+    deleteAllContentItemsFromSupabase();
+    showSaveToast('ล้างรายการคอนเทนต์ทั้งหมดใน DB และ LocalStorage เรียบร้อยแล้ว!');
   };
 
   const handleAddContentGroup = (newGroup) => {
@@ -272,8 +275,13 @@ export default function App() {
 
   // Handlers for Module 3: Marketing Plan
   const handleUpdateStrategyCanvas = (planId, updatedFields) => {
-    setMarketingPlans(prev => prev.map(m => m.id === planId ? { ...m, ...updatedFields } : m));
-    showSaveToast('บันทึกกรอบกลยุทธ์การตลาด (Strategy Canvas) เรียบร้อยแล้ว!');
+    setMarketingPlans(prev => {
+      const updated = prev.map(m => m.id === planId ? { ...m, ...updatedFields } : m);
+      const targetPlan = updated.find(m => m.id === planId);
+      if (targetPlan) upsertMarketingPlanToSupabase(targetPlan);
+      return updated;
+    });
+    showSaveToast('บันทึกกรอบกลยุทธ์การตลาด (Strategy Canvas) ลง DB เรียบร้อยแล้ว!');
   };
 
   const handleUpvoteIdea = (ideaId) => {
