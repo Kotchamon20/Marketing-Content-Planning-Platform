@@ -1641,9 +1641,9 @@ export default function ContentPlanModule({
       }
     }
     return (
-      <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-bold border ${colorClass} truncate max-w-[160px]`}>
+      <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-bold border ${colorClass} max-w-full overflow-hidden text-ellipsis whitespace-nowrap`}>
         <Tag className="w-2.5 h-2.5 shrink-0" />
-        {subCat}
+        <span className="truncate">{subCat}</span>
       </span>
     );
   };
@@ -2232,21 +2232,22 @@ export default function ContentPlanModule({
                   </div>
 
                   {/* Calendar Grid Container */}
-                  <div className="border border-pink-100 rounded-2xl overflow-hidden shadow-sm bg-white">
+                  <div className="border border-pink-100 rounded-2xl overflow-x-auto shadow-sm bg-white">
+                    <div className="min-w-[750px]">
 
-                    {/* Days of Week Header */}
-                    <div className="grid grid-cols-7 bg-pink-50/50 border-b border-pink-100 text-center text-xs font-semibold text-rose-900 py-2.5">
-                      <div className="text-rose-500">อาทิตย์</div>
-                      <div>จันทร์</div>
-                      <div>อังคาร</div>
-                      <div>พุธ</div>
-                      <div>พฤหัสบดี</div>
-                      <div>ศุกร์</div>
-                      <div className="text-pink-500">เสาร์</div>
-                    </div>
+                      {/* Days of Week Header */}
+                      <div className="grid grid-cols-7 bg-pink-50/50 border-b border-pink-100 text-center text-xs font-semibold text-rose-900 py-2.5">
+                        <div className="text-rose-500">อาทิตย์</div>
+                        <div>จันทร์</div>
+                        <div>อังคาร</div>
+                        <div>พุธ</div>
+                        <div>พฤหัสบดี</div>
+                        <div>ศุกร์</div>
+                        <div className="text-pink-500">เสาร์</div>
+                      </div>
 
-                    {/* Days Cells Grid */}
-                    <div className="grid grid-cols-7 auto-rows-fr divide-x divide-y divide-pink-100/60 bg-white">
+                      {/* Days Cells Grid */}
+                      <div className="grid grid-cols-7 auto-rows-fr divide-x divide-y divide-pink-100/60 bg-white">
 
                       {/* Empty lead cells before 1st day of month */}
                       {Array.from({ length: firstDayOfWeek }).map((_, idx) => (
@@ -2336,7 +2337,8 @@ export default function ContentPlanModule({
 
                   </div>
                 </div>
-              )}
+              </div>
+            )}
 
               {/* VIEW MODE 2: PIPELINE LIST CARD VIEW (FR-1.3) */}
               {viewMode === 'list' && (
