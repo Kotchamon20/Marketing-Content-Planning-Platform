@@ -763,3 +763,38 @@ export function subscribeToIdeaVault(onUpdate) {
     .subscribe();
   return () => { supabase.removeChannel(channel); };
 }
+
+// ==========================================
+// NOTIFICATION LOGS (Module 4)
+// ==========================================
+
+export const fetchNotificationLogsForTodayFromSupabase = async () => {
+  try {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const { data, error } = await supabase
+      .from('notification_logs')
+      .select('*')
+      .gte('sent_at', today.toISOString());
+
+    if (error) throw error;
+    return data || [];
+  } catch (err) {
+    console.error('Error fetching notification logs:', err);
+    return [];
+  }
+};
+
+export const insertNotificationLogToSupabase = async (logData) => {
+  try {
+    const { data, error } = await supabase
+      .from('notification_logs')
+      .insert([logData]);
+
+    if (error) throw error;
+    return data;
+  } catch (err) {
+    console.error('Error inserting notification log:', err);
+    return null;
+  }
+};
