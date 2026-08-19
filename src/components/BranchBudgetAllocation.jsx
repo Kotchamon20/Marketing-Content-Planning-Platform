@@ -27,7 +27,8 @@ import {
   RefreshCw,
   Search,
   ChevronDown,
-  ChevronUp
+  ChevronUp,
+  Check
 } from 'lucide-react';
 import { parseFullSheetWithGroqAi } from '../services/groqAiService';
 
@@ -53,26 +54,29 @@ export default function BranchBudgetAllocation() {
 
   // Month List
   const monthsList = [
-    { value: '01', label: 'มกราคม' },
-    { value: '02', label: 'กุมภาพันธ์' },
-    { value: '03', label: 'มีนาคม' },
-    { value: '04', label: 'เมษายน' },
-    { value: '05', label: 'พฤษภาคม' },
-    { value: '06', label: 'มิถุนายน' },
-    { value: '07', label: 'กรกฎาคม' },
-    { value: '08', label: 'สิงหาคม' },
-    { value: '09', label: 'กันยายน' },
-    { value: '10', label: 'ตุลาคม' },
-    { value: '11', label: 'พฤศจิกายน' },
-    { value: '12', label: 'ธันวาคม' }
+    { value: '01', label: 'มกราคม', short: 'ม.ค.' },
+    { value: '02', label: 'กุมภาพันธ์', short: 'ก.พ.' },
+    { value: '03', label: 'มีนาคม', short: 'มี.ค.' },
+    { value: '04', label: 'เมษายน', short: 'เม.ย.' },
+    { value: '05', label: 'พฤษภาคม', short: 'พ.ค.' },
+    { value: '06', label: 'มิถุนายน', short: 'มิ.ย.' },
+    { value: '07', label: 'กรกฎาคม', short: 'ก.ค.' },
+    { value: '08', label: 'สิงหาคม', short: 'ส.ค.' },
+    { value: '09', label: 'กันยายน', short: 'ก.ย.' },
+    { value: '10', label: 'ตุลาคม', short: 'ต.ค.' },
+    { value: '11', label: 'พฤศจิกายน', short: 'พ.ย.' },
+    { value: '12', label: 'ธันวาคม', short: 'ธ.ค.' }
   ];
 
   const quickMonthTabs = [
+    { month: '05', year: '2026', label: 'พ.ค. 69' },
     { month: '06', year: '2026', label: 'มิ.ย. 69' },
     { month: '07', year: '2026', label: 'ก.ค. 69' },
-    { month: '08', year: '2026', label: 'ส.ค. 69' },
+    { month: '08', year: '2026', label: 'ส.ค. 69 (ปัจจุบัน)' },
     { month: '09', year: '2026', label: 'ก.ย. 69' },
-    { month: '10', year: '2026', label: 'ต.ค. 69' }
+    { month: '10', year: '2026', label: 'ต.ค. 69' },
+    { month: '11', year: '2026', label: 'พ.ย. 69' },
+    { month: '12', year: '2026', label: 'ธ.ค. 69' }
   ];
 
   // Custom Modal States
@@ -418,7 +422,7 @@ export default function BranchBudgetAllocation() {
                                      Number(googleSearchBreakdown.leadsSearch || 0) + 
                                      Number(googleSearchBreakdown.naJomtienSearch || 0);
 
-  const currentMonthLabel = monthsList.find(m => m.value === selectedMonth)?.label || 'สิงหาคม';
+  const currentMonthObj = monthsList.find(m => m.value === selectedMonth) || monthsList[7];
 
   return (
     <div className="space-y-6 animate-in fade-in duration-300">
@@ -429,10 +433,10 @@ export default function BranchBudgetAllocation() {
           <div>
             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#FFEBF3] border border-[#E2D2EA] text-xs font-bold text-purple-950 mb-2">
               <Calculator className="w-3.5 h-3.5 text-purple-700" />
-              <span>การจัดสรรงบประมาณ Marketing (Nitan Branch Cards System)</span>
+              <span>การจัดสรรงบประมาณ Marketing (Module 2: Nitan Branch Cards System)</span>
             </div>
             <h2 className="text-xl font-bold text-purple-950 tracking-tight flex items-center gap-2">
-              <span>จัดสรรงบประมาณการตลาด MKT ประจำเดือน {currentMonthLabel} {Number(selectedYear) + 543}</span>
+              <span>จัดสรรงบประมาณการตลาด MKT ประจำเดือน {currentMonthObj.label} {Number(selectedYear) + 543}</span>
             </h2>
             <p className="text-xs text-purple-800/80 font-medium mt-1">
               จัดสรรงบประมาณแยกตามสาขาในรูปแบบการ์ด พร้อมระบบแยกงบย่อย Google Ads (Google Search Breakdown)
@@ -520,31 +524,40 @@ export default function BranchBudgetAllocation() {
         </div>
 
         {/* Quick Month Switcher Tabs Bar */}
-        <div className="flex items-center gap-2 mt-5 pt-4 border-t border-purple-100/60 overflow-x-auto">
-          <span className="text-xs font-bold text-purple-900 flex items-center gap-1 shrink-0 mr-1">
-            <Filter className="w-3.5 h-3.5 text-purple-600" />
-            <span>สลับดูงบรายเดือน:</span>
-          </span>
+        <div className="mt-5 pt-4 border-t border-purple-100/60 space-y-2">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-bold text-purple-900 flex items-center gap-1.5">
+              <Filter className="w-3.5 h-3.5 text-purple-600" />
+              <span>สลับดูงบรายเดือน (1-Click Switcher):</span>
+            </span>
 
-          {quickMonthTabs.map(tab => {
-            const isActive = selectedMonth === tab.month && selectedYear === tab.year;
-            return (
-              <button
-                key={tab.month}
-                onClick={() => {
-                  setSelectedMonth(tab.month);
-                  setSelectedYear(tab.year);
-                }}
-                className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer whitespace-nowrap ${
-                  isActive
-                    ? 'bg-gradient-to-r from-[#F0E6F5] via-[#FFEBF3] to-[#E6F2FF] text-purple-950 border border-[#E2D2EA] shadow-xs scale-[1.02]'
-                    : 'bg-white/80 text-purple-900/80 hover:bg-[#FFEBF3]/50 border border-transparent'
-                }`}
-              >
-                <span>📅 {tab.label}</span>
-              </button>
-            );
-          })}
+            <span className="text-[11px] text-purple-700 font-medium">
+              กำลังแสดงผลงบเดือน: <strong className="text-purple-950 font-extrabold">{currentMonthObj.label} {Number(selectedYear) + 543}</strong>
+            </span>
+          </div>
+
+          <div className="flex items-center gap-2 overflow-x-auto pb-1">
+            {quickMonthTabs.map(tab => {
+              const isActive = selectedMonth === tab.month && selectedYear === tab.year;
+              return (
+                <button
+                  key={tab.month}
+                  onClick={() => {
+                    setSelectedMonth(tab.month);
+                    setSelectedYear(tab.year);
+                  }}
+                  className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer whitespace-nowrap ${
+                    isActive
+                      ? 'bg-gradient-to-r from-purple-950 via-pink-900 to-purple-900 text-white border border-purple-950 shadow-md scale-[1.02]'
+                      : 'bg-white text-purple-900 hover:bg-[#FFEBF3]/60 border border-[#E2D2EA]'
+                  }`}
+                >
+                  {isActive ? <Check className="w-3.5 h-3.5 text-pink-300" /> : <span>📅</span>}
+                  <span>{tab.label}</span>
+                </button>
+              );
+            })}
+          </div>
         </div>
 
         {/* Top Highlight Summary Cards */}
@@ -574,7 +587,7 @@ export default function BranchBudgetAllocation() {
 
           <div className="p-4 rounded-2xl bg-white border border-[#E2D2EA] flex items-center justify-between shadow-xs sm:col-span-2 lg:col-span-1">
             <div>
-              <span className="text-xs font-bold text-purple-900 block">จำนวนสาขาในเดือน {currentMonthLabel}</span>
+              <span className="text-xs font-bold text-purple-900 block">จำนวนสาขาในเดือน {currentMonthObj.label}</span>
               <span className="text-xl font-bold text-purple-950 font-mono">{currentBranches.length} สาขา</span>
             </div>
             <div className="w-10 h-10 rounded-xl bg-[#E6F2FF] text-purple-800 flex items-center justify-center border border-[#E2D2EA]">
@@ -819,6 +832,7 @@ export default function BranchBudgetAllocation() {
                       );
                     })}
                   </div>
+
                 </div>
 
                 {/* Net Remaining Budget Summary Footer */}
@@ -872,7 +886,7 @@ export default function BranchBudgetAllocation() {
 
             {/* Groq AI Analysis Status Banner */}
             {groqAiScanNote && (
-              <div className="p-3 bg-purple-50 rounded-xl border border-purple-200 text-purple-950 text-xs font-medium flex items-center gap-2">
+              <div className="p-3 bg-purple-50 rounded-xl border border-purple-200 text-[#000000] text-xs font-medium flex items-center gap-2">
                 <Sparkles className="w-4 h-4 text-purple-600 shrink-0" />
                 <span>{groqAiScanNote}</span>
               </div>
