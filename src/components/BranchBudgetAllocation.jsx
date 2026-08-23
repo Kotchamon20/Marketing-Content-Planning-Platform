@@ -33,7 +33,7 @@ import {
   Save
 } from 'lucide-react';
 import { parseFullSheetWithGroqAi } from '../services/groqAiService';
-import { upsertBranchBudgetToSupabase } from '../services/dataService';
+import { upsertBranchBudgetToSupabase, fetchBranchBudgetsFromSupabase } from '../services/dataService';
 
 export default function BranchBudgetAllocation() {
   const [mktPercentRate, setMktPercentRate] = useState(2.0); // Default MKT 2%
@@ -215,6 +215,41 @@ export default function BranchBudgetAllocation() {
       ]
     }
   ], []);
+
+  // Fetch initial data from Supabase on mount to sync with Main Database
+  React.useEffect(() => {
+    const loadFromSupabase = async () => {
+      const data = await fetchBranchBudgetsFromSupabase();
+      if (data && data.length > 0) {
+        const grouped = {};
+        data.forEach(item => {
+           if (!grouped[item.month_year]) grouped[item.month_year] = [];
+           const defaultBranch = DEFAULT_NITAN_BRANCHES.find(d => d.name === item.branch_name) || {
+              id: `b_${Date.now()}_${Math.random()}`,
+              colorHeader: 'bg-gray-100 text-gray-900 border-gray-200'
+           };
+           grouped[item.month_year].push({
+             id: defaultBranch.id,
+             name: item.branch_name,
+             colorHeader: defaultBranch.colorHeader,
+             previousSales: item.previous_sales,
+             manualFullBudget: item.full_budget,
+             promotions: item.offline_promotions || [],
+             channelAllocations: item.channel_allocations || []
+           });
+        });
+        
+        setMonthlyBudgetsData(prev => {
+          const merged = { ...prev };
+          Object.keys(grouped).forEach(k => {
+            merged[k] = grouped[k];
+          });
+          return merged;
+        });
+      }
+    };
+    loadFromSupabase();
+  }, [DEFAULT_NITAN_BRANCHES]);
 
   // Check if current month has budget data created by user
   const hasMonthData = Boolean(monthlyBudgetsData[currentMonthKey] && monthlyBudgetsData[currentMonthKey].length > 0);

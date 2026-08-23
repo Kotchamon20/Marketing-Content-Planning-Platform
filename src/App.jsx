@@ -9,6 +9,7 @@ import ProductPlanModule from './components/ProductPlanModule';
 import PromotionPlanModule from './components/PromotionPlanModule';
 import TodoListModule from './components/TodoListModule';
 import KpiAnalyticsModule from './components/KpiAnalyticsModule';
+import NotificationEngineModule from './components/NotificationEngineModule';
 import SchemaViewerModal from './components/SchemaViewerModal';
 import {
   fetchContentItemsFromSupabase,
@@ -135,14 +136,24 @@ export default function App() {
           team_id: prod.team_id || 'team-1'
         })));
       }
-      // 5. Content Groups
+      // 5. Content Groups — dedup by name
       const dbGroups = await fetchContentGroupsFromSupabase();
       if (dbGroups) {
-        setContentGroups(dbGroups.map(g => ({
-          ...g,
-          colorClass: g.color_class || 'bg-slate-500 text-white',
-          subCategories: g.sub_categories || []
-        })));
+        const seen = new Set();
+        setContentGroups(dbGroups
+          .map(g => ({ 
+            ...g, 
+            colorClass: g.color_class || 'bg-slate-500 text-white', 
+            subCategories: g.sub_categories || [],
+            subCategoryColors: g.sub_category_colors || {}
+          }))
+          .filter(g => {
+            const key = g.name?.trim().toLowerCase();
+            if (!key || seen.has(key)) return false;
+            seen.add(key);
+            return true;
+          })
+        );
       } else {
         setContentGroups([]);
       }
@@ -174,11 +185,16 @@ export default function App() {
     });
 
     const unsubContentGroups = subscribeToContentGroups((freshDbGroups) => {
-      setContentGroups(freshDbGroups.map(g => ({
-        ...g,
-        colorClass: g.color_class || 'bg-slate-500 text-white',
-        subCategories: g.sub_categories || []
-      })));
+      const seen = new Set();
+      setContentGroups(freshDbGroups
+        .map(g => ({ ...g, colorClass: g.color_class || 'bg-slate-500 text-white', subCategories: g.sub_categories || [] }))
+        .filter(g => {
+          const key = g.name?.trim().toLowerCase();
+          if (!key || seen.has(key)) return false;
+          seen.add(key);
+          return true;
+        })
+      );
     });
 
     const unsubCampaignIdeas = subscribeToCampaignIdeas((freshDbIdeas) => {
@@ -365,9 +381,40 @@ export default function App() {
     showSaveToast('บันทึกเพิ่มแคมเปญสินค้าใหม่ลง DB เรียบร้อยแล้ว!');
   };
 
-  // Notification Engine Triggering Simulation
+  // Notification Engine Triggering — always inject team_id so currentTeamLogs filter passes
   const handleTriggerNotification = (logEntry) => {
-    setNotificationLogs(prev => [logEntry, ...prev]);
+    const enrichedLog = {
+      id: `log-${Date.now()}`,
+      sent_at: new Date().toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' }),
+      stage: 'info',
+      channel_name: 'LINE Group',
+      message: 'แจ้งเตือนจากระบบ',
+      ...logEntry,
+      team_id: activeTeamId, // always override to ensure currentTeamLogs filter passes
+    };
+    setNotificationLogs(prev => [enrichedLog, ...prev]);
+  };
+
+  // Notification Rule Handlers
+  const handleUpdateRuleTemplate = (ruleId, newTemplate) => {
+    setNotificationRules(prev =>
+      prev.map(r => r.id === ruleId ? { ...r, template: newTemplate, custom_template: newTemplate } : r)
+    );
+  };
+
+  const handleToggleRuleActive = (ruleId) => {
+    setNotificationRules(prev =>
+      prev.map(r => r.id === ruleId ? { ...r, is_active: !r.is_active } : r)
+    );
+  };
+
+  const handleGenerateDigest = () => {
+    handleTriggerNotification({
+      stage: 'digest',
+      channel_name: 'LINE Group (Digest)',
+      message: `[Digest] สรุปประจำวัน ${new Date().toLocaleDateString('th-TH')} — แคมเปญ ${currentTeamCampaigns.length} รายการ, คอนเทนต์ ${currentTeamContent.length} ชิ้น`,
+    });
+    showSaveToast('ส่ง Daily Digest ไปยัง LINE Group เรียบร้อยแล้ว!');
   };
 
   return (
@@ -462,6 +509,19 @@ export default function App() {
               campaigns={currentTeamCampaigns}
               products={currentTeamProducts}
               onShowSaveToast={showSaveToast}
+            />
+          )}
+
+          {activeTab === 'notification-engine' && (
+            <NotificationEngineModule
+              notificationRules={currentTeamRules}
+              notificationLogs={currentTeamLogs}
+              users={users}
+              campaigns={currentTeamCampaigns}
+              onUpdateRuleTemplate={handleUpdateRuleTemplate}
+              onToggleRuleActive={handleToggleRuleActive}
+              onTriggerNotification={handleTriggerNotification}
+              onGenerateDigest={handleGenerateDigest}
             />
           )}
 

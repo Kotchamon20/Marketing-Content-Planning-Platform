@@ -1,4 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
+import { createPortal } from 'react-dom';
+import JoditEditor from 'jodit-react';
 import * as XLSX from 'xlsx';
 import LineFlexModal from './LineFlexModal';
 import { parseExcelWithGroqAi } from '../services/groqAiService';
@@ -243,7 +245,17 @@ export default function ContentPlanModule({
     }
   ], []);
 
-  const effectiveContentGroups = (contentGroups && contentGroups.length > 0) ? contentGroups : [];
+  // Deduplicate by name — ป้องกันกลุ่มชื่อซ้ำแสดงซ้อนกัน
+  const effectiveContentGroups = (() => {
+    const groups = (contentGroups && contentGroups.length > 0) ? contentGroups : [];
+    const seen = new Set();
+    return groups.filter(g => {
+      const key = g.name?.trim().toLowerCase();
+      if (!key || seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
+  })();
 
   // Multi-Select Google Calendar Style Group Filter (selectedGroupNames)
   const [selectedGroupNames, setSelectedGroupNames] = useState([]);
@@ -311,6 +323,19 @@ export default function ContentPlanModule({
     });
     if (onUpdateContentGroups) onUpdateContentGroups(currentGroups);
   };
+
+  // เปลี่ยนสี Tag ของกลุ่มหลัก
+  const handleUpdateGroupColor = (groupId, colorValue) => {
+    const currentGroups = effectiveContentGroups.map(grp =>
+      grp.id === groupId ? { ...grp, colorClass: colorValue } : grp
+    );
+    if (onUpdateContentGroups) onUpdateContentGroups(currentGroups);
+  };
+
+  // State ควบคุมว่ากลุ่มไหนกำลังแสดง color palette
+  const [openColorPalette, setOpenColorPalette] = useState(null); // groupId | 'new'
+  // State ควบคุมว่า sub-category ไหนกำลังแสดง color palette (คีย์: `${groupId}__${subName}`)
+  const [openSubColorPalette, setOpenSubColorPalette] = useState(null);
 
   const handleAddSubCategory = (groupId, customName) => {
     const nameToAdd = (customName || newSubCategoryInput[groupId] || '').trim();
@@ -446,6 +471,7 @@ export default function ContentPlanModule({
   const [newIdeaNotes, setNewIdeaNotes] = useState('');
   const [newIdeaTags, setNewIdeaTags] = useState('TikTok, Review');
   const [newIdeaPlatforms, setNewIdeaPlatforms] = useState(['tiktok', 'instagram']);
+  const [newIdeaReferenceUrl, setNewIdeaReferenceUrl] = useState('');
 
   // Helper to render SVG Lucide Platform Icons (No Emojis)
   const renderPlatformIcon = (keyOrId) => {
@@ -539,30 +565,45 @@ export default function ContentPlanModule({
 
   // Preset Group Color Badges & Checkbox Styling
   const GROUP_COLORS = [
-    { label: 'Rose Pink', value: 'bg-rose-50 text-rose-800 border-rose-200', checkBg: 'bg-rose-500 border-rose-500', checkBorder: 'border-rose-400' },
-    { label: 'Amber Gold', value: 'bg-amber-50 text-amber-800 border-amber-200', checkBg: 'bg-amber-500 border-amber-500', checkBorder: 'border-amber-400' },
-    { label: 'Purple Violet', value: 'bg-purple-50 text-purple-800 border-purple-200', checkBg: 'bg-purple-500 border-purple-500', checkBorder: 'border-purple-400' },
-    { label: 'Emerald Green', value: 'bg-emerald-50 text-emerald-800 border-emerald-200', checkBg: 'bg-emerald-500 border-emerald-500', checkBorder: 'border-emerald-400' },
-    { label: 'Sky Blue', value: 'bg-sky-50 text-sky-800 border-sky-200', checkBg: 'bg-sky-500 border-sky-500', checkBorder: 'border-sky-400' },
-    { label: 'Indigo Teal', value: 'bg-indigo-50 text-indigo-800 border-indigo-200', checkBg: 'bg-indigo-500 border-indigo-500', checkBorder: 'border-indigo-400' }
+    { label: 'Rose Pink', value: 'bg-rose-50 text-rose-800 border-rose-200', dot: 'bg-rose-400' },
+    { label: 'Amber Gold', value: 'bg-amber-50 text-amber-800 border-amber-200', dot: 'bg-amber-400' },
+    { label: 'Purple Violet', value: 'bg-purple-50 text-purple-800 border-purple-200', dot: 'bg-purple-500' },
+    { label: 'Emerald Green', value: 'bg-emerald-50 text-emerald-800 border-emerald-200', dot: 'bg-emerald-500' },
+    { label: 'Sky Blue', value: 'bg-sky-50 text-sky-800 border-sky-200', dot: 'bg-sky-400' },
+    { label: 'Indigo', value: 'bg-indigo-50 text-indigo-800 border-indigo-200', dot: 'bg-indigo-500' },
+    { label: 'Fuchsia', value: 'bg-fuchsia-50 text-fuchsia-800 border-fuchsia-200', dot: 'bg-fuchsia-500' },
+    { label: 'Teal', value: 'bg-teal-50 text-teal-800 border-teal-200', dot: 'bg-teal-500' },
+    { label: 'Orange', value: 'bg-orange-50 text-orange-800 border-orange-200', dot: 'bg-orange-400' },
+    { label: 'Lime Green', value: 'bg-lime-50 text-lime-800 border-lime-200', dot: 'bg-lime-500' },
+    { label: 'Cyan', value: 'bg-cyan-50 text-cyan-800 border-cyan-200', dot: 'bg-cyan-500' },
+    { label: 'Warm Pink', value: 'bg-pink-50 text-pink-800 border-pink-200', dot: 'bg-pink-400' },
+    { label: 'Violet', value: 'bg-violet-50 text-violet-800 border-violet-200', dot: 'bg-violet-500' },
+    { label: 'Warm Brown', value: 'bg-stone-100 text-stone-700 border-stone-300', dot: 'bg-stone-500' },
+    { label: 'Slate Gray', value: 'bg-slate-100 text-slate-700 border-slate-300', dot: 'bg-slate-500' },
+    { label: 'Blue', value: 'bg-blue-50 text-blue-800 border-blue-200', dot: 'bg-blue-500' },
   ];
 
   // สี Tag หมวดหมู่ย่อย (Sub-Category Badge Colors)
   const SUB_CATEGORY_COLORS = [
-    { label: '🟡 Amber Gold', value: 'bg-amber-50 text-amber-900 border-amber-400', dot: 'bg-amber-400' },
-    { label: '🟣 Soft Purple', value: 'bg-purple-50 text-purple-900 border-purple-300', dot: 'bg-purple-400' },
-    { label: '🔵 Sky Blue', value: 'bg-sky-50 text-sky-900 border-sky-400', dot: 'bg-sky-400' },
-    { label: '🟢 Emerald Green', value: 'bg-emerald-50 text-emerald-900 border-emerald-400', dot: 'bg-emerald-400' },
-    { label: '🔴 Rose Pink', value: 'bg-rose-50 text-rose-900 border-rose-300', dot: 'bg-rose-400' },
-    { label: '🟠 Orange', value: 'bg-orange-50 text-orange-900 border-orange-400', dot: 'bg-orange-400' },
-    { label: '🟤 Warm Brown', value: 'bg-stone-100 text-stone-800 border-stone-400', dot: 'bg-stone-500' },
-    { label: '⚪ Slate Gray', value: 'bg-slate-100 text-slate-800 border-slate-400', dot: 'bg-slate-500' },
-    { label: '💚 Teal', value: 'bg-teal-50 text-teal-900 border-teal-400', dot: 'bg-teal-400' },
-    { label: '🟦 Indigo', value: 'bg-indigo-50 text-indigo-900 border-indigo-300', dot: 'bg-indigo-400' },
-    { label: '💗 Light Blue', value: 'bg-blue-50 text-blue-900 border-blue-300', dot: 'bg-blue-400' },
-    { label: '💞 Fuchsia', value: 'bg-fuchsia-50 text-fuchsia-900 border-fuchsia-300', dot: 'bg-fuchsia-400' },
+    { label: 'Amber Gold', value: 'bg-amber-50 text-amber-900 border-amber-400', dot: 'bg-amber-400' },
+    { label: 'Soft Purple', value: 'bg-purple-50 text-purple-900 border-purple-300', dot: 'bg-purple-400' },
+    { label: 'Sky Blue', value: 'bg-sky-50 text-sky-900 border-sky-400', dot: 'bg-sky-400' },
+    { label: 'Emerald Green', value: 'bg-emerald-50 text-emerald-900 border-emerald-400', dot: 'bg-emerald-400' },
+    { label: 'Rose Pink', value: 'bg-rose-50 text-rose-900 border-rose-300', dot: 'bg-rose-400' },
+    { label: 'Orange', value: 'bg-orange-50 text-orange-900 border-orange-400', dot: 'bg-orange-400' },
+    { label: 'Warm Brown', value: 'bg-stone-100 text-stone-800 border-stone-400', dot: 'bg-stone-500' },
+    { label: 'Slate Gray', value: 'bg-slate-100 text-slate-800 border-slate-400', dot: 'bg-slate-500' },
+    { label: 'Teal', value: 'bg-teal-50 text-teal-900 border-teal-400', dot: 'bg-teal-400' },
+    { label: 'Indigo', value: 'bg-indigo-50 text-indigo-900 border-indigo-300', dot: 'bg-indigo-400' },
+    { label: 'Blue', value: 'bg-blue-50 text-blue-900 border-blue-300', dot: 'bg-blue-400' },
+    { label: 'Fuchsia', value: 'bg-fuchsia-50 text-fuchsia-900 border-fuchsia-300', dot: 'bg-fuchsia-400' },
+    { label: 'Lime', value: 'bg-lime-50 text-lime-900 border-lime-400', dot: 'bg-lime-500' },
+    { label: 'Cyan', value: 'bg-cyan-50 text-cyan-900 border-cyan-400', dot: 'bg-cyan-500' },
+    { label: 'Pink', value: 'bg-pink-50 text-pink-900 border-pink-300', dot: 'bg-pink-400' },
+    { label: 'Violet', value: 'bg-violet-50 text-violet-900 border-violet-300', dot: 'bg-violet-400' },
   ];
   const DEFAULT_SUB_CAT_COLOR = SUB_CATEGORY_COLORS[0].value;
+
 
   // Helper to parse Thai, Excel Serial, and Standard Date strings into YYYY-MM-DD format (Date Only, No Time)
   const parseThaiDateTime = (rawVal) => {
@@ -1046,13 +1087,23 @@ export default function ContentPlanModule({
     setDraggedContentItem(null);
   };
 
-  // Helper to extract Google Calendar style checkbox colors for a group
   const getGroupCheckboxColor = (groupColorClass) => {
-    if (groupColorClass?.includes('amber')) return { bg: 'bg-amber-500 border-amber-500', border: 'border-amber-400' };
-    if (groupColorClass?.includes('purple')) return { bg: 'bg-purple-500 border-purple-500', border: 'border-purple-400' };
-    if (groupColorClass?.includes('emerald')) return { bg: 'bg-emerald-500 border-emerald-500', border: 'border-emerald-400' };
-    if (groupColorClass?.includes('sky')) return { bg: 'bg-sky-500 border-sky-500', border: 'border-sky-400' };
-    if (groupColorClass?.includes('indigo')) return { bg: 'bg-indigo-500 border-indigo-500', border: 'border-indigo-400' };
+    const classStr = groupColorClass || '';
+    if (classStr.includes('amber')) return { bg: 'bg-amber-500 border-amber-500', border: 'border-amber-400' };
+    if (classStr.includes('purple')) return { bg: 'bg-purple-500 border-purple-500', border: 'border-purple-400' };
+    if (classStr.includes('emerald')) return { bg: 'bg-emerald-500 border-emerald-500', border: 'border-emerald-400' };
+    if (classStr.includes('sky')) return { bg: 'bg-sky-500 border-sky-500', border: 'border-sky-400' };
+    if (classStr.includes('indigo')) return { bg: 'bg-indigo-500 border-indigo-500', border: 'border-indigo-400' };
+    if (classStr.includes('fuchsia')) return { bg: 'bg-fuchsia-500 border-fuchsia-500', border: 'border-fuchsia-400' };
+    if (classStr.includes('teal')) return { bg: 'bg-teal-500 border-teal-500', border: 'border-teal-400' };
+    if (classStr.includes('orange')) return { bg: 'bg-orange-500 border-orange-500', border: 'border-orange-400' };
+    if (classStr.includes('lime')) return { bg: 'bg-lime-500 border-lime-500', border: 'border-lime-400' };
+    if (classStr.includes('cyan')) return { bg: 'bg-cyan-500 border-cyan-500', border: 'border-cyan-400' };
+    if (classStr.includes('pink')) return { bg: 'bg-pink-500 border-pink-500', border: 'border-pink-400' };
+    if (classStr.includes('violet')) return { bg: 'bg-violet-500 border-violet-500', border: 'border-violet-400' };
+    if (classStr.includes('stone')) return { bg: 'bg-stone-500 border-stone-500', border: 'border-stone-400' };
+    if (classStr.includes('slate')) return { bg: 'bg-slate-500 border-slate-500', border: 'border-slate-400' };
+    if (classStr.includes('blue')) return { bg: 'bg-blue-500 border-blue-500', border: 'border-blue-400' };
     return { bg: 'bg-rose-500 border-rose-500', border: 'border-rose-400' };
   };
 
@@ -1473,6 +1524,15 @@ export default function ContentPlanModule({
     e.preventDefault();
     if (!newGroupName.trim()) return;
 
+    // ตรวจสอบชื่อซ้ำ
+    const isDuplicate = effectiveContentGroups.some(
+      g => g.name.trim().toLowerCase() === newGroupName.trim().toLowerCase()
+    );
+    if (isDuplicate) {
+      alert(`⚠️ มีกลุ่มชื่อ "${newGroupName.trim()}" อยู่แล้ว กรุณาใช้ชื่ออื่น`);
+      return;
+    }
+
     const groupObj = {
       id: `grp-${Date.now()}`,
       name: newGroupName.trim(),
@@ -1569,13 +1629,15 @@ export default function ContentPlanModule({
       notes: newIdeaNotes,
       platforms: newIdeaPlatforms,
       tags: newIdeaTags.split(',').map(t => t.trim()),
-      is_used: false,
+      referenceUrl: newIdeaReferenceUrl,
+      isUsed: false,
       created_at: new Date().toISOString().split('T')[0]
     };
 
     onAddVaultIdea(newIdea);
     setNewIdeaTitle('');
     setNewIdeaNotes('');
+    setNewIdeaReferenceUrl('');
     setShowAddIdeaModal(false);
   };
 
@@ -1649,7 +1711,7 @@ export default function ContentPlanModule({
   const getGroupBadge = (groupName) => {
     if (!groupName) return null;
     const groupObj = effectiveContentGroups.find(g => g.name === groupName);
-    const colorClass = groupObj?.color || 'bg-purple-50 text-purple-900 border-purple-200';
+    const colorClass = groupObj?.colorClass || 'bg-purple-50 text-purple-900 border-purple-200';
     return (
       <span className={`px-2 py-0.5 rounded-full text-[9px] font-bold border ${colorClass} truncate max-w-[140px]`}>
         {groupName}
@@ -1705,7 +1767,7 @@ export default function ContentPlanModule({
       />
 
       {/* Module Header & Sub-tab navigation */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 glass-panel p-6">
+      <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-4 glass-panel p-4 md:p-6">
         <div>
           <div className="flex items-center gap-3">
             <span className="p-2.5 rounded-2xl bg-pink-50 text-pink-600 border border-pink-100 shadow-sm">
@@ -1758,7 +1820,7 @@ export default function ContentPlanModule({
         <div className="space-y-6">
 
           {/* Controls Bar */}
-          <div className="glass-panel p-4 flex flex-col md:flex-row items-center justify-between gap-4">
+          <div className="glass-panel p-3 md:p-4 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
             <div className="flex flex-wrap items-center gap-3 w-full md:w-auto">
 
               {/* Show/Hide Sidebar Toggle Button */}
@@ -1975,7 +2037,7 @@ export default function ContentPlanModule({
                       <div className="space-y-1.5 max-h-[420px] overflow-y-auto pr-0.5">
                         {effectiveContentGroups.map(grp => {
                           const checked = isGroupChecked(grp.name);
-                          const colorOpts = getGroupCheckboxColor(grp.color);
+                          const colorOpts = getGroupCheckboxColor(grp.colorClass);
 
                           return (
                             <div key={grp.id} className="space-y-1">
@@ -2205,7 +2267,7 @@ export default function ContentPlanModule({
 
               {/* VIEW MODE 1: VISUAL MONTHLY CALENDAR GRID */}
               {viewMode === 'calendar' && (
-                <div className="glass-panel p-6 space-y-4">
+                <div className="glass-panel p-3 md:p-6 space-y-4">
 
                   {/* Calendar Header Navigation */}
                   <div className="flex items-center justify-between border-b border-pink-100/80 pb-4">
@@ -2260,109 +2322,111 @@ export default function ContentPlanModule({
                     </div>
                   </div>
 
-                  {/* Calendar Grid Container */}
-                  <div className="border border-pink-100 rounded-2xl overflow-hidden shadow-sm bg-white">
+                  {/* Calendar Grid Container with Mobile Scroll */}
+                  <div className="overflow-x-auto pb-2">
+                    <div className="min-w-[700px] border border-pink-100 rounded-2xl overflow-hidden shadow-sm bg-white">
 
-                    {/* Days of Week Header */}
-                    <div className="grid grid-cols-7 bg-pink-50/50 border-b border-pink-100 text-center text-xs font-semibold text-rose-900 py-2.5">
-                      <div className="text-rose-500">อาทิตย์</div>
-                      <div>จันทร์</div>
-                      <div>อังคาร</div>
-                      <div>พุธ</div>
-                      <div>พฤหัสบดี</div>
-                      <div>ศุกร์</div>
-                      <div className="text-pink-500">เสาร์</div>
-                    </div>
+                      {/* Days of Week Header */}
+                      <div className="grid grid-cols-7 bg-pink-50/50 border-b border-pink-100 text-center text-xs font-semibold text-rose-900 py-2.5">
+                        <div className="text-rose-500">อาทิตย์</div>
+                        <div>จันทร์</div>
+                        <div>อังคาร</div>
+                        <div>พุธ</div>
+                        <div>พฤหัสบดี</div>
+                        <div>ศุกร์</div>
+                        <div className="text-pink-500">เสาร์</div>
+                      </div>
 
-                    {/* Days Cells Grid */}
-                    <div className="grid grid-cols-7 auto-rows-fr divide-x divide-y divide-pink-100/60 bg-white">
+                      {/* Days Cells Grid */}
+                      <div className="grid grid-cols-7 auto-rows-fr divide-x divide-y divide-pink-100/60 bg-white">
 
-                      {/* Empty lead cells before 1st day of month */}
-                      {Array.from({ length: firstDayOfWeek }).map((_, idx) => (
-                        <div key={`empty-${idx}`} className="min-h-[110px] bg-pink-50/10 p-2 text-pink-200" />
-                      ))}
+                        {/* Empty lead cells before 1st day of month */}
+                        {Array.from({ length: firstDayOfWeek }).map((_, idx) => (
+                          <div key={`empty-${idx}`} className="min-h-[110px] bg-pink-50/10 p-2 text-pink-200" />
+                        ))}
 
-                      {/* Calendar Days 1 to daysInMonth */}
-                      {Array.from({ length: daysInMonth }).map((_, idx) => {
-                        const dayNum = idx + 1;
-                        const dateItems = getContentForDate(dayNum);
-                        const isToday = dayNum === 16 && currentMonth === 7 && currentYear === 2026;
-                        const isTargetHover = dragOverDay === dayNum;
+                        {/* Calendar Days 1 to daysInMonth */}
+                        {Array.from({ length: daysInMonth }).map((_, idx) => {
+                          const dayNum = idx + 1;
+                          const dateItems = getContentForDate(dayNum);
+                          const isToday = dayNum === 16 && currentMonth === 7 && currentYear === 2026;
+                          const isTargetHover = dragOverDay === dayNum;
 
-                        return (
-                          <div
-                            key={`day-${dayNum}`}
-                            onDragOver={(e) => handleCalendarDragOver(e, dayNum)}
-                            onDragLeave={handleCalendarDragLeave}
-                            onDrop={(e) => handleCalendarDrop(e, dayNum)}
-                            className={`min-h-[110px] p-2 transition-all flex flex-col justify-between group relative ${isTargetHover
-                              ? 'bg-purple-100/80 border-2 border-dashed border-purple-400 scale-[0.99] shadow-inner'
-                              : isToday ? 'bg-pink-50/60' : 'bg-white hover:bg-pink-50/30'
-                              }`}
-                          >
-                            {/* Day Number Row */}
-                            <div className="flex items-center justify-between mb-1.5">
-                              <span className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold ${isToday ? 'bg-rose-500 text-white shadow-sm' : 'text-rose-900'
-                                }`}>
-                                {dayNum}
-                              </span>
+                          return (
+                            <div
+                              key={`day-${dayNum}`}
+                              onDragOver={(e) => handleCalendarDragOver(e, dayNum)}
+                              onDragLeave={handleCalendarDragLeave}
+                              onDrop={(e) => handleCalendarDrop(e, dayNum)}
+                              className={`min-h-[110px] p-2 transition-all flex flex-col justify-between group relative ${isTargetHover
+                                ? 'bg-purple-100/80 border-2 border-dashed border-purple-400 scale-[0.99] shadow-inner'
+                                : isToday ? 'bg-pink-50/60' : 'bg-white hover:bg-pink-50/30'
+                                }`}
+                            >
+                              {/* Day Number Row */}
+                              <div className="flex items-center justify-between mb-1.5">
+                                <span className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold ${isToday ? 'bg-rose-500 text-white shadow-sm' : 'text-rose-900'
+                                  }`}>
+                                  {dayNum}
+                                </span>
 
-                              <button
-                                onClick={() => {
-                                  const formattedDay = dayNum < 10 ? `0${dayNum}` : `${dayNum}`;
-                                  const formattedMonth = (currentMonth + 1) < 10 ? `0${currentMonth + 1}` : `${currentMonth + 1}`;
-                                  setNewPublishDate(`${currentYear}-${formattedMonth}-${formattedDay}T10:00`);
-                                  setShowAddContentModal(true);
-                                }}
-                                className="opacity-0 group-hover:opacity-100 p-1 bg-pink-50 hover:bg-pink-100 text-rose-700 rounded-lg text-[10px] font-medium border border-pink-200 transition cursor-pointer"
-                                title="เพิ่มคอนเทนต์วันนี้"
-                              >
-                                <Plus className="w-3 h-3" />
-                              </button>
-                            </div>
-
-                            {/* Content Item Badges for Date */}
-                            <div className="space-y-1.5 flex-1 overflow-y-auto max-h-[95px] pr-0.5">
-                              {dateItems.map(item => (
-                                <div
-                                  key={item.id}
-                                  draggable="true"
-                                  onDragStart={(e) => handleCalendarDragStart(e, item)}
-                                  onDragEnd={() => { setDraggedContentItem(null); setDragOverDay(null); }}
-                                  onClick={() => handleOpenDetailModal(item)}
-                                  className={`p-2 rounded-xl bg-pink-50/70 hover:bg-pink-100/90 border border-pink-200/90 text-[10px] space-y-1 transition-colors group/item cursor-grab active:cursor-grabbing select-none shadow-2xs ${draggedContentItem?.id === item.id ? 'opacity-40 scale-95 border-dashed border-rose-400' : ''
-                                    }`}
-                                  title="ลากเพื่อย้ายวันที่กำหนดโพสต์ หรือคลิกเพื่อดูรายละเอียด"
+                                <button
+                                  onClick={() => {
+                                    const formattedDay = dayNum < 10 ? `0${dayNum}` : `${dayNum}`;
+                                    const formattedMonth = (currentMonth + 1) < 10 ? `0${currentMonth + 1}` : `${currentMonth + 1}`;
+                                    setNewPublishDate(`${currentYear}-${formattedMonth}-${formattedDay}T10:00`);
+                                    setShowAddContentModal(true);
+                                  }}
+                                  className="opacity-0 group-hover:opacity-100 p-1 bg-pink-50 hover:bg-pink-100 text-rose-700 rounded-lg text-[10px] font-medium border border-pink-200 transition cursor-pointer"
+                                  title="เพิ่มคอนเทนต์วันนี้"
                                 >
-                                  <div className="flex items-center justify-between gap-1">
-                                    {getPlatformBadge(item.platform)}
-                                    <div className="flex items-center gap-1">
-                                      {item.reference_url && (
-                                        <LinkIcon className="w-3 h-3 text-pink-400" title="มีลิงก์แนบ" />
-                                      )}
-                                      <span className={`w-2 h-2 rounded-full ${item.status === 'published' ? 'bg-emerald-400' : item.status === 'scheduled' ? 'bg-sky-400' : 'bg-amber-400'
-                                        }`} title={item.status} />
+                                  <Plus className="w-3 h-3" />
+                                </button>
+                              </div>
+
+                              {/* Content Item Badges for Date */}
+                              <div className="space-y-1.5 flex-1 overflow-y-auto max-h-[95px] pr-0.5">
+                                {dateItems.map(item => (
+                                  <div
+                                    key={item.id}
+                                    draggable="true"
+                                    onDragStart={(e) => handleCalendarDragStart(e, item)}
+                                    onDragEnd={() => { setDraggedContentItem(null); setDragOverDay(null); }}
+                                    onClick={() => handleOpenDetailModal(item)}
+                                    className={`p-2 rounded-xl bg-pink-50/70 hover:bg-pink-100/90 border border-pink-200/90 text-[10px] space-y-1 transition-colors group/item cursor-grab active:cursor-grabbing select-none shadow-2xs ${draggedContentItem?.id === item.id ? 'opacity-40 scale-95 border-dashed border-rose-400' : ''
+                                      }`}
+                                    title="ลากเพื่อย้ายวันที่กำหนดโพสต์ หรือคลิกเพื่อดูรายละเอียด"
+                                  >
+                                    <div className="flex items-center justify-between gap-1">
+                                      {getPlatformBadge(item.platform)}
+                                      <div className="flex items-center gap-1">
+                                        {item.reference_url && (
+                                          <LinkIcon className="w-3 h-3 text-pink-400" title="มีลิงก์แนบ" />
+                                        )}
+                                        <span className={`w-2 h-2 rounded-full ${item.status === 'published' ? 'bg-emerald-400' : item.status === 'scheduled' ? 'bg-sky-400' : 'bg-amber-400'
+                                          }`} title={item.status} />
+                                      </div>
                                     </div>
+
+                                    {/* Title */}
+                                    <div className="font-semibold text-rose-950 line-clamp-1 leading-tight">{item.title}</div>
+
+                                    {/* Sub-Category Badge Tag */}
+                                    {item.subCategory ? (
+                                      <div className="pt-0.5">{getSubCategoryBadge(item.subCategory)}</div>
+                                    ) : item.group ? (
+                                      <div className="pt-0.5">{getGroupBadge(item.group)}</div>
+                                    ) : null}
                                   </div>
+                                ))}
+                              </div>
 
-                                  {/* Title */}
-                                  <div className="font-semibold text-rose-950 line-clamp-1 leading-tight">{item.title}</div>
-
-                                  {/* Sub-Category Badge Tag */}
-                                  {item.subCategory ? (
-                                    <div className="pt-0.5">{getSubCategoryBadge(item.subCategory)}</div>
-                                  ) : item.group ? (
-                                    <div className="pt-0.5">{getGroupBadge(item.group)}</div>
-                                  ) : null}
-                                </div>
-                              ))}
                             </div>
+                          );
+                        })}
+                      </div>
 
-                          </div>
-                        );
-                      })}
                     </div>
-
                   </div>
                 </div>
               )}
@@ -2455,7 +2519,7 @@ export default function ContentPlanModule({
 
               {/* VIEW MODE 3: INTERACTIVE EDITABLE SPREADSHEET DATA GRID */}
               {viewMode === 'table' && (
-                <div className="glass-panel p-5 space-y-4">
+                <div className="glass-panel p-3 md:p-5 space-y-4 overflow-hidden">
 
                   {/* Spreadsheet Grid Header Bar with Undo, Copy & Paste shortcuts */}
                   <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-pink-100 pb-3">
@@ -2795,7 +2859,28 @@ export default function ContentPlanModule({
                   </div>
 
                   <h4 className="font-bold text-rose-950 text-sm">{idea.title}</h4>
-                  <p className="text-xs text-rose-800 font-medium mt-2 leading-relaxed">{idea.notes}</p>
+
+                  <div
+                    className="mt-2 text-xs text-rose-800 font-medium font-sans prose prose-pink max-w-none 
+                      [&>ol]:list-decimal [&>ul]:list-disc [&>ul]:ml-4 [&>ol]:ml-4 
+                      [&>h1]:text-sm [&>h1]:font-bold [&>h2]:text-sm [&>h2]:font-bold
+                      [&_table]:w-full [&_table]:border-collapse [&_table]:border [&_table]:border-pink-300 [&_table]:my-2
+                      [&_th]:border [&_th]:border-pink-300 [&_th]:bg-pink-100 [&_th]:p-1.5 [&_th]:text-left [&_th]:font-bold
+                      [&_td]:border [&_td]:border-pink-200 [&_td]:p-1.5 [&_td]:align-top"
+                    dangerouslySetInnerHTML={{ __html: idea.notes }}
+                  />
+
+                  {idea.referenceUrl && (
+                    <a
+                      href={idea.referenceUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="mt-3 inline-flex items-center gap-1 text-[11px] font-semibold text-pink-600 hover:text-pink-800 bg-pink-50 hover:bg-pink-100 px-2.5 py-1.5 rounded-lg transition"
+                    >
+                      <LinkIcon className="w-3.5 h-3.5" />
+                      <span className="truncate max-w-[200px]">{idea.referenceUrl}</span>
+                    </a>
+                  )}
 
                   <div className="flex flex-wrap gap-1.5 mt-3">
                     {idea.tags.map(tag => (
@@ -2809,14 +2894,14 @@ export default function ContentPlanModule({
                 <div className="pt-3 border-t border-pink-100">
                   <button
                     onClick={() => onConvertVaultIdeaToContent(idea)}
-                    disabled={idea.is_used}
-                    className={`w-full py-2.5 rounded-xl text-xs font-bold transition flex items-center justify-center gap-2 cursor-pointer ${idea.is_used
+                    disabled={idea.isUsed}
+                    className={`w-full py-2.5 rounded-xl text-xs font-bold transition flex items-center justify-center gap-2 cursor-pointer ${idea.isUsed
                       ? 'bg-pink-50 text-pink-300 cursor-not-allowed border border-pink-100'
                       : 'bg-gradient-to-r from-[#F0E6F5] via-[#FFEBF3] to-[#E6F2FF] hover:opacity-90 text-purple-950 font-bold border border-[#E2D2EA] shadow-xs'
                       }`}
                   >
                     <Send className="w-3.5 h-3.5" />
-                    <span>{idea.is_used ? 'ใช้งานแล้ว' : 'แปลงเป็น Content Plan (Draft)'}</span>
+                    <span>{idea.isUsed ? 'ใช้งานแล้ว' : 'แปลงเป็น Content Plan (Draft)'}</span>
                   </button>
                 </div>
 
@@ -3589,7 +3674,6 @@ export default function ContentPlanModule({
                 <X className="w-5 h-5" />
               </button>
             </div>
-
             <form onSubmit={handleCreateContent} className="space-y-6 text-xs">
 
               {/* Row 1: Title (2 Cols) & Platform (1 Col) */}
@@ -3835,21 +3919,63 @@ export default function ContentPlanModule({
                   <div key={grp.id} className="p-3.5 rounded-2xl bg-pink-50/40 border border-pink-100 space-y-2.5 shadow-2xs">
                     {/* Main Group Header Row */}
                     <div className="flex items-center justify-between gap-2">
-                      <div className="flex items-center gap-2">
-                        <span className={`px-3 py-1 rounded-full text-xs font-bold border ${grp.color}`}>
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className={`px-3 py-1 rounded-full text-xs font-bold border ${grp.colorClass}`}>
                           {grp.name}
                         </span>
                         <span className="text-[10px] text-purple-900/60 font-semibold">({subCats.length} หมวดย่อย)</span>
                       </div>
-                      <button
-                        type="button"
-                        onClick={() => onDeleteContentGroup && onDeleteContentGroup(grp.id)}
-                        className="p-1 text-rose-400 hover:text-rose-600 hover:bg-rose-100/50 rounded-lg transition cursor-pointer"
-                        title="ลบกลุ่มหลักนี้"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
+                      <div className="flex items-center gap-1">
+                        {/* Color Palette Toggle Button */}
+                        <button
+                          type="button"
+                          onClick={() => setOpenColorPalette(openColorPalette === grp.id ? null : grp.id)}
+                          className={`p-1.5 rounded-lg transition cursor-pointer border ${grp.colorClass} hover:opacity-80`}
+                          title="เปลี่ยนสีกลุ่ม"
+                        >
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <circle cx="12" cy="12" r="10" strokeWidth="2" />
+                            <path strokeWidth="2" d="M12 2a10 10 0 0 1 0 20c-5 0-4-4-4-4s-4-1-4-6a10 10 0 0 1 8-10z" />
+                          </svg>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => onDeleteContentGroup && onDeleteContentGroup(grp.id)}
+                          className="p-1 text-rose-400 hover:text-rose-600 hover:bg-rose-100/50 rounded-lg transition cursor-pointer"
+                          title="ลบกลุ่มหลักนี้"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
                     </div>
+
+                    {/* Inline Color Palette Picker */}
+                    {openColorPalette === grp.id && (
+                      <div className="p-3 bg-white border border-purple-200 rounded-2xl shadow-lg space-y-2 animate-in fade-in slide-in-from-top-2 duration-150">
+                        <p className="text-[11px] font-bold text-purple-950">🎨 เลือกสีกลุ่ม "{grp.name}"</p>
+                        <div className="flex flex-wrap gap-2">
+                          {GROUP_COLORS.map(c => {
+                            const isSelected = grp.color === c.value;
+                            return (
+                              <button
+                                key={c.value}
+                                type="button"
+                                title={c.label}
+                                onClick={() => {
+                                  handleUpdateGroupColor(grp.id, c.value);
+                                  setOpenColorPalette(null);
+                                }}
+                                className={`w-7 h-7 rounded-full ${c.dot} transition-all cursor-pointer shadow-sm hover:scale-110 ${isSelected
+                                    ? 'ring-2 ring-offset-2 ring-purple-950 scale-110'
+                                    : 'hover:ring-2 hover:ring-offset-1 hover:ring-purple-400'
+                                  }`}
+                              />
+                            );
+                          })}
+                        </div>
+                        <p className="text-[10px] text-purple-400">คลิกสีที่ต้องการ — บันทึกอัตโนมัติ</p>
+                      </div>
+                    )}
 
                     {/* Sub-Categories Chip List */}
                     <div className="pl-3 border-l-2 border-amber-300 space-y-2">
@@ -3861,77 +3987,108 @@ export default function ContentPlanModule({
                         {subCats.map((sub, sIdx) => {
                           const isEditingThis = editingSubCategory?.groupId === grp.id && editingSubCategory?.oldName === sub;
                           const subColor = (grp.subCategoryColors || {})[sub] || DEFAULT_SUB_CAT_COLOR;
+                          const subPaletteKey = `${grp.id}__${sub}`;
+                          const isSubPaletteOpen = openSubColorPalette === subPaletteKey;
 
                           if (isEditingThis) {
                             return (
-                              <div key={sIdx} className="flex items-center gap-1 bg-white border border-amber-400 rounded-xl px-2 py-1 text-xs shadow-xs">
-                                <input
-                                  type="text"
-                                  autoFocus
-                                  value={editingSubCategory.name}
-                                  onChange={(e) => setEditingSubCategory({ ...editingSubCategory, name: e.target.value })}
-                                  onKeyDown={(e) => {
-                                    if (e.key === 'Enter') handleEditSubCategory(grp.id, sub, editingSubCategory.name);
-                                    if (e.key === 'Escape') setEditingSubCategory(null);
-                                  }}
-                                  className="w-36 bg-amber-50/50 border border-amber-200 text-purple-950 px-1.5 py-0.5 rounded-md font-semibold text-xs focus:outline-none"
-                                />
-                                {/* Color picker in edit mode */}
-                                <select
-                                  defaultValue={subColor}
-                                  onChange={(e) => handleSetSubCategoryColor(grp.id, sub, e.target.value)}
-                                  className="bg-white border border-amber-300 text-amber-900 text-[10px] font-bold rounded-lg px-1 py-0.5 cursor-pointer max-w-[110px]"
-                                  title="เลือกสี Tag"
-                                >
-                                  {SUB_CATEGORY_COLORS.map(c => (
-                                    <option key={c.value} value={c.value}>{c.label}</option>
-                                  ))}
-                                </select>
-                                <button
-                                  type="button"
-                                  onClick={() => handleEditSubCategory(grp.id, sub, editingSubCategory.name)}
-                                  className="p-1 text-emerald-600 hover:bg-emerald-50 rounded cursor-pointer"
-                                  title="บันทึก"
-                                >
-                                  <Check className="w-3.5 h-3.5 stroke-[3]" />
-                                </button>
-                                <button
-                                  type="button"
-                                  onClick={() => setEditingSubCategory(null)}
-                                  className="p-1 text-rose-500 hover:bg-rose-50 rounded cursor-pointer"
-                                  title="ยกเลิก"
-                                >
-                                  <X className="w-3.5 h-3.5" />
-                                </button>
+                              <div key={sIdx} className="flex flex-col gap-1.5">
+                                <div className="flex items-center gap-1 bg-white border border-amber-400 rounded-xl px-2 py-1 text-xs shadow-xs">
+                                  <input
+                                    type="text"
+                                    autoFocus
+                                    value={editingSubCategory.name}
+                                    onChange={(e) => setEditingSubCategory({ ...editingSubCategory, name: e.target.value })}
+                                    onKeyDown={(e) => {
+                                      if (e.key === 'Enter') handleEditSubCategory(grp.id, sub, editingSubCategory.name);
+                                      if (e.key === 'Escape') setEditingSubCategory(null);
+                                    }}
+                                    className="w-36 bg-amber-50/50 border border-amber-200 text-purple-950 px-1.5 py-0.5 rounded-md font-semibold text-xs focus:outline-none"
+                                  />
+                                  <button
+                                    type="button"
+                                    onClick={() => handleEditSubCategory(grp.id, sub, editingSubCategory.name)}
+                                    className="p-1 text-emerald-600 hover:bg-emerald-50 rounded cursor-pointer"
+                                    title="บันทึก"
+                                  >
+                                    <Check className="w-3.5 h-3.5 stroke-[3]" />
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => setEditingSubCategory(null)}
+                                    className="p-1 text-rose-500 hover:bg-rose-50 rounded cursor-pointer"
+                                    title="ยกเลิก"
+                                  >
+                                    <X className="w-3.5 h-3.5" />
+                                  </button>
+                                </div>
                               </div>
                             );
                           }
 
                           return (
-                            <div
-                              key={sIdx}
-                              className={`group/sub flex items-center gap-1.5 px-2.5 py-1 rounded-xl text-xs font-semibold shadow-2xs border transition ${subColor}`}
-                            >
-                              <Tag className="w-2.5 h-2.5 shrink-0" />
-                              <span>{sub}</span>
-                              <div className="flex items-center gap-0.5 opacity-60 group-hover/sub:opacity-100 transition">
-                                <button
-                                  type="button"
-                                  onClick={() => setEditingSubCategory({ groupId: grp.id, oldName: sub, name: sub })}
-                                  className="p-0.5 hover:opacity-100 rounded cursor-pointer"
-                                  title="แก้ไข"
-                                >
-                                  <Edit3 className="w-3 h-3" />
-                                </button>
-                                <button
-                                  type="button"
-                                  onClick={() => handleDeleteSubCategory(grp.id, sub)}
-                                  className="p-0.5 text-rose-500 hover:text-rose-700 rounded cursor-pointer"
-                                  title="ลบ"
-                                >
-                                  <Trash2 className="w-3 h-3" />
-                                </button>
+                            <div key={sIdx} className="flex flex-col gap-1">
+                              <div
+                                className={`group/sub flex items-center gap-1.5 px-2.5 py-1 rounded-xl text-xs font-semibold shadow-2xs border transition ${subColor}`}
+                              >
+                                <Tag className="w-2.5 h-2.5 shrink-0" />
+                                <span>{sub}</span>
+                                <div className="flex items-center gap-0.5 opacity-60 group-hover/sub:opacity-100 transition">
+                                  {/* Color Dot Button — คลิกเปิด palette */}
+                                  <button
+                                    type="button"
+                                    onClick={() => setOpenSubColorPalette(isSubPaletteOpen ? null : subPaletteKey)}
+                                    className="p-0.5 rounded-full cursor-pointer hover:scale-125 transition-transform"
+                                    title="เปลี่ยนสี"
+                                  >
+                                    <span className={`block w-2.5 h-2.5 rounded-full border border-white/60 ${SUB_CATEGORY_COLORS.find(c => c.value === subColor)?.dot || 'bg-amber-400'
+                                      }`} />
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => setEditingSubCategory({ groupId: grp.id, oldName: sub, name: sub })}
+                                    className="p-0.5 hover:opacity-100 rounded cursor-pointer"
+                                    title="แก้ไขชื่อ"
+                                  >
+                                    <Edit3 className="w-3 h-3" />
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => handleDeleteSubCategory(grp.id, sub)}
+                                    className="p-0.5 text-rose-500 hover:text-rose-700 rounded cursor-pointer"
+                                    title="ลบ"
+                                  >
+                                    <Trash2 className="w-3 h-3" />
+                                  </button>
+                                </div>
                               </div>
+
+                              {/* Mini Sub-Category Color Palette Popover */}
+                              {isSubPaletteOpen && (
+                                <div className="p-2.5 bg-white border border-purple-200 rounded-2xl shadow-lg space-y-1.5 animate-in fade-in slide-in-from-top-1 duration-150 z-10">
+                                  <p className="text-[10px] font-bold text-purple-950">🎨 สี "{sub}"</p>
+                                  <div className="flex flex-wrap gap-1.5">
+                                    {SUB_CATEGORY_COLORS.map(c => {
+                                      const isSelected = subColor === c.value;
+                                      return (
+                                        <button
+                                          key={c.value}
+                                          type="button"
+                                          title={c.label}
+                                          onClick={() => {
+                                            handleSetSubCategoryColor(grp.id, sub, c.value);
+                                            setOpenSubColorPalette(null);
+                                          }}
+                                          className={`w-6 h-6 rounded-full ${c.dot} transition-all cursor-pointer shadow-sm hover:scale-110 ${isSelected
+                                              ? 'ring-2 ring-offset-1 ring-purple-950 scale-110'
+                                              : 'hover:ring-2 hover:ring-offset-1 hover:ring-purple-400'
+                                            }`}
+                                        />
+                                      );
+                                    })}
+                                  </div>
+                                </div>
+                              )}
                             </div>
                           );
                         })}
@@ -3974,7 +4131,7 @@ export default function ContentPlanModule({
             {/* Add New Group Form */}
             <form onSubmit={handleCreateGroup} className="space-y-3 pt-3 border-t border-pink-100 text-xs">
               <label className="text-xs font-bold text-rose-950 block">➕ เพิ่มกลุ่มคอนเทนต์หลักใหม่:</label>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 gap-3">
                 <div>
                   <label className="block text-rose-800 font-semibold mb-1">ชื่อกลุ่ม (Group Name)</label>
                   <input
@@ -3988,18 +4145,31 @@ export default function ContentPlanModule({
                 </div>
 
                 <div>
-                  <label className="block text-rose-800 font-semibold mb-1">เลือกโทนสีประจำกลุ่ม</label>
-                  <select
-                    value={newGroupColor}
-                    onChange={(e) => setNewGroupColor(e.target.value)}
-                    className="w-full bg-pink-50/40 border border-pink-200 text-rose-950 p-2.5 rounded-xl font-medium cursor-pointer"
-                  >
-                    {GROUP_COLORS.map(c => (
-                      <option key={c.value} value={c.value}>
-                        {c.label}
-                      </option>
-                    ))}
-                  </select>
+                  <div className="flex items-center justify-between mb-2">
+                    <label className="text-rose-800 font-semibold">เลือกโทนสีประจำกลุ่ม</label>
+                    {/* Preview badge */}
+                    <span className={`px-3 py-1 rounded-full text-xs font-bold border ${newGroupColor}`}>
+                      {newGroupName || 'ตัวอย่างกลุ่ม'}
+                    </span>
+                  </div>
+                  {/* Color Palette Grid */}
+                  <div className="flex flex-wrap gap-2 p-3 bg-pink-50/40 border border-pink-200 rounded-xl">
+                    {GROUP_COLORS.map(c => {
+                      const isSelected = newGroupColor === c.value;
+                      return (
+                        <button
+                          key={c.value}
+                          type="button"
+                          title={c.label}
+                          onClick={() => setNewGroupColor(c.value)}
+                          className={`w-7 h-7 rounded-full ${c.dot} transition-all cursor-pointer shadow-sm hover:scale-110 ${isSelected
+                              ? 'ring-2 ring-offset-2 ring-purple-950 scale-110'
+                              : 'hover:ring-2 hover:ring-offset-1 hover:ring-purple-400'
+                            }`}
+                        />
+                      );
+                    })}
+                  </div>
                 </div>
               </div>
 
@@ -4025,12 +4195,12 @@ export default function ContentPlanModule({
       )}
 
       {/* MODAL 5: CREATE IDEA */}
-      {showAddIdeaModal && (
+      {showAddIdeaModal && createPortal(
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/30 backdrop-blur-sm p-4 animate-in fade-in">
-          <div className="w-full max-w-md bg-white border border-pink-100 rounded-3xl p-6 shadow-xl space-y-4">
-            <h3 className="text-lg font-bold text-rose-950">บันทึกไอเดียลงคลัง (Idea Vault)</h3>
+          <div className="w-full max-w-3xl bg-white border border-pink-100 rounded-3xl p-6 flex flex-col shadow-xl max-h-[95vh]">
+            <h3 className="text-lg font-bold text-rose-950 border-b border-pink-100 pb-3 shrink-0">บันทึกไอเดียลงคลัง (Idea Vault)</h3>
 
-            <form onSubmit={handleCreateIdea} className="space-y-3 text-xs">
+            <form onSubmit={handleCreateIdea} className="flex-1 overflow-y-auto space-y-4 mt-4 pr-2 text-xs">
               <div>
                 <label className="block text-rose-800 font-semibold mb-1">ชื่อไอเดีย</label>
                 <input
@@ -4045,13 +4215,31 @@ export default function ContentPlanModule({
 
               <div>
                 <label className="block text-rose-800 font-semibold mb-1">บันทึกเพิ่มเติม</label>
-                <textarea
-                  rows={3}
-                  placeholder="รายละเอียดไอเดีย อุปกรณ์ที่ต้องใช้ เทคนิค..."
-                  value={newIdeaNotes}
-                  onChange={(e) => setNewIdeaNotes(e.target.value)}
-                  className="w-full bg-pink-50/40 border border-pink-200 text-rose-950 p-2.5 rounded-xl focus:outline-none focus:border-pink-400 font-medium"
-                />
+                <div className="bg-white border border-pink-200 rounded-xl overflow-hidden text-rose-950">
+                  <JoditEditor
+                    value={newIdeaNotes}
+                    config={{
+                      readonly: false,
+                      height: 300,
+                      askBeforePasteHTML: false,
+                      askBeforePasteFromWord: false,
+                      defaultActionOnPaste: 'insert_as_html',
+                      placeholder: "รายละเอียดไอเดีย อุปกรณ์ที่ต้องใช้ เทคนิค... วางตารางจาก AI ได้เลย",
+                      buttons: [
+                        'bold', 'italic', 'underline', 'strikethrough', '|',
+                        'ul', 'ol', '|',
+                        'font', 'fontsize', 'brush', '|',
+                        'image', 'table', 'link', '|',
+                        'align', 'undo', 'redo'
+                      ],
+                      uploader: {
+                        insertImageAsBase64URI: true
+                      },
+                      showXPathInStatusbar: false
+                    }}
+                    onBlur={(val) => setNewIdeaNotes(val)}
+                  />
+                </div>
               </div>
 
               <div>
@@ -4065,7 +4253,18 @@ export default function ContentPlanModule({
                 />
               </div>
 
-              <div className="flex justify-end gap-2 pt-3 border-t border-pink-100">
+              <div>
+                <label className="block text-rose-800 font-semibold mb-1">ลิงก์อ้างอิง (Reference URL) - ไม่บังคับ</label>
+                <input
+                  type="url"
+                  placeholder="https://..."
+                  value={newIdeaReferenceUrl}
+                  onChange={(e) => setNewIdeaReferenceUrl(e.target.value)}
+                  className="w-full bg-pink-50/40 border border-pink-200 text-rose-950 p-2.5 rounded-xl font-medium"
+                />
+              </div>
+
+              <div className="flex justify-end gap-2 pt-3 border-t border-pink-100 shrink-0">
                 <button
                   type="button"
                   onClick={() => setShowAddIdeaModal(false)}
@@ -4082,7 +4281,8 @@ export default function ContentPlanModule({
               </div>
             </form>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
       {/* MODAL 6: MANAGE PLATFORMS (ADD, EDIT, DELETE CUSTOM PLATFORMS) */}

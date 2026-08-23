@@ -1,4 +1,12 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
+import JoditEditor from 'jodit-react';
+import { 
+  fetchBranchBudgetsFromSupabase,
+  fetchPromotionPlansFromSupabase,
+  upsertPromotionPlanToSupabase,
+  deletePromotionPlanFromSupabase
+} from '../services/dataService';
 import {
   Tag,
   Plus,
@@ -36,8 +44,23 @@ import LineFlexModal from './LineFlexModal';
 export default function PromotionPlanModule({
   products = [],
   campaigns = [],
-  onTriggerNotification
+  onTriggerNotification,
+  onShowSaveToast
 }) {
+  // Local Branches State for Promotions
+  const [branchesList, setBranchesList] = useState(() => {
+    const saved = localStorage.getItem('nitan_promotion_branches');
+    if (saved) {
+      const parsed = JSON.parse(saved);
+      return parsed.filter(b => b.name !== 'ทุกสาขา' && !b.name.includes('All Branches'));
+    }
+    return [
+      { id: 'b-2', name: 'NITAN หลัก' },
+      { id: 'b-3', name: 'NITAN เขาพระตำหนัก' },
+      { id: 'b-4', name: 'NITAN นาเกลือ' }
+    ];
+  });
+
   // Dynamic Promo Categories State (Add, Edit, Delete categories)
   const [categories, setCategories] = useState([
     { id: 'cat-1', name: 'Product Promotion', label: 'แผนโปรโมทสินค้า (Product)' },
@@ -49,19 +72,55 @@ export default function PromotionPlanModule({
   // Dynamic Related Products State with localStorage Persistence
   const [productsList, setProductsList] = useState(() => {
     const saved = localStorage.getItem('nitan_products_list');
-    return saved ? JSON.parse(saved) : [{ id: 'p-1', name: 'สินค้าทุกรายการ (All Products)' }];
+    if (saved) {
+      const parsed = JSON.parse(saved);
+      return parsed.filter(p => !p.name.includes('สินค้าทุกรายการ') && !p.name.includes('All Products') && p.name !== 'ไม่ระบุ (ไม่เจาะจงสินค้า)');
+    }
+    return [];
   });
 
   // Clean Initial Promotion Plans Data State
-  const [promotionPlans, setPromotionPlans] = useState(() => {
-    const saved = localStorage.getItem('nitan_promotion_plans');
-    return saved ? JSON.parse(saved) : [];
-  });
+  const [promotionPlans, setPromotionPlans] = useState([]);
+  const [isLoadingPlans, setIsLoadingPlans] = useState(true);
+
+  React.useEffect(() => {
+    async function loadPlans() {
+      setIsLoadingPlans(true);
+      const data = await fetchPromotionPlansFromSupabase();
+      if (data) {
+        const formattedData = data.map(dbPlan => ({
+          id: dbPlan.id,
+          code: `PROMO-${dbPlan.id.substring(0, 6).toUpperCase()}`,
+          title: dbPlan.title,
+          category: dbPlan.category,
+          targetProductId: dbPlan.product_id,
+          targetProductName: dbPlan.product_name,
+          targetBranch: dbPlan.target_branch,
+          status: dbPlan.status,
+          discountOffer: dbPlan.discount_text,
+          startDate: dbPlan.start_date,
+          endDate: dbPlan.end_date,
+          budget: dbPlan.budget,
+          projectedSales: dbPlan.projected_sales,
+          channels: dbPlan.channels || [],
+          description: dbPlan.description,
+          docContent: dbPlan.doc_content,
+          checklist: [
+            { task: 'จัดเตรียมอาร์ตเวิร์คโปรโมชัน', completed: false },
+            { task: 'เสร็จแล้ว', completed: false }
+          ]
+        }));
+        setPromotionPlans(formattedData);
+      }
+      setIsLoadingPlans(false);
+    }
+    loadPlans();
+  }, []);
 
   React.useEffect(() => {
     localStorage.setItem('nitan_products_list', JSON.stringify(productsList));
-    localStorage.setItem('nitan_promotion_plans', JSON.stringify(promotionPlans));
-  }, [productsList, promotionPlans]);
+    localStorage.setItem('nitan_promotion_branches', JSON.stringify(branchesList));
+  }, [productsList, branchesList]);
 
   // Filters State
   const [selectedCategory, setSelectedCategory] = useState('all');
@@ -74,6 +133,7 @@ export default function PromotionPlanModule({
   const [showAddModal, setShowAddModal] = useState(false);
   const [showManageCategoriesModal, setShowManageCategoriesModal] = useState(false);
   const [showManageProductsModal, setShowManageProductsModal] = useState(false);
+  const [showManageBranchesModal, setShowManageBranchesModal] = useState(false);
   const [viewDocPlan, setViewDocPlan] = useState(null); // Doc Format Viewer Modal State
   const [editingPlan, setEditingPlan] = useState(null);
   const [lineModalItem, setLineModalItem] = useState(null);
@@ -88,6 +148,11 @@ export default function PromotionPlanModule({
   const [editingProductId, setEditingProductId] = useState(null);
   const [editingProductName, setEditingProductName] = useState('');
 
+  // Branch Manager Modal Inputs State
+  const [newBranchName, setNewBranchName] = useState('');
+  const [editingBranchId, setEditingBranchId] = useState(null);
+  const [editingBranchName, setEditingBranchName] = useState('');
+
   // Form State for Add / Edit Plan Modal
   const [formData, setFormData] = useState({
     title: '',
@@ -95,13 +160,13 @@ export default function PromotionPlanModule({
     targetProductName: 'Sunscreen Aqua Gel (กันแดดสูตรน้ำ)',
     targetBranch: 'ทุกสาขา',
     status: 'planned',
-    discountOffer: 'Discount 20% Off',
+    discountOffer: '',
     startDate: '',
     endDate: '',
-    budget: 10000,
-    projectedSales: 150000,
+    budget: '',
+    projectedSales: '',
     description: '',
-    channelsStr: 'Facebook Ads, TikTok, หน้าร้าน',
+    channelsStr: '',
     docContent: ''
   });
 
@@ -171,6 +236,38 @@ export default function PromotionPlanModule({
     setProductsList(prev => prev.filter(p => p.id !== prodId));
   };
 
+  // Branch Management Handlers
+  const handleAddBranch = (e) => {
+    e.preventDefault();
+    if (!newBranchName.trim()) return;
+
+    const newBranch = {
+      id: `b-${Date.now()}`,
+      name: newBranchName.trim()
+    };
+
+    setBranchesList(prev => [...prev, newBranch]);
+    setNewBranchName('');
+  };
+
+  const handleStartEditBranch = (branch) => {
+    setEditingBranchId(branch.id);
+    setEditingBranchName(branch.name);
+  };
+
+  const handleSaveEditBranch = (branchId) => {
+    if (!editingBranchName.trim()) return;
+
+    const updatedName = editingBranchName.trim();
+    setBranchesList(prev => prev.map(b => b.id === branchId ? { ...b, name: updatedName } : b));
+    setEditingBranchId(null);
+    setEditingBranchName('');
+  };
+
+  const handleDeleteBranch = (branchId) => {
+    setBranchesList(prev => prev.filter(b => b.id !== branchId));
+  };
+
   // Open Add Plan Modal
   const handleOpenAddModal = () => {
     setEditingPlan(null);
@@ -180,14 +277,14 @@ export default function PromotionPlanModule({
       targetProductName: productsList[0]?.name || 'สินค้าทุกรายการ (All Products)',
       targetBranch: 'ทุกสาขา',
       status: 'planned',
-      discountOffer: 'Discount 20% Off',
+      discountOffer: '',
       startDate: new Date().toISOString().split('T')[0],
       endDate: new Date(Date.now() + 86400000 * 14).toISOString().split('T')[0],
-      budget: 15000,
-      projectedSales: 200000,
+      budget: '',
+      projectedSales: '',
       description: '',
-      channelsStr: 'Facebook Ads, TikTok Shop, หน้าร้าน',
-      docContent: `=====================================================\nเอกสารบรีฟแผนโปรโมชัน (CAMPAIGN STRATEGY & PROMOTION DOC)\n=====================================================\n\n1. วัตถุประสงค์เชิงกลยุทธ์ (Strategic Objectives)\n- \n\n2. กลุ่มเป้าหมายหลัก (Target Audience)\n- \n\n3. เงื่อนไขและข้อเสนอโปรโมชัน (Offer Terms)\n- \n\n4. สื่อและสคริปต์โฆษณา (Creative & Script Brief)\n- `
+      channelsStr: '',
+      docContent: ''
     });
     setShowAddModal(true);
   };
@@ -200,27 +297,29 @@ export default function PromotionPlanModule({
       category: plan.category,
       targetProductName: plan.targetProductName,
       targetBranch: plan.targetBranch,
-      status: plan.status,
-      discountOffer: plan.discountOffer,
-      startDate: plan.startDate,
-      endDate: plan.endDate,
-      budget: plan.budget,
-      projectedSales: plan.projectedSales,
-      description: plan.description,
-      channelsStr: plan.channels.join(', '),
+      status: plan.status || 'planned',
+      discountOffer: plan.discountOffer || '',
+      startDate: plan.startDate || '',
+      endDate: plan.endDate || '',
+      budget: plan.budget ?? '',
+      projectedSales: plan.projectedSales ?? '',
+      description: plan.description || '',
+      channelsStr: plan.channels ? plan.channels.join(', ') : '',
       docContent: plan.docContent || ''
     });
     setShowAddModal(true);
   };
 
   // Save Add or Edit Plan
-  const handleSaveForm = (e) => {
+  const handleSaveForm = async (e) => {
     e.preventDefault();
     const channelsList = formData.channelsStr.split(',').map(c => c.trim()).filter(Boolean);
 
+    let planToSave;
+
     if (editingPlan) {
-      setPromotionPlans(prev => prev.map(p => p.id === editingPlan.id ? {
-        ...p,
+      planToSave = {
+        ...editingPlan,
         title: formData.title,
         category: formData.category,
         targetProductName: formData.targetProductName,
@@ -234,11 +333,12 @@ export default function PromotionPlanModule({
         description: formData.description,
         channels: channelsList,
         docContent: formData.docContent
-      } : p));
+      };
+      setPromotionPlans(prev => prev.map(p => p.id === editingPlan.id ? planToSave : p));
     } else {
-      const newPlan = {
+      planToSave = {
         id: `promo-${Date.now()}`,
-        code: `PROMO-2026-${Math.floor(100 + Math.random() * 900)}`,
+        code: `PROMO-${String(Date.now()).substring(0, 6)}`,
         title: formData.title,
         category: formData.category,
         targetProductId: 'prod-custom',
@@ -254,26 +354,34 @@ export default function PromotionPlanModule({
         description: formData.description,
         docContent: formData.docContent,
         checklist: [
-          { task: 'จัดเตรียมอาร์ตเวิร์คโปรโมชัน', completed: true },
-          { task: 'เซ็ตอัปส่วนลดในระบบPOS/ออนไลน์', completed: false }
+          { task: 'จัดเตรียมอาร์ตเวิร์คโปรโมชัน', completed: false },
+          { task: 'เสร็จแล้ว', completed: false }
         ]
       };
-      setPromotionPlans(prev => [newPlan, ...prev]);
+      setPromotionPlans(prev => [planToSave, ...prev]);
     }
 
     setShowAddModal(false);
+    
+    // Sync to Supabase
+    const savedData = await upsertPromotionPlanToSupabase(planToSave);
+    if (!editingPlan && savedData && savedData[0] && savedData[0].id) {
+      // Update local state with the real UUID generated by Supabase
+      setPromotionPlans(prev => prev.map(p => p.id === planToSave.id ? { ...p, id: savedData[0].id } : p));
+    }
   };
 
   // Delete Plan
-  const handleDeletePlan = (id) => {
+  const handleDeletePlan = async (id) => {
     setPromotionPlans(prev => prev.filter(p => p.id !== id));
+    await deletePromotionPlanFromSupabase(id);
   };
 
   // Toggle Checklist item
   const handleToggleChecklist = (planId, taskIdx) => {
     setPromotionPlans(prev => prev.map(p => {
       if (p.id !== planId) return p;
-      const updatedChecklist = p.checklist.map((item, idx) => 
+      const updatedChecklist = p.checklist.map((item, idx) =>
         idx === taskIdx ? { ...item, completed: !item.completed } : item
       );
       return { ...p, checklist: updatedChecklist };
@@ -286,7 +394,7 @@ export default function PromotionPlanModule({
     const matchProduct = selectedProduct === 'all' || plan.targetProductName.toLowerCase().includes(selectedProduct.toLowerCase());
     const matchBranch = selectedBranch === 'all' || plan.targetBranch === selectedBranch || plan.targetBranch === 'ทุกสาขา';
     const matchStatus = selectedStatus === 'all' || plan.status === selectedStatus;
-    const matchSearch = !searchQuery || 
+    const matchSearch = !searchQuery ||
       plan.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
       plan.code.toLowerCase().includes(searchQuery.toLowerCase()) ||
       plan.targetProductName.toLowerCase().includes(searchQuery.toLowerCase());
@@ -302,7 +410,7 @@ export default function PromotionPlanModule({
 
   return (
     <div className="space-y-6 animate-in fade-in duration-300">
-      
+
       {/* Banner & Title Panel */}
       <div className="glass-panel p-6 border-[#E2D2EA]">
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
@@ -389,7 +497,7 @@ export default function PromotionPlanModule({
       {/* Filter Bar & Controls Panel */}
       <div className="glass-panel p-4 border-[#E2D2EA] space-y-4">
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3 text-xs">
-          
+
           {/* Category Filter Tabs with Edit/Add capability */}
           <div className="flex items-center gap-1.5 overflow-x-auto pb-1">
             <span className="font-bold text-purple-900 flex items-center gap-1 shrink-0 mr-1">
@@ -399,11 +507,10 @@ export default function PromotionPlanModule({
 
             <button
               onClick={() => setSelectedCategory('all')}
-              className={`px-3 py-1.5 rounded-xl font-bold transition whitespace-nowrap cursor-pointer ${
-                selectedCategory === 'all'
+              className={`px-3 py-1.5 rounded-xl font-bold transition whitespace-nowrap cursor-pointer ${selectedCategory === 'all'
                   ? 'bg-purple-950 text-white shadow-xs'
                   : 'bg-white text-purple-900 hover:bg-purple-50 border border-[#E2D2EA]'
-              }`}
+                }`}
             >
               ทั้งหมด
             </button>
@@ -412,11 +519,10 @@ export default function PromotionPlanModule({
               <button
                 key={cat.id}
                 onClick={() => setSelectedCategory(cat.name)}
-                className={`px-3 py-1.5 rounded-xl font-bold transition whitespace-nowrap cursor-pointer ${
-                  selectedCategory === cat.name
+                className={`px-3 py-1.5 rounded-xl font-bold transition whitespace-nowrap cursor-pointer ${selectedCategory === cat.name
                     ? 'bg-purple-950 text-white shadow-xs'
                     : 'bg-white text-purple-900 hover:bg-purple-50 border border-[#E2D2EA]'
-                }`}
+                  }`}
               >
                 {cat.label || cat.name}
               </button>
@@ -482,10 +588,23 @@ export default function PromotionPlanModule({
               className="bg-transparent font-bold text-purple-950 focus:outline-none text-xs"
             >
               <option value="all">ทุกสาขา (All Branches)</option>
-              <option value="NITAN หลัก">NITAN หลัก (สำนักงานใหญ่)</option>
-              <option value="NITAN เขาพระตำหนัก">NITAN เขาพระตำหนัก</option>
-              <option value="NITAN นาเกลือ">NITAN นาเกลือ</option>
+              {branchesList && branchesList.length > 0 ? branchesList.map(b => (
+                <option key={b.id} value={b.name}>{b.name}</option>
+              )) : (
+                <>
+                  <option value="NITAN หลัก">NITAN หลัก (สำนักงานใหญ่)</option>
+                  <option value="NITAN เขาพระตำหนัก">NITAN เขาพระตำหนัก</option>
+                  <option value="NITAN นาเกลือ">NITAN นาเกลือ</option>
+                </>
+              )}
             </select>
+            <button
+              onClick={() => setShowManageBranchesModal(true)}
+              className="p-1.5 text-purple-400 hover:text-purple-600 hover:bg-white rounded-lg transition"
+              title="จัดการสาขา"
+            >
+              <Settings className="w-3.5 h-3.5" />
+            </button>
           </div>
 
           {/* Status Filter */}
@@ -551,13 +670,12 @@ export default function PromotionPlanModule({
                     </div>
 
                     <div className="flex items-center gap-1.5">
-                      <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold flex items-center gap-1 ${
-                        plan.status === 'active'
+                      <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold flex items-center gap-1 ${plan.status === 'active'
                           ? 'bg-emerald-100 text-emerald-800 border border-emerald-200'
                           : plan.status === 'planned'
-                          ? 'bg-amber-100 text-amber-900 border border-amber-200'
-                          : 'bg-slate-100 text-slate-700 border border-slate-200'
-                      }`}>
+                            ? 'bg-amber-100 text-amber-900 border border-amber-200'
+                            : 'bg-slate-100 text-slate-700 border border-slate-200'
+                        }`}>
                         <span className={`w-1.5 h-1.5 rounded-full ${plan.status === 'active' ? 'bg-emerald-500 animate-pulse' : 'bg-amber-500'}`} />
                         <span>{plan.status === 'active' ? 'Active' : plan.status === 'planned' ? 'Planned' : 'Completed'}</span>
                       </span>
@@ -586,17 +704,19 @@ export default function PromotionPlanModule({
                   </h3>
 
                   <div className="mt-3 p-3 bg-purple-50/70 rounded-xl border border-purple-100 space-y-2 text-xs">
-                    <div className="flex items-center justify-between">
-                      <span className="text-purple-900 font-bold flex items-center gap-1">
-                        <Gift className="w-3.5 h-3.5 text-purple-700" />
-                        <span>ข้อเสนอโปรโมชัน (Offer):</span>
-                      </span>
-                      <span className="font-mono font-extrabold text-pink-700 bg-white px-2 py-0.5 rounded border border-purple-200 shadow-xs">
-                        {plan.discountOffer}
-                      </span>
-                    </div>
+                    {plan.discountOffer && (
+                      <div className="flex items-center justify-between">
+                        <span className="text-purple-900 font-bold flex items-center gap-1">
+                          <Gift className="w-3.5 h-3.5 text-purple-700" />
+                          <span>ข้อเสนอโปรโมชัน (Offer):</span>
+                        </span>
+                        <span className="font-mono font-extrabold text-pink-700 bg-white px-2 py-0.5 rounded border border-purple-200 shadow-xs">
+                          {plan.discountOffer}
+                        </span>
+                      </div>
+                    )}
 
-                    <div className="grid grid-cols-2 gap-2 pt-1 border-t border-dashed border-purple-200/80 text-[11px]">
+                    <div className={`grid grid-cols-2 gap-2 text-[11px] ${plan.discountOffer ? 'pt-1 border-t border-dashed border-purple-200/80' : ''}`}>
                       <div>
                         <span className="text-purple-800 font-medium block">สินค้าเป้าหมาย:</span>
                         <span className="font-bold text-purple-950 flex items-center gap-1 mt-0.5">
@@ -712,10 +832,10 @@ export default function PromotionPlanModule({
       )}
 
       {/* MODAL 1: Add or Edit Promotion Plan Modal (with Doc Brief Support) */}
-      {showAddModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-xs p-4 animate-in fade-in duration-150 overflow-y-auto">
-          <div className="glass-panel max-w-2xl w-full p-6 space-y-4 border-[#E2D2EA] shadow-2xl bg-white/95 my-8">
-            <div className="flex items-center justify-between border-b border-purple-100 pb-3">
+      {showAddModal && createPortal(
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-xs p-4 animate-in fade-in duration-150">
+          <div className="glass-panel max-w-7xl w-full p-6 flex flex-col border-[#E2D2EA] shadow-2xl bg-white/95 max-h-[95vh] rounded-2xl">
+            <div className="flex items-center justify-between border-b border-purple-100 pb-3 shrink-0">
               <div className="flex items-center gap-2">
                 <div className="w-8 h-8 rounded-xl bg-[#FFEBF3] text-purple-800 flex items-center justify-center border border-[#E2D2EA]">
                   <Megaphone className="w-4 h-4" />
@@ -729,180 +849,249 @@ export default function PromotionPlanModule({
               </button>
             </div>
 
-            <form onSubmit={handleSaveForm} className="space-y-3 text-xs">
-              <div>
-                <label className="block text-purple-950 font-bold mb-1">ชื่อแผนโปรโมชัน / แคมเปญ</label>
-                <input
-                  type="text"
-                  required
-                  placeholder="เช่น ซื้อ 1 แถม 1 Sunscreen Aqua Gel หรือ ลด 30% หน้าร้านเขาพระตำหนัก"
-                  value={formData.title}
-                  onChange={(e) => setFormData(prev => ({ ...prev, title: e.target.value }))}
-                  className="w-full px-3 py-2 bg-white border border-[#E2D2EA] rounded-xl text-purple-950 font-medium focus:outline-none shadow-xs"
-                />
-              </div>
+            <form onSubmit={handleSaveForm} className="flex-1 overflow-hidden flex flex-col mt-4 min-h-0">
+              <div className="flex-1 overflow-y-auto pr-2 text-xs flex flex-col lg:flex-row gap-8 min-h-0">
+                
+                {/* Left Side: Form Fields */}
+                <div className="w-full lg:w-[380px] xl:w-[420px] space-y-5 shrink-0">
+                  <div>
+                    <label className="block text-purple-950 font-bold mb-1.5 text-sm">ชื่อแผนโปรโมชัน / แคมเปญ</label>
+                    <input
+                      type="text"
+                      required
+                      placeholder="เช่น ซื้อ 1 แถม 1 Sunscreen Aqua Gel"
+                      value={formData.title}
+                      onChange={(e) => setFormData(prev => ({ ...prev, title: e.target.value }))}
+                      className="w-full px-3.5 py-2.5 bg-white border border-[#E2D2EA] rounded-xl text-purple-950 font-medium focus:outline-none focus:ring-2 focus:ring-purple-300 shadow-sm"
+                    />
+                  </div>
 
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-purple-950 font-bold mb-1">ประเภทแผนโปรโมท (Category)</label>
-                  <select
-                    value={formData.category}
-                    onChange={(e) => setFormData(prev => ({ ...prev, category: e.target.value }))}
-                    className="w-full px-3 py-2 bg-white border border-[#E2D2EA] rounded-xl text-purple-950 font-bold focus:outline-none shadow-xs"
-                  >
-                    {categories.map(cat => (
-                      <option key={cat.id} value={cat.name}>
-                        {cat.label || cat.name}
-                      </option>
-                    ))}
-                  </select>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-purple-950 font-bold mb-1.5">ประเภทแผนโปรโมท</label>
+                      <select
+                        value={formData.category}
+                        onChange={(e) => setFormData(prev => ({ ...prev, category: e.target.value }))}
+                        className="w-full px-3 py-2.5 bg-white border border-[#E2D2EA] rounded-xl text-purple-950 font-bold focus:outline-none shadow-sm"
+                      >
+                        {categories.map(cat => (
+                          <option key={cat.id} value={cat.name}>
+                            {cat.label || cat.name}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className="block text-purple-950 font-bold mb-1.5">สถานะแคมเปญ</label>
+                      <select
+                        value={formData.status}
+                        onChange={(e) => setFormData(prev => ({ ...prev, status: e.target.value }))}
+                        className="w-full px-3 py-2.5 bg-white border border-[#E2D2EA] rounded-xl text-purple-950 font-bold focus:outline-none shadow-sm"
+                      >
+                        <option value="planned">วางแผนล่วงหน้า</option>
+                        <option value="active">กำลังดำเนินการ</option>
+                        <option value="completed">เสร็จสิ้น</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-purple-950 font-bold mb-1.5 flex items-center justify-between">
+                        <span>สินค้าเป้าหมาย</span>
+                        <button
+                          type="button"
+                          onClick={() => setShowManageProductsModal(true)}
+                          className="text-[9px] text-pink-600 hover:text-pink-700 font-bold underline flex items-center gap-0.5 shrink-0"
+                        >
+                          <Settings className="w-2.5 h-2.5" />
+                          <span>จัดการ</span>
+                        </button>
+                      </label>
+                      <select
+                        value={formData.targetProductName}
+                        onChange={(e) => setFormData(prev => ({ ...prev, targetProductName: e.target.value }))}
+                        className="w-full px-3 py-2.5 bg-white border border-[#E2D2EA] rounded-xl text-purple-950 font-bold focus:outline-none shadow-sm text-xs"
+                      >
+                        <option value="ไม่ระบุ (ไม่เจาะจงสินค้า)">ไม่ระบุ (ไม่เจาะจงสินค้า)</option>
+                        <option value="สินค้าทุกรายการ (All Products)">สินค้าทุกรายการ (All Products)</option>
+                        {productsList.map(p => (
+                          <option key={p.id} value={p.name}>{p.name}</option>
+                        ))}
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className="block text-purple-950 font-bold mb-1.5">สาขาที่จัดโปรโมชัน</label>
+                      <select
+                        value={formData.targetBranch}
+                        onChange={(e) => setFormData(prev => ({ ...prev, targetBranch: e.target.value }))}
+                        className="w-full px-3 py-2.5 bg-white border border-[#E2D2EA] rounded-xl text-purple-950 font-bold focus:outline-none shadow-sm text-xs"
+                      >
+                        <option value="ทุกสาขา">ทุกสาขา (All Branches)</option>
+                        {branchesList && branchesList.length > 0 ? branchesList.map(b => (
+                          <option key={b.id} value={b.name}>{b.name}</option>
+                        )) : (
+                          <>
+                            <option value="NITAN หลัก">NITAN หลัก (สนงญ)</option>
+                            <option value="NITAN เขาพระตำหนัก">เขาพระตำหนัก</option>
+                            <option value="NITAN นาเกลือ">นาเกลือ</option>
+                          </>
+                        )}
+                      </select>
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-purple-950 font-bold mb-1.5">ข้อเสนอโปรโมชัน / ส่วนลด (Offer Description)</label>
+                    <input
+                      type="text"
+                      placeholder="เช่น ซื้อ 1 แถม 1 หรือ สะสมพอยต์ (ไม่ระบุก็ได้)"
+                      value={formData.discountOffer}
+                      onChange={(e) => setFormData(prev => ({ ...prev, discountOffer: e.target.value }))}
+                      className="w-full px-3.5 py-2.5 bg-[#FFEBF3] border border-pink-200 rounded-xl text-purple-950 font-bold focus:outline-none focus:ring-2 focus:ring-pink-300 shadow-sm placeholder:text-pink-400 placeholder:font-medium"
+                    />
+                  </div>
+
+                  <div className="space-y-4">
+                    <div>
+                      <label className="block text-purple-950 font-bold mb-1.5 flex items-center justify-between">
+                        <span className="flex items-center gap-1.5">
+                          <Calendar className="w-4 h-4 text-purple-600" />
+                          <span>เลือกระยะเวลาจัดโปรโมชัน</span>
+                        </span>
+                        <span className="text-[10px] text-purple-600 font-medium">หรือเลือกแค่เดือนด้านล่าง 👇</span>
+                      </label>
+                      <div className="grid grid-cols-2 gap-4">
+                        <div>
+                          <label className="block text-purple-900 text-[11px] font-bold mb-1">เริ่มต้นวันที่</label>
+                          <input
+                            type="date"
+                            required
+                            value={formData.startDate}
+                            onChange={(e) => setFormData(prev => ({ ...prev, startDate: e.target.value }))}
+                            className="w-full px-3 py-2 bg-white border border-[#E2D2EA] rounded-xl text-purple-950 font-medium focus:outline-none shadow-sm text-sm"
+                          />
+                        </div>
+
+                        <div>
+                          <label className="block text-purple-900 text-[11px] font-bold mb-1">สิ้นสุดวันที่</label>
+                          <input
+                            type="date"
+                            required
+                            value={formData.endDate}
+                            onChange={(e) => setFormData(prev => ({ ...prev, endDate: e.target.value }))}
+                            className="w-full px-3 py-2 bg-white border border-[#E2D2EA] rounded-xl text-purple-950 font-medium focus:outline-none shadow-sm text-sm"
+                          />
+                        </div>
+                      </div>
+                    </div>
+                    
+                    <div className="bg-[#F6EDFA] p-3 rounded-xl border border-purple-100 flex items-center justify-between gap-3">
+                      <div className="text-xs font-bold text-purple-900">
+                        ⚡ ทางลัด: เลือกแบบเต็มเดือน
+                      </div>
+                      <input
+                        type="month"
+                        onChange={(e) => {
+                          const val = e.target.value; // e.g., "2026-08"
+                          if(val) {
+                            const [year, month] = val.split('-');
+                            const firstDay = `${year}-${month}-01`;
+                            const lastDay = new Date(year, month, 0).getDate();
+                            const endDay = `${year}-${month}-${lastDay}`;
+                            setFormData(prev => ({ ...prev, startDate: firstDay, endDate: endDay }));
+                          }
+                        }}
+                        className="flex-1 max-w-[160px] px-3 py-1.5 bg-white border border-purple-200 rounded-lg text-purple-950 font-bold focus:outline-none text-xs"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-purple-950 font-bold mb-1.5">งบโปรโมชัน (บาท)</label>
+                      <input
+                        type="number"
+                        required
+                        min={0}
+                        value={formData.budget}
+                        onChange={(e) => setFormData(prev => ({ ...prev, budget: e.target.value }))}
+                        className="w-full px-3 py-2.5 bg-white border border-[#E2D2EA] rounded-xl text-purple-950 font-mono font-bold focus:outline-none shadow-sm"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-purple-950 font-bold mb-1.5">เป้าหมายยอดขาย (บาท)</label>
+                      <input
+                        type="number"
+                        required
+                        min={0}
+                        value={formData.projectedSales}
+                        onChange={(e) => setFormData(prev => ({ ...prev, projectedSales: e.target.value }))}
+                        className="w-full px-3 py-2.5 bg-white border border-[#E2D2EA] rounded-xl text-purple-950 font-mono font-bold focus:outline-none shadow-sm"
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-purple-950 font-bold mb-1.5">ช่องทางที่สื่อสาร (คั่นด้วยจุลภาค ,)</label>
+                    <input
+                      type="text"
+                      placeholder="เช่น Facebook Ads, TikTok Shop, Shopee, หน้าร้าน"
+                      value={formData.channelsStr}
+                      onChange={(e) => setFormData(prev => ({ ...prev, channelsStr: e.target.value }))}
+                      className="w-full px-3.5 py-2.5 bg-white border border-[#E2D2EA] rounded-xl text-purple-950 font-medium focus:outline-none shadow-sm"
+                    />
+                  </div>
+
                 </div>
 
-                <div>
-                  <label className="block text-purple-950 font-bold mb-1">สถานะแคมเปญ (Status)</label>
-                  <select
-                    value={formData.status}
-                    onChange={(e) => setFormData(prev => ({ ...prev, status: e.target.value }))}
-                    className="w-full px-3 py-2 bg-white border border-[#E2D2EA] rounded-xl text-purple-950 font-bold focus:outline-none shadow-xs"
-                  >
-                    <option value="planned">วางแผนล่วงหน้า (Planned)</option>
-                    <option value="active">กำลังดำเนินการ (Active)</option>
-                    <option value="completed">เสร็จสิ้น (Completed)</option>
-                  </select>
+                {/* Right Side: Rich Text Editor */}
+                <div className="flex-1 flex flex-col min-w-0">
+                  <div className="flex-1 flex flex-col h-full min-h-[450px]">
+                    <label className="block text-purple-950 font-bold mb-1 flex items-center justify-between shrink-0">
+                      <span className="flex items-center gap-1.5">
+                        <FileText className="w-4 h-4 text-purple-700" />
+                        <span>เนื้อหาเอกสารแผนแคมเปญ (Doc Format / Campaign Brief):</span>
+                      </span>
+                      <span className="text-[10px] text-purple-700 font-medium hidden xl:inline">รองรับตารางจาก AI และ Notion</span>
+                    </label>
+                    <div className="bg-white border border-[#E2D2EA] rounded-xl overflow-hidden shadow-inner text-purple-950 font-sans flex-1 flex flex-col min-h-0">
+                      <JoditEditor
+                        value={formData.docContent}
+                        config={{
+                          readonly: false,
+                          height: 600,
+                          askBeforePasteHTML: false,
+                          askBeforePasteFromWord: false,
+                          defaultActionOnPaste: 'insert_as_html',
+                          placeholder: "ใส่เอกสารบรีฟกลยุทธ์ หรือข้อกำหนดการจัดโปรโมชัน... สามารถก๊อปปี้ตารางจาก AI หรือ Word มาวางได้เลย",
+                          buttons: [
+                            'source', '|',
+                            'bold', 'strikethrough', 'underline', 'italic', '|',
+                            'ul', 'ol', '|',
+                            'outdent', 'indent',  '|',
+                            'font', 'fontsize', 'brush', 'paragraph', '|',
+                            'image', 'video', 'table', 'link', '|',
+                            'align', 'undo', 'redo', '|',
+                            'hr', 'eraser', 'fullsize'
+                          ],
+                          uploader: {
+                            insertImageAsBase64URI: true
+                          },
+                          showXPathInStatusbar: false
+                        }}
+                        onBlur={(newContent) => setFormData(prev => ({ ...prev, docContent: newContent }))}
+                      />
+                    </div>
+                  </div>
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-purple-950 font-bold mb-1 flex items-center justify-between">
-                    <span>สินค้าเป้าหมาย (Target Product)</span>
-                    <button
-                      type="button"
-                      onClick={() => setShowManageProductsModal(true)}
-                      className="text-[10px] text-purple-700 hover:text-purple-950 font-bold underline flex items-center gap-0.5"
-                    >
-                      <Settings className="w-3 h-3" />
-                      <span>เพิ่ม/แก้ไขรายชื่อสินค้า</span>
-                    </button>
-                  </label>
-                  <select
-                    value={formData.targetProductName}
-                    onChange={(e) => setFormData(prev => ({ ...prev, targetProductName: e.target.value }))}
-                    className="w-full px-3 py-2 bg-white border border-[#E2D2EA] rounded-xl text-purple-950 font-bold focus:outline-none shadow-xs text-xs"
-                  >
-                    {productsList.map(p => (
-                      <option key={p.id} value={p.name}>{p.name}</option>
-                    ))}
-                  </select>
-                </div>
-
-                <div>
-                  <label className="block text-purple-950 font-bold mb-1">สาขาที่จัดโปรโมชัน (Target Branch)</label>
-                  <select
-                    value={formData.targetBranch}
-                    onChange={(e) => setFormData(prev => ({ ...prev, targetBranch: e.target.value }))}
-                    className="w-full px-3 py-2 bg-white border border-[#E2D2EA] rounded-xl text-purple-950 font-bold focus:outline-none shadow-xs"
-                  >
-                    <option value="ทุกสาขา">ทุกสาขา (All Branches)</option>
-                    <option value="NITAN หลัก">NITAN หลัก (สำนักงานใหญ่)</option>
-                    <option value="NITAN เขาพระตำหนัก">NITAN เขาพระตำหนัก</option>
-                    <option value="NITAN นาเกลือ">NITAN นาเกลือ</option>
-                  </select>
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-purple-950 font-bold mb-1">ข้อเสนอโปรโมชัน / ส่วนลด (Offer Description)</label>
-                <input
-                  type="text"
-                  required
-                  placeholder="เช่น ซื้อ 1 แถม 1 หรือ ลด 30% ทุกบิล หรือ สะสมพอยต์ X3"
-                  value={formData.discountOffer}
-                  onChange={(e) => setFormData(prev => ({ ...prev, discountOffer: e.target.value }))}
-                  className="w-full px-3 py-2 bg-[#FFEBF3] border border-[#E2D2EA] rounded-xl text-purple-950 font-bold focus:outline-none shadow-xs"
-                />
-              </div>
-
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-purple-950 font-bold mb-1">วันที่เริ่มต้น</label>
-                  <input
-                    type="date"
-                    required
-                    value={formData.startDate}
-                    onChange={(e) => setFormData(prev => ({ ...prev, startDate: e.target.value }))}
-                    className="w-full px-3 py-2 bg-white border border-[#E2D2EA] rounded-xl text-purple-950 font-medium focus:outline-none shadow-xs"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-purple-950 font-bold mb-1">วันที่สิ้นสุด</label>
-                  <input
-                    type="date"
-                    required
-                    value={formData.endDate}
-                    onChange={(e) => setFormData(prev => ({ ...prev, endDate: e.target.value }))}
-                    className="w-full px-3 py-2 bg-white border border-[#E2D2EA] rounded-xl text-purple-950 font-medium focus:outline-none shadow-xs"
-                  />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-purple-950 font-bold mb-1">งบโปรโมชัน (บาท)</label>
-                  <input
-                    type="number"
-                    required
-                    min={0}
-                    value={formData.budget}
-                    onChange={(e) => setFormData(prev => ({ ...prev, budget: e.target.value }))}
-                    className="w-full px-3 py-2 bg-white border border-[#E2D2EA] rounded-xl text-purple-950 font-mono font-bold focus:outline-none shadow-xs"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-purple-950 font-bold mb-1">เป้าหมายยอดขาย (บาท)</label>
-                  <input
-                    type="number"
-                    required
-                    min={0}
-                    value={formData.projectedSales}
-                    onChange={(e) => setFormData(prev => ({ ...prev, projectedSales: e.target.value }))}
-                    className="w-full px-3 py-2 bg-white border border-[#E2D2EA] rounded-xl text-purple-950 font-mono font-bold focus:outline-none shadow-xs"
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-purple-950 font-bold mb-1">ช่องทางที่สื่อสาร (คั่นด้วยจุลภาค ,)</label>
-                <input
-                  type="text"
-                  placeholder="เช่น Facebook Ads, TikTok Shop, Shopee, หน้าร้าน"
-                  value={formData.channelsStr}
-                  onChange={(e) => setFormData(prev => ({ ...prev, channelsStr: e.target.value }))}
-                  className="w-full px-3 py-2 bg-white border border-[#E2D2EA] rounded-xl text-purple-950 font-medium focus:outline-none shadow-xs"
-                />
-              </div>
-
-              {/* Rich Document / Brief Format Section */}
-              <div className="pt-2">
-                <label className="block text-purple-950 font-bold mb-1 flex items-center justify-between">
-                  <span className="flex items-center gap-1.5">
-                    <FileText className="w-4 h-4 text-purple-700" />
-                    <span>เนื้อหาเอกสารแผนแคมเปญ (Doc Format / Campaign Brief):</span>
-                  </span>
-                  <span className="text-[10px] text-purple-700 font-medium">รองรับข้อความจัดรูปเล่มสไตล์ Google Doc / Notion</span>
-                </label>
-                <textarea
-                  rows={8}
-                  placeholder="ใส่เอกสารบรีฟกลยุทธ์ สคริปต์ หรือข้อกำหนดการจัดโปรโมชันสไตล์ Word/Doc..."
-                  value={formData.docContent}
-                  onChange={(e) => setFormData(prev => ({ ...prev, docContent: e.target.value }))}
-                  className="w-full px-3 py-2.5 bg-[#FCFAF7] border border-[#E2D2EA] rounded-xl text-purple-950 font-mono text-xs leading-relaxed focus:outline-none shadow-inner"
-                />
-              </div>
-
-              <div className="pt-3 border-t border-purple-100 flex justify-end gap-2 text-xs">
+              {/* Form Actions Footer */}
+              <div className="pt-4 border-t border-purple-100 flex justify-end gap-2 text-xs shrink-0 mt-4">
                 <button
                   type="button"
                   onClick={() => setShowAddModal(false)}
@@ -912,14 +1101,15 @@ export default function PromotionPlanModule({
                 </button>
                 <button
                   type="submit"
-                  className="px-5 py-2 bg-gradient-to-r from-purple-950 via-pink-900 to-purple-900 text-white font-bold rounded-xl shadow-md hover:opacity-95 transition cursor-pointer"
+                  className="px-6 py-2 bg-gradient-to-r from-purple-950 via-pink-900 to-purple-900 text-white font-bold rounded-xl shadow-md hover:opacity-95 transition cursor-pointer text-sm"
                 >
                   {editingPlan ? 'บันทึกการแก้ไข' : '+ เพิ่มแผนโปรโมทใหม่'}
                 </button>
               </div>
             </form>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
       {/* MODAL 2: Dynamic Category Manager Modal */}
@@ -963,7 +1153,7 @@ export default function PromotionPlanModule({
             {/* Categories List */}
             <div className="space-y-2 max-h-60 overflow-y-auto pt-2">
               <span className="text-xs font-bold text-purple-900 block">รายการประเภทแผนโปรโมทปัจจุบัน ({categories.length}):</span>
-              
+
               {categories.map(cat => {
                 const isEditing = editingCategoryId === cat.id;
 
@@ -1068,7 +1258,7 @@ export default function PromotionPlanModule({
             {/* Products List */}
             <div className="space-y-2 max-h-60 overflow-y-auto pt-2">
               <span className="text-xs font-bold text-purple-900 block">รายการสินค้าที่เกี่ยวข้องในระบบ ({productsList.length}):</span>
-              
+
               {productsList.map(prod => {
                 const isEditing = editingProductId === prod.id;
 
@@ -1131,9 +1321,9 @@ export default function PromotionPlanModule({
       )}
 
       {/* MODAL 3: Doc Format Full Campaign Brief Viewer Modal */}
-      {viewDocPlan && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-xs p-4 animate-in fade-in duration-200 overflow-y-auto">
-          <div className="glass-panel max-w-3xl w-full p-6 space-y-4 border-[#E2D2EA] shadow-2xl bg-white/95 my-8">
+      {viewDocPlan && createPortal(
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-xs p-4 animate-in fade-in duration-200">
+          <div className="glass-panel max-w-4xl w-full p-6 flex flex-col border-[#E2D2EA] shadow-2xl bg-white/95 max-h-[95vh] rounded-2xl">
             {/* Doc Header */}
             <div className="flex items-center justify-between border-b border-purple-100 pb-3">
               <div className="flex items-center gap-2">
@@ -1175,14 +1365,22 @@ export default function PromotionPlanModule({
             </div>
 
             {/* Doc Document Body Container */}
-            <div className="p-5 rounded-2xl bg-[#FCFAF7] border border-purple-200/90 shadow-inner max-h-96 overflow-y-auto">
-              <pre className="font-mono text-xs text-purple-950 whitespace-pre-wrap leading-relaxed">
-                {viewDocPlan.docContent || `ไม่มีเนื้อหาเอกสารบรีฟในขณะนี้ (สามารถกดปุ่มแก้ไขเพื่อกรอกเนื้อหา Doc Brief ได้)`}
-              </pre>
+            <div className="p-6 mt-4 mb-4 rounded-2xl bg-[#FCFAF7] border border-purple-200/90 shadow-inner flex-1 min-h-[50vh] max-h-[75vh] overflow-y-auto">
+              <div
+                className="font-sans text-sm md:text-base text-purple-950 prose prose-purple max-w-none 
+                  [&>ol]:list-decimal [&>ul]:list-disc [&>ul]:ml-4 [&>ol]:ml-4 
+                  [&>h1]:text-xl [&>h1]:font-bold [&>h2]:text-lg [&>h2]:font-bold
+                  [&_table]:w-full [&_table]:border-collapse [&_table]:border [&_table]:border-purple-300 [&_table]:my-4
+                  [&_th]:border [&_th]:border-purple-300 [&_th]:bg-purple-100 [&_th]:p-2 [&_th]:text-left [&_th]:font-bold
+                  [&_td]:border [&_td]:border-purple-200 [&_td]:p-2 [&_td]:align-top"
+                dangerouslySetInnerHTML={{
+                  __html: viewDocPlan.docContent || `<p class="text-purple-600/60 italic">ไม่มีเนื้อหาเอกสารบรีฟในขณะนี้ (สามารถกดปุ่มแก้ไขเพื่อกรอกเนื้อหา Doc Brief ได้)</p>`
+                }}
+              />
             </div>
 
             {/* Doc Footer Action Controls */}
-            <div className="pt-3 border-t border-purple-100 flex items-center justify-between gap-2 text-xs">
+            <div className="pt-3 border-t border-purple-100 flex items-center justify-between gap-2 text-xs shrink-0">
               <button
                 onClick={() => {
                   navigator.clipboard.writeText(viewDocPlan.docContent || viewDocPlan.title);
@@ -1215,6 +1413,99 @@ export default function PromotionPlanModule({
               </div>
             </div>
 
+          </div>
+        </div>,
+        document.body
+      )}
+
+      {/* MODAL 4: Dynamic Branch Manager Modal */}
+      {showManageBranchesModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-xs p-4 animate-in fade-in duration-150 overflow-y-auto">
+          <div className="glass-panel max-w-lg w-full p-6 space-y-4 border-[#E2D2EA] shadow-2xl bg-white/95 my-8">
+            <div className="flex items-center justify-between border-b border-purple-100 pb-3">
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded-xl bg-[#FFEBF3] text-purple-800 flex items-center justify-center border border-[#E2D2EA]">
+                  <Building2 className="w-4 h-4" />
+                </div>
+                <div>
+                  <h3 className="text-base font-bold text-purple-950">จัดการสาขา (Branches)</h3>
+                  <p className="text-xs text-purple-800/80">เพิ่มแก้ไขรายชื่อสาขาที่ใช้จัดโปรโมชัน</p>
+                </div>
+              </div>
+              <button onClick={() => setShowManageBranchesModal(false)} className="p-2 bg-purple-50 hover:bg-purple-100 text-purple-600 rounded-full transition cursor-pointer">
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <form onSubmit={handleAddBranch} className="flex gap-2">
+              <input
+                type="text"
+                placeholder="เพิ่มสาขาใหม่..."
+                value={newBranchName}
+                onChange={(e) => setNewBranchName(e.target.value)}
+                className="flex-1 px-3 py-2 bg-[#FCFAF7] border border-purple-200 rounded-xl text-purple-950 font-medium focus:outline-none focus:border-purple-400 text-sm"
+              />
+              <button type="submit" disabled={!newBranchName.trim()} className="px-4 py-2 bg-purple-100 hover:bg-purple-200 text-purple-800 font-bold rounded-xl transition disabled:opacity-50 cursor-pointer">
+                เพิ่ม
+              </button>
+            </form>
+
+            <div className="space-y-2 max-h-[40vh] overflow-y-auto pr-1">
+              <span className="text-xs font-bold text-purple-900 block">รายการสาขาในระบบ ({branchesList.length}):</span>
+
+              {branchesList.map(branch => {
+                const isEditing = editingBranchId === branch.id;
+
+                if (isEditing) {
+                  return (
+                    <div key={branch.id} className="flex items-center gap-2 bg-purple-50 p-2 rounded-xl border border-purple-200">
+                      <input
+                        type="text"
+                        autoFocus
+                        value={editingBranchName}
+                        onChange={(e) => setEditingBranchName(e.target.value)}
+                        className="flex-1 px-2 py-1 bg-white border border-purple-200 rounded-lg text-purple-950 text-sm focus:outline-none"
+                      />
+                      <button onClick={() => handleSaveEditBranch(branch.id)} className="px-3 py-1 bg-purple-600 text-white text-xs font-bold rounded-lg hover:bg-purple-700 cursor-pointer">
+                        บันทึก
+                      </button>
+                      <button onClick={() => setEditingBranchId(null)} className="px-3 py-1 bg-purple-100 text-purple-700 text-xs font-bold rounded-lg hover:bg-purple-200 cursor-pointer">
+                        ยกเลิก
+                      </button>
+                    </div>
+                  );
+                }
+
+                return (
+                  <div key={branch.id} className="flex items-center justify-between p-2.5 bg-white border border-purple-100 rounded-xl hover:bg-purple-50/50 transition">
+                    <span className="font-semibold text-purple-950 text-sm">{branch.name}</span>
+                    <div className="flex items-center gap-1">
+                      <button
+                        onClick={() => handleStartEditBranch(branch)}
+                        className="p-1 text-purple-400 hover:bg-purple-100 rounded transition cursor-pointer"
+                      >
+                        <Edit3 className="w-4 h-4" />
+                      </button>
+                      <button
+                        onClick={() => handleDeleteBranch(branch.id)}
+                        className="p-1 text-rose-400 hover:bg-rose-100 rounded transition cursor-pointer"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
+            <div className="flex justify-end pt-2">
+              <button
+                onClick={() => setShowManageBranchesModal(false)}
+                className="px-5 py-2 bg-purple-950 text-white font-bold rounded-xl shadow-md hover:opacity-90 cursor-pointer"
+              >
+                เสร็จสิ้น
+              </button>
+            </div>
           </div>
         </div>
       )}

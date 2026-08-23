@@ -538,18 +538,48 @@ export async function upsertKpiItemToSupabase(kpi) {
 // ------------------------------------------------------------------------------
 // 9. PROMOTION PLANS (promotion_plans table)
 // ------------------------------------------------------------------------------
+export async function fetchPromotionPlansFromSupabase() {
+  try {
+    const { data, error } = await supabase
+      .from('promotion_plans')
+      .select('*')
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      console.warn('Supabase fetchPromotionPlans warning:', error.message);
+      return null;
+    }
+    return data;
+  } catch (err) {
+    console.error('Supabase fetchPromotionPlans error:', err);
+    return null;
+  }
+}
+
 export async function upsertPromotionPlanToSupabase(plan) {
   try {
     const payload = {
+      // Required base fields
       title: plan.title,
       category: plan.category || 'discount',
-      product_id: plan.productId || 'p-1',
-      product_name: plan.productName || 'สินค้าทุกรายการ',
-      discount_text: plan.discountText || '',
+      product_id: plan.targetProductId || plan.productId || 'p-1',
+      product_name: plan.targetProductName || plan.productName || 'สินค้าทุกรายการ',
+      discount_text: plan.discountOffer || plan.discountText || '',
       start_date: plan.startDate || new Date().toISOString().split('T')[0],
       end_date: plan.endDate || new Date(Date.now() + 86400000 * 30).toISOString().split('T')[0],
-      status: plan.status || 'active'
+      status: plan.status || 'active',
+      // Extended fields
+      target_branch: plan.targetBranch || 'ทุกสาขา',
+      budget: Number(plan.budget) || 0,
+      projected_sales: Number(plan.projectedSales) || 0,
+      channels: Array.isArray(plan.channels) ? plan.channels : [],
+      description: plan.description || '',
+      doc_content: plan.docContent || ''
     };
+
+    if (isUuid(plan.id)) {
+      payload.id = plan.id;
+    }
 
     const { data, error } = await supabase
       .from('promotion_plans')
@@ -564,6 +594,20 @@ export async function upsertPromotionPlanToSupabase(plan) {
   } catch (err) {
     console.error('Supabase upsertPromotionPlan catch:', err);
     return null;
+  }
+}
+
+export async function deletePromotionPlanFromSupabase(id) {
+  try {
+    const { error } = await supabase
+      .from('promotion_plans')
+      .delete()
+      .eq('id', id);
+    if (error) throw error;
+    return true;
+  } catch (err) {
+    console.error('Supabase deletePromotionPlan error:', err);
+    return false;
   }
 }
 
@@ -590,7 +634,8 @@ export async function upsertContentGroupToSupabase(group) {
     const payload = {
       name: group.name,
       color_class: group.colorClass,
-      sub_categories: group.subCategories || []
+      sub_categories: group.subCategories || [],
+      sub_category_colors: group.subCategoryColors || {}
     };
     if (isUuid(group.id)) payload.id = group.id;
 
@@ -700,7 +745,8 @@ export async function upsertIdeaVaultToSupabase(idea) {
       notes: idea.notes || '',
       platforms: idea.platforms || [],
       tags: idea.tags || [],
-      is_used: idea.isUsed || false
+      is_used: idea.isUsed || false,
+      reference_url: idea.referenceUrl || null
     };
     if (isUuid(idea.id)) payload.id = idea.id;
 

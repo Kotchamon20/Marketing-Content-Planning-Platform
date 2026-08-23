@@ -13,9 +13,11 @@
     "@supabase/supabase-js": "^2.112.3",
     "canvas-confetti": "^1.9.4",
     "clsx": "^2.1.1",
+    "jodit-react": "^5.4.72",
     "lucide-react": "^0.453.0",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
+    "react-quill": "^2.0.0",
     "xlsx": "^0.18.5"
   },
   "devDependencies": {

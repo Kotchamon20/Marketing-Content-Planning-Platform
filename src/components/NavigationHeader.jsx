@@ -40,7 +40,8 @@ export default function NavigationHeader({
 
   const activeTeam = teams.find(t => t.id === activeTeamId) || teams[0];
   const activeUser = users.find(u => u.id === activeUserId) || users[0];
-  const pendingOverdueCount = notificationLogs.filter(l => l.stage === 'overdue').length;
+  // Show total notification count (not just overdue) so users see any new log
+  const pendingOverdueCount = notificationLogs.length;
 
   const tabs = [
     { id: 'dashboard', label: 'ภาพรวม Dashboard', icon: Sparkles },
@@ -81,6 +82,20 @@ export default function NavigationHeader({
 
           {/* Controls Right Section */}
           <div className="hidden lg:flex items-end gap-3">
+
+            {/* LINE Notifications Module Button (Moved from tabs) */}
+            <button
+              onClick={() => onSelectTab('notification-engine')}
+              className={`p-2 rounded-xl border transition flex items-center gap-1.5 text-xs font-bold shadow-xs cursor-pointer h-[34px] ${
+                activeTab === 'notification-engine' 
+                  ? 'bg-purple-600 text-white border-purple-700' 
+                  : 'bg-[#FCFAF7] hover:bg-[#FFEBF3]/50 text-purple-900 border-[#E2D2EA]'
+              }`}
+              title="จัดการระบบ LINE Notifications"
+            >
+              <Bell className={`w-4 h-4 ${activeTab === 'notification-engine' ? 'text-white' : 'text-green-600'}`} />
+              <span>LINE Noti Settings</span>
+            </button>
 
             {/* SQL Schema button */}
             <button
@@ -178,6 +193,21 @@ export default function NavigationHeader({
                 </button>
               );
             })}
+            
+            <div className="my-2 border-t border-purple-100/50"></div>
+            
+            {/* LINE Notifications Mobile Button */}
+            <button
+              onClick={() => {
+                onSelectTab('notification-engine');
+                setMobileMenuOpen(false);
+              }}
+              className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-bold ${activeTab === 'notification-engine' ? 'bg-gradient-to-r from-purple-950 to-pink-900 text-white shadow-md' : 'text-green-700 hover:bg-purple-50'
+                }`}
+            >
+              <Bell className="w-5 h-5" />
+              <span>LINE Noti Settings</span>
+            </button>
           </div>
         </div>
       )}

@@ -12,7 +12,9 @@ import {
   Clock, 
   RefreshCw, 
   FileText,
-  UserCheck
+  UserCheck,
+  Users,
+  Layers
 } from 'lucide-react';
 
 export default function NotificationEngineModule({
@@ -54,6 +56,16 @@ export default function NotificationEngineModule({
   const previewMessage = templateText
     .replace('{campaign_name}', activeCampaign?.name || 'แคมเปญ 9.9 Mega Launch')
     .replace('{days_left}', activeCampaign?.stage_status === 't_minus_2' ? '2' : '5');
+
+  // Placeholder when no campaigns exist
+  const MOCK_CAMPAIGN = {
+    id: '__mock__',
+    name: 'ตัวอย่างแคมเปญ (Demo)',
+    stage_status: 'active',
+    start_date: '2026-09-01',
+    end_date: '2026-09-30',
+  };
+  const displayCampaign = activeCampaign || MOCK_CAMPAIGN;
 
   return (
     <div className="space-y-6 animate-in fade-in duration-300">
@@ -151,9 +163,11 @@ export default function NotificationEngineModule({
                   onChange={(e) => setSelectedCampaignId(e.target.value)}
                   className="w-full bg-white/90 border border-pink-200 text-rose-950 p-2.5 rounded-xl font-medium shadow-sm"
                 >
-                  {campaigns.map(c => (
+                  {campaigns.length === 0 ? (
+                    <option value="">ยังไม่มีแคมเปญในระบบ (จะใช้ข้อมูลตัวอย่างแทน)</option>
+                  ) : campaigns.map(c => (
                     <option key={c.id} value={c.id}>
-                      {c.name} (สถานะปัจจุบัน: {c.stage_status.toUpperCase()})
+                      {c.name} (สถานะปัจจุบัน: {(c.stage_status || 'active').toUpperCase()})
                     </option>
                   ))}
                 </select>
@@ -231,17 +245,17 @@ export default function NotificationEngineModule({
                   
                   {/* Card Header Banner */}
                   <div className={`p-3 text-white font-bold flex items-center justify-between ${
-                    activeCampaign.stage_status === 'overdue' ? 'bg-rose-600' : 'bg-pink-600'
+                    displayCampaign.stage_status === 'overdue' ? 'bg-rose-600' : 'bg-pink-600'
                   }`}>
                     <span className="flex items-center gap-1">
-                      {activeCampaign.stage_status === 'overdue' ? 'OVERDUE ALERT' : 'WORKFLOW ALERT'}
+                      {displayCampaign.stage_status === 'overdue' ? 'OVERDUE ALERT' : 'WORKFLOW ALERT'}
                     </span>
                     <span className="text-[9px] bg-white/20 px-1.5 py-0.5 rounded">T-MINUS</span>
                   </div>
 
                   {/* Card Body */}
                   <div className="p-3 space-y-2">
-                    <div className="font-extrabold text-slate-800 text-xs">{activeCampaign.name}</div>
+                    <div className="font-extrabold text-slate-800 text-xs">{displayCampaign.name}</div>
                     
                     <p className="text-slate-600 leading-snug bg-pink-50 p-2 rounded-lg border border-pink-100 font-mono text-[10px]">
                       {previewMessage}
@@ -250,11 +264,11 @@ export default function NotificationEngineModule({
                     <div className="space-y-1 text-[10px] text-slate-500 pt-1 border-t border-pink-100">
                       <div className="flex justify-between">
                         <span>กำหนดการเริ่ม:</span>
-                        <span className="font-semibold text-slate-700">{activeCampaign.start_date}</span>
+                        <span className="font-semibold text-slate-700">{displayCampaign.start_date || '-'}</span>
                       </div>
                       <div className="flex justify-between">
                         <span>สถานะปัจจุบัน:</span>
-                        <span className="font-bold text-rose-600 uppercase">{activeCampaign.stage_status}</span>
+                        <span className="font-bold text-rose-600 uppercase">{displayCampaign.stage_status || 'active'}</span>
                       </div>
                     </div>
                   </div>
