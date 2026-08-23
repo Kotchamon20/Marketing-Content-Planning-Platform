@@ -54,7 +54,10 @@ async function pushToLineApi(targetId, messages, token = LINE_CHANNEL_ACCESS_TOK
     if (proxyResponse.ok) {
       return { success: true, data };
     } else {
-      let errMsg = data.message || 'ส่งข้อความไม่สำเร็จ (HTTP 400 Bad Request)';
+      if (proxyResponse.status === 404 || String(data).includes('<html')) {
+         throw new Error("Proxy not available");
+      }
+      let errMsg = data.message || 'ส่งข้อความไม่สำเร็จ (HTTP ' + proxyResponse.status + ')';
       if (data.details && data.details.length > 0) {
         errMsg += `: ${data.details.map(d => d.message).join(', ')}`;
       }
