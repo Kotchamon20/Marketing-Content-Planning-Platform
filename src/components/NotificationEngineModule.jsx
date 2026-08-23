@@ -371,37 +371,8 @@ export default function NotificationEngineModule({
             </p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="max-w-md mx-auto">
             
-            {/* User binding status list */}
-            <div className="space-y-3">
-              <h4 className="font-bold text-rose-950 text-xs uppercase tracking-wider">
-                สถานะการผูกบัญชี LINE ของสมาชิกในทีม
-              </h4>
-
-              {users.map(u => (
-                <div key={u.id} className="p-3 rounded-2xl bg-white/90 border border-pink-200 flex items-center justify-between text-xs shadow-sm">
-                  <div className="flex items-center gap-3">
-                    <span className="text-xl">{u.avatar}</span>
-                    <div>
-                      <div className="font-bold text-rose-950">{u.name}</div>
-                      <div className="text-[10px] text-rose-600/80 font-medium">{u.email} • Role: {u.role}</div>
-                    </div>
-                  </div>
-
-                  {u.line_connected ? (
-                    <span className="px-2.5 py-1 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-200 flex items-center gap-1">
-                      <UserCheck className="w-3 h-3" /> ผูก LINE แล้ว
-                    </span>
-                  ) : (
-                    <span className="px-2.5 py-1 rounded-full text-[10px] font-bold bg-pink-100/60 text-pink-400 border border-pink-200">
-                      ยังไม่ผูก LINE
-                    </span>
-                  )}
-                </div>
-              ))}
-            </div>
-
             {/* QR Code pairing wizard */}
             <div className="p-6 rounded-3xl bg-white/90 border border-pink-200 flex flex-col items-center justify-center text-center space-y-4 shadow-sm">
               {isLoadingGroup ? (
