@@ -72,6 +72,7 @@ async function pushToLineApi(targetId, messages, token = LINE_CHANNEL_ACCESS_TOK
 
   // Strategy 2: Fallback to Supabase Edge Function Proxy (for production deployments)
   try {
+    console.log('[LINE API] Using Edge Function fallback...');
     const edgeResponse = await fetch('https://wgwvvahdtdxcfoxxvwkm.supabase.co/functions/v1/send-line-alert', {
       method: 'POST',
       headers: {
@@ -85,7 +86,16 @@ async function pushToLineApi(targetId, messages, token = LINE_CHANNEL_ACCESS_TOK
     });
 
     const data = await edgeResponse.json().catch(() => ({}));
-    return { success: edgeResponse.ok, data };
+    if (!edgeResponse.ok) {
+       console.error('[LINE API] Edge Function Failed:', data);
+       let errMsg = data.error || data.message || `Edge function HTTP ${edgeResponse.status}`;
+       if (data.details && data.details.length > 0) {
+         errMsg += `: ${data.details.map(d => d.message).join(', ')}`;
+       }
+       return { success: false, error: errMsg, data };
+    }
+    console.log('[LINE API] Edge Function Success:', data);
+    return { success: true, data };
   } catch (edgeError) {
     console.error('LINE Messaging Push Error:', edgeError);
     return { success: false, error: edgeError.message };
