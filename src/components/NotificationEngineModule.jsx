@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   MessageSquare, 
   Settings, 
@@ -14,8 +14,11 @@ import {
   FileText,
   UserCheck,
   Users,
-  Layers
+  Layers,
+  Database
 } from 'lucide-react';
+import { supabase } from '../lib/supabaseClient';
+import { fetchAutoSavedGroupFullInfo } from '../services/lineNotificationService';
 
 export default function NotificationEngineModule({
   notificationRules,
@@ -36,8 +39,26 @@ export default function NotificationEngineModule({
   const activeCampaign = campaigns.find(c => c.id === selectedCampaignId) || campaigns[0];
 
   const [templateText, setTemplateText] = useState(activeRule?.template || '');
-  const [isLineConnected, setIsLineConnected] = useState(true);
   const [isSendingTest, setIsSendingTest] = useState(false);
+  const [connectedLineGroup, setConnectedLineGroup] = useState(null);
+  const [isLoadingGroup, setIsLoadingGroup] = useState(false);
+
+  useEffect(() => {
+    const fetchLineGroup = async () => {
+      setIsLoadingGroup(true);
+      const info = await fetchAutoSavedGroupFullInfo();
+      if (info) {
+        setConnectedLineGroup(info);
+      } else {
+        setConnectedLineGroup(null);
+      }
+      setIsLoadingGroup(false);
+    };
+    
+    if (activeSubTab === 'line_pairing') {
+      fetchLineGroup();
+    }
+  }, [activeSubTab]);
 
   const handleTemplateSave = () => {
     onUpdateRuleTemplate(selectedRuleId, templateText);
@@ -383,23 +404,53 @@ export default function NotificationEngineModule({
 
             {/* QR Code pairing wizard */}
             <div className="p-6 rounded-3xl bg-white/90 border border-pink-200 flex flex-col items-center justify-center text-center space-y-4 shadow-sm">
-              <div className="w-40 h-40 bg-pink-50 p-3 rounded-2xl shadow-inner border border-pink-200 flex items-center justify-center">
-                {/* Simulated QR Code graphic */}
-                <div className="w-full h-full bg-rose-950 rounded-xl p-2 flex flex-col justify-between items-center text-white text-[9px]">
-                  <div className="font-bold text-emerald-400 mt-2">LINE OA SCAN</div>
-                  <div className="w-20 h-20 bg-pink-500/20 border-2 border-pink-400 rounded flex items-center justify-center">
-                    <QrCode className="w-12 h-12 text-pink-400" />
-                  </div>
-                  <div className="text-pink-300 mb-1">@nitan_marketing_oa</div>
+              {isLoadingGroup ? (
+                <div className="flex flex-col items-center justify-center space-y-3 py-10">
+                  <RefreshCw className="w-8 h-8 text-pink-400 animate-spin" />
+                  <div className="text-sm font-bold text-rose-900">กำลังตรวจสอบข้อมูลกลุ่มจากฐานข้อมูล...</div>
                 </div>
-              </div>
+              ) : connectedLineGroup ? (
+                <div className="flex flex-col items-center space-y-4 w-full">
+                  <div className="w-24 h-24 bg-emerald-50 text-emerald-500 rounded-full flex items-center justify-center shadow-inner border border-emerald-200">
+                    <CheckCircle2 className="w-12 h-12" />
+                  </div>
+                  <div>
+                    <h4 className="font-bold text-emerald-700 text-base">ระบบเชื่อมต่อกลุ่ม LINE แล้ว!</h4>
+                    <p className="text-xs text-slate-600 mt-1 font-medium bg-slate-50 py-1.5 px-3 rounded-lg border border-slate-200 inline-block">
+                      กลุ่ม: {connectedLineGroup.group_name || 'Nitan Marketing'}
+                    </p>
+                    <p className="text-[10px] text-slate-400 mt-2 break-all">ID: {connectedLineGroup.group_id}</p>
+                  </div>
+                  <div className="pt-2 w-full">
+                    <button 
+                      onClick={() => setConnectedLineGroup(null)} 
+                      className="text-[10px] text-rose-500 hover:text-rose-700 font-bold underline"
+                    >
+                      ต้องการเปลี่ยนกลุ่ม? (สแกนใหม่)
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <>
+                  <div className="w-40 h-40 bg-pink-50 p-3 rounded-2xl shadow-inner border border-pink-200 flex items-center justify-center">
+                    {/* Simulated QR Code graphic */}
+                    <div className="w-full h-full bg-rose-950 rounded-xl p-2 flex flex-col justify-between items-center text-white text-[9px]">
+                      <div className="font-bold text-emerald-400 mt-2">LINE OA SCAN</div>
+                      <div className="w-20 h-20 bg-pink-500/20 border-2 border-pink-400 rounded flex items-center justify-center">
+                        <QrCode className="w-12 h-12 text-pink-400" />
+                      </div>
+                      <div className="text-pink-300 mb-1">@nitan_marketing_oa</div>
+                    </div>
+                  </div>
 
-              <div>
-                <h4 className="font-bold text-rose-950 text-sm">สแกน QR Code เพื่อเชื่อมต่อ LINE Official Account</h4>
-                <p className="text-xs text-rose-700/80 mt-1 max-w-xs font-medium">
-                  เปิดแอป LINE แล้วสแกนเพื่อรับรหัส OTP ผูกบัญชีเข้ากับระบบ Marketing Platform
-                </p>
-              </div>
+                  <div>
+                    <h4 className="font-bold text-rose-950 text-sm">สแกน QR Code เพื่อเชื่อมต่อ LINE Official Account</h4>
+                    <p className="text-xs text-rose-700/80 mt-1 max-w-xs font-medium mx-auto">
+                      เปิดแอป LINE แล้วสแกนเพื่อรับรหัส OTP ผูกบัญชีเข้ากับระบบ Marketing Platform
+                    </p>
+                  </div>
+                </>
+              )}
             </div>
 
           </div>

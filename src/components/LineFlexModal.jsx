@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Send, Smartphone, Sparkles, CheckCircle2, AlertCircle, ExternalLink, RefreshCw, Database } from 'lucide-react';
-import { sendLineFlexCardAlert, fetchAutoSavedGroupFromDb } from '../services/lineNotificationService';
+import { sendLineFlexCardAlert, fetchAutoSavedGroupFullInfo } from '../services/lineNotificationService';
 import { supabase } from '../lib/supabaseClient';
 
 export default function LineFlexModal({ isOpen, onClose, defaultCampaign }) {
@@ -21,17 +21,21 @@ export default function LineFlexModal({ isOpen, onClose, defaultCampaign }) {
   const isValidLineId = (id) => typeof id === 'string' && /^(C|U)[a-fA-F0-9]{32}$/.test(id.trim());
 
   // Function to load latest active group from Supabase DB
+  const [groupName, setGroupName] = useState('');
+
   const loadGroupFromDb = async () => {
     setIsLoadingDb(true);
     setDbStatusText('กำลังดึงข้อมูลจาก Supabase Database...');
 
-    const autoId = await fetchAutoSavedGroupFromDb();
+    const groupInfo = await fetchAutoSavedGroupFullInfo();
     setIsLoadingDb(false);
 
-    if (autoId && isValidLineId(autoId)) {
-      setTargetId(autoId);
-      setDbStatusText('✨ เชื่อมต่อกลุ่ม LINE จากฐานข้อมูล DB อัตโนมัติเรียบร้อยแล้ว');
+    if (groupInfo && isValidLineId(groupInfo.group_id)) {
+      setTargetId(groupInfo.group_id);
+      setGroupName(groupInfo.group_name || 'กลุ่มทีมงาน Nitan Marketing');
+      setDbStatusText(`✅ เชื่อมต่อกลุ่ม: ${groupInfo.group_name || 'กลุ่มทีมงาน Nitan Marketing'}`);
     } else {
+      setGroupName('');
       setDbStatusText('💡 ยังไม่พบบอทในกลุ่ม LINE! ดึงบอทเข้ากลุ่ม 1 ครั้ง หรือวางรหัส C... 32 หลักที่นี่');
     }
   };
@@ -138,45 +142,61 @@ export default function LineFlexModal({ isOpen, onClose, defaultCampaign }) {
               <div className="flex items-center justify-between text-purple-950 font-bold">
                 <span className="flex items-center gap-1.5">
                   <Database className="w-3.5 h-3.5 text-purple-700" />
-                  <span>Group ID ปลายทาง (LINE Group)</span>
+                  <span>กลุ่ม LINE ปลายทาง</span>
                 </span>
-
-                {isValidLineId(targetId) ? (
-                  <span className="text-[10px] font-bold text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded-full border border-emerald-200 flex items-center gap-1">
-                    <CheckCircle2 className="w-3 h-3 text-emerald-600" />
-                    <span>พร้อมยิงส่ง</span>
-                  </span>
-                ) : (
-                  <span className="text-[10px] font-bold text-amber-700 bg-amber-100 px-2 py-0.5 rounded-full border border-amber-200">
-                    รอใส่ C... 32 หลัก
-                  </span>
-                )}
-              </div>
-
-              <div className="relative flex items-center gap-1.5">
-                <input
-                  type="text"
-                  placeholder="วาง Group ID ที่ขึ้นต้นด้วย C... (เช่น C1234567890...)"
-                  value={targetId}
-                  onChange={handleInputChange}
-                  className="w-full px-3 py-2 bg-white border border-[#E2D2EA] rounded-xl text-purple-950 font-mono text-[11px] focus:outline-none focus:border-purple-500 shadow-xs"
-                />
 
                 <button
                   type="button"
                   onClick={loadGroupFromDb}
                   disabled={isLoadingDb}
-                  className="px-2.5 py-2 bg-white hover:bg-purple-50 text-purple-900 border border-[#E2D2EA] rounded-xl font-bold transition flex items-center gap-1 cursor-pointer shrink-0 shadow-xs"
-                  title="ดึงข้อมูลล่าสุดจาก Supabase DB"
+                  className="px-2.5 py-1 bg-white hover:bg-purple-50 text-purple-900 border border-[#E2D2EA] rounded-xl font-bold transition flex items-center gap-1 cursor-pointer shrink-0 shadow-xs text-[10px]"
                 >
-                  <RefreshCw className={`w-3.5 h-3.5 text-purple-700 ${isLoadingDb ? 'animate-spin' : ''}`} />
-                  <span className="text-[10px]">ดึง DB</span>
+                  <RefreshCw className={`w-3 h-3 text-purple-700 ${isLoadingDb ? 'animate-spin' : ''}`} />
+                  <span>รีเฟรช DB</span>
                 </button>
               </div>
 
-              <p className="text-[10px] text-purple-800 font-medium">
-                {dbStatusText}
-              </p>
+              {isLoadingDb ? (
+                <div className="flex items-center gap-2 text-xs text-purple-700 py-1">
+                  <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                  <span>กำลังตรวจสอบ...</span>
+                </div>
+              ) : groupName ? (
+                <div className="flex items-center justify-between bg-emerald-50 border border-emerald-200 rounded-xl px-3 py-2">
+                  <div>
+                    <div className="flex items-center gap-1.5 text-emerald-800 font-bold text-xs">
+                      <CheckCircle2 className="w-3.5 h-3.5" />
+                      <span>เชื่อมต่อกลุ่มสำเร็จ: {groupName}</span>
+                    </div>
+                    <div className="text-[10px] text-emerald-600 font-mono mt-0.5 truncate">{targetId}</div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => { setTargetId(''); setGroupName(''); setDbStatusText('กรอก Group ID ใหม่'); }}
+                    className="text-[9px] text-rose-500 hover:text-rose-700 font-bold underline shrink-0 ml-2"
+                  >
+                    เปลี่ยน
+                  </button>
+                </div>
+              ) : (
+                <>
+                  <div className="relative flex items-center gap-1.5">
+                    <input
+                      type="text"
+                      placeholder="วาง Group ID ที่ขึ้นต้นด้วย C... (เช่น C1234567890...)"
+                      value={targetId}
+                      onChange={handleInputChange}
+                      className="w-full px-3 py-2 bg-white border border-[#E2D2EA] rounded-xl text-purple-950 font-mono text-[11px] focus:outline-none focus:border-purple-500 shadow-xs"
+                    />
+                    {isValidLineId(targetId) && (
+                      <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0" />
+                    )}
+                  </div>
+                  <p className="text-[10px] text-purple-800 font-medium">
+                    {dbStatusText}
+                  </p>
+                </>
+              )}
             </div>
 
             <div>

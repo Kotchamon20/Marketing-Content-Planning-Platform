@@ -11,6 +11,7 @@ export const LINE_CHANNEL_ACCESS_TOKEN =
 
 /**
  * Automatically fetch the auto-saved Group ID from Supabase Database (line_groups table)
+ * Only returns REAL LINE group IDs (starting with C or U, 33 chars)
  */
 export async function fetchAutoSavedGroupFromDb() {
   try {
@@ -18,6 +19,7 @@ export async function fetchAutoSavedGroupFromDb() {
       .from('line_groups')
       .select('group_id, group_name')
       .eq('is_active', true)
+      .like('group_id', 'C%')
       .order('updated_at', { ascending: false })
       .limit(1);
 
@@ -30,6 +32,28 @@ export async function fetchAutoSavedGroupFromDb() {
 
   // Fallback to localStorage if cached
   return localStorage.getItem('nitan_line_target_id') || '';
+}
+
+/**
+ * Fetch full group info (id + name) for display in UI
+ */
+export async function fetchAutoSavedGroupFullInfo() {
+  try {
+    const { data, error } = await supabase
+      .from('line_groups')
+      .select('group_id, group_name, updated_at')
+      .eq('is_active', true)
+      .like('group_id', 'C%')
+      .order('updated_at', { ascending: false })
+      .limit(1);
+
+    if (!error && data && data.length > 0) {
+      return data[0];
+    }
+  } catch (err) {
+    console.warn('Could not fetch auto-saved group from DB:', err);
+  }
+  return null;
 }
 
 /**
