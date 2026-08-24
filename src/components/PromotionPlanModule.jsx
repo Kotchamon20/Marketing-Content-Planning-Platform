@@ -41,6 +41,39 @@ import {
 } from 'lucide-react';
 import LineFlexModal from './LineFlexModal';
 
+const compressImage = (file, maxWidth = 1000, quality = 0.7) => {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.readAsDataURL(file);
+    reader.onload = (e) => {
+      const img = new Image();
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        let width = img.width;
+        let height = img.height;
+
+        if (width > maxWidth) {
+          height = Math.round((height * maxWidth) / width);
+          width = maxWidth;
+        }
+
+        canvas.width = width;
+        canvas.height = height;
+
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0, width, height);
+
+        // Compress as JPEG to drastically shrink file sizes compared to raw PNG
+        const compressedBase64 = canvas.toDataURL('image/jpeg', quality);
+        resolve(compressedBase64);
+      };
+      img.onerror = (err) => reject(err);
+      img.src = e.target.result;
+    };
+    reader.onerror = (err) => reject(err);
+  });
+};
+
 export default function PromotionPlanModule({
   products = [],
   campaigns = [],
@@ -1081,7 +1114,65 @@ export default function PromotionPlanModule({
                           uploader: {
                             insertImageAsBase64URI: true
                           },
-                          showXPathInStatusbar: false
+                          showXPathInStatusbar: false,
+                          imageProcessor: {
+                            replaceDataURIToBlobIdInView: true
+                          },
+                          events: {
+                            beforeUpload: async function (files) {
+                              if (files && files.length > 0) {
+                                for (let i = 0; i < files.length; i++) {
+                                  const file = files[i];
+                                  if (file.type.startsWith('image/')) {
+                                    try {
+                                      const compressed = await compressImage(file);
+                                      this.selection.insertHTML(`<img src="${compressed}" style="max-width: 100%; height: auto;" />`);
+                                    } catch (err) {
+                                      console.error('File compression failed:', err);
+                                    }
+                                  }
+                                }
+                                return false;
+                              }
+                            },
+                            drop: async function (event) {
+                              const files = event.dataTransfer?.files;
+                              if (files && files.length > 0) {
+                                const file = files[0];
+                                if (file.type.startsWith('image/')) {
+                                  event.preventDefault();
+                                  try {
+                                    const compressed = await compressImage(file);
+                                    this.selection.insertHTML(`<img src="${compressed}" style="max-width: 100%; height: auto;" />`);
+                                  } catch (err) {
+                                    console.error('Image compression failed:', err);
+                                  }
+                                  return false;
+                                }
+                              }
+                            },
+                            paste: async function (event) {
+                              const clipboardData = event.clipboardData || window.clipboardData;
+                              if (clipboardData && clipboardData.items) {
+                                for (let i = 0; i < clipboardData.items.length; i++) {
+                                  const item = clipboardData.items[i];
+                                  if (item.type.indexOf('image') !== -1) {
+                                    const file = item.getAsFile();
+                                    if (file) {
+                                      event.preventDefault();
+                                      try {
+                                        const compressed = await compressImage(file);
+                                        this.selection.insertHTML(`<img src="${compressed}" style="max-width: 100%; height: auto;" />`);
+                                      } catch (err) {
+                                        console.error('Image compression failed:', err);
+                                      }
+                                      return false;
+                                    }
+                                  }
+                                }
+                              }
+                            }
+                          }
                         }}
                         onBlur={(newContent) => setFormData(prev => ({ ...prev, docContent: newContent }))}
                       />
