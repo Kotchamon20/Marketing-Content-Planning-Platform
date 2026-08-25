@@ -29,6 +29,8 @@ import {
   ExternalLink,
   Copy,
   Check,
+  CheckCheck,
+  PauseCircle,
   FolderCheck,
   FileText
 } from 'lucide-react';
@@ -141,7 +143,7 @@ export default function TodoListModule({
       title: task.title,
       category: task.category,
       priority: task.priority || 'high',
-      status: task.status || 'pending',
+      status: task.status || (task.completed ? 'completed' : 'pending'),
       assignedTo: task.assignedTo || 'ทีมการตลาด',
       dueDate: task.dueDate || new Date().toISOString().split('T')[0],
       description: task.description || ''
@@ -151,28 +153,33 @@ export default function TodoListModule({
 
   const handleSaveTask = (e) => {
     e.preventDefault();
+    const isCompleted = taskFormData.status === 'completed';
     if (editingTask) {
       setTasks(prev => prev.map(t => t.id === editingTask.id ? {
         ...t,
         ...taskFormData,
-        completed: taskFormData.status === 'completed'
+        completed: isCompleted
       } : t));
     } else {
       setTasks(prev => [{
         id: `task-${Date.now()}`,
         ...taskFormData,
-        completed: taskFormData.status === 'completed'
+        completed: isCompleted
       }, ...prev]);
     }
     setShowAddTaskModal(false);
-    onShowSaveToast?.('บันทึกข้อมูลงาน To-Do ลง DB และ LocalStorage เรียบร้อยแล้ว!');
+    onShowSaveToast?.('บันทึกข้อมูลงาน To-Do เรียบร้อยแล้ว!');
   };
 
   const handleToggleTaskCompleted = (taskId) => {
     setTasks(prev => prev.map(t => {
       if (t.id !== taskId) return t;
       const nextCompleted = !t.completed;
-      return { ...t, completed: nextCompleted, status: nextCompleted ? 'completed' : 'in_progress' };
+      return {
+        ...t,
+        completed: nextCompleted,
+        status: nextCompleted ? 'completed' : 'pending'
+      };
     }));
     onShowSaveToast?.('อัปเดตสถานะงานเรียบร้อยแล้ว!');
   };
@@ -499,24 +506,17 @@ export default function TodoListModule({
         <div className="space-y-4">
           {/* Controls Bar */}
           <div className="glass-panel p-4 border-[#E2D2EA] flex flex-wrap items-center justify-between gap-3 text-xs">
-            <div className="flex items-center gap-2 flex-wrap">
+            <div className="flex items-center gap-2">
               <span className="font-bold text-purple-900">กรองสถานะ:</span>
-              {[
-                { id: 'all', label: 'ทั้งหมด' },
-                { id: 'pending', label: 'รอดำเนินการ' },
-                { id: 'in_progress', label: 'กำลังทำ' },
-                { id: 'completed', label: 'เสร็จสมบูรณ์' }
-              ].map(st => (
+              {['all', 'pending', 'in_progress', 'completed'].map(st => (
                 <button
-                  key={st.id}
-                  onClick={() => setSelectedStatus(st.id)}
+                  key={st}
+                  onClick={() => setSelectedStatus(st)}
                   className={`px-3 py-1 rounded-xl font-bold transition cursor-pointer ${
-                    selectedStatus === st.id
-                      ? 'bg-purple-950 text-white shadow-xs'
-                      : 'bg-white text-purple-900 border border-[#E2D2EA] hover:bg-purple-50'
+                    selectedStatus === st ? 'bg-purple-950 text-white' : 'bg-white text-purple-900 border border-[#E2D2EA]'
                   }`}
                 >
-                  {st.label}
+                  {st === 'all' ? 'ทั้งหมด' : st === 'pending' ? 'รอดำเนินการ' : st === 'in_progress' ? 'กำลังทำ' : 'เสร็จสมบูรณ์'}
                 </button>
               ))}
             </div>
@@ -525,7 +525,7 @@ export default function TodoListModule({
               <button
                 onClick={() => setViewMode('card')}
                 className={`px-3 py-1 rounded-lg font-bold transition flex items-center gap-1 text-xs cursor-pointer ${
-                  viewMode === 'card' ? 'bg-purple-950 text-white' : 'text-purple-900 hover:bg-purple-50'
+                  viewMode === 'card' ? 'bg-purple-950 text-white' : 'text-purple-900'
                 }`}
               >
                 <LayoutGrid className="w-3.5 h-3.5" />
@@ -534,7 +534,7 @@ export default function TodoListModule({
               <button
                 onClick={() => setViewMode('list')}
                 className={`px-3 py-1 rounded-lg font-bold transition flex items-center gap-1 text-xs cursor-pointer ${
-                  viewMode === 'list' ? 'bg-purple-950 text-white' : 'text-purple-900 hover:bg-purple-50'
+                  viewMode === 'list' ? 'bg-purple-950 text-white' : 'text-purple-900'
                 }`}
               >
                 <List className="w-3.5 h-3.5" />
@@ -555,115 +555,95 @@ export default function TodoListModule({
           ) : viewMode === 'card' ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {filteredTasks.map(task => (
-                <div key={task.id} className="glass-panel p-4 border border-[#E2D2EA] space-y-3 hover:shadow-xs transition">
+                <div key={task.id} className="glass-panel p-4 border border-[#E2D2EA] space-y-3">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-1.5 flex-wrap">
-                      <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-[#FFEBF3] text-purple-950 border border-[#E2D2EA]">
-                        {task.category}
+                      <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-[#FFEBF3] text-purple-950 border border-[#E2D2EA]">{task.category}</span>
+                      <span className={`px-2 py-0.5 rounded text-[10px] font-bold border flex items-center gap-1 ${
+                        task.completed || task.status === 'completed'
+                          ? 'bg-emerald-100 text-emerald-900 border-emerald-300'
+                          : task.status === 'in_progress'
+                          ? 'bg-sky-100 text-sky-900 border-sky-300'
+                          : 'bg-amber-100 text-amber-900 border-amber-300'
+                      }`}>
+                        {task.completed || task.status === 'completed' ? (
+                          <>
+                            <CheckCircle2 className="w-3 h-3 text-emerald-600" />
+                            <span>เสร็จสมบูรณ์</span>
+                          </>
+                        ) : task.status === 'in_progress' ? (
+                          <>
+                            <Clock className="w-3 h-3 text-sky-600" />
+                            <span>กำลังทำ</span>
+                          </>
+                        ) : (
+                          <>
+                            <Clock className="w-3 h-3 text-amber-600" />
+                            <span>รอดำเนินการ</span>
+                          </>
+                        )}
                       </span>
-                      {task.priority && (
-                        <span className={`px-2 py-0.5 rounded text-[10px] font-bold border ${
-                          task.priority === 'urgent' ? 'bg-rose-100 text-rose-800 border-rose-200' :
-                          task.priority === 'high' ? 'bg-amber-100 text-amber-800 border-amber-200' :
-                          'bg-purple-50 text-purple-700 border-purple-200'
-                        }`}>
-                          {task.priority === 'urgent' ? 'ด่วนมาก' : task.priority === 'high' ? 'ด่วน' : 'ปกติ'}
-                        </span>
-                      )}
                     </div>
-                    {/* Action buttons: PenLine button directly next to Delete button */}
                     <div className="flex items-center gap-1">
-                      <button
-                        onClick={() => handleOpenEditTask(task)}
-                        className="text-amber-500 hover:bg-amber-50 p-1 rounded transition cursor-pointer"
-                        title="แก้ไขงาน"
-                      >
+                      <button onClick={() => handleOpenEditTask(task)} className="text-amber-500 hover:bg-amber-50 p-1 rounded transition cursor-pointer" title="แก้ไข">
                         <PenLine className="w-3.5 h-3.5" />
                       </button>
-                      <button
-                        onClick={() => handleDeleteTask(task.id)}
-                        className="text-rose-500 hover:bg-rose-50 p-1 rounded transition cursor-pointer"
-                        title="ลบงาน"
-                      >
+                      <button onClick={() => handleDeleteTask(task.id)} className="text-rose-500 hover:bg-rose-50 p-1 rounded transition cursor-pointer" title="ลบ">
                         <Trash2 className="w-3.5 h-3.5" />
                       </button>
                     </div>
                   </div>
-
                   <div className="flex items-start gap-2">
-                    <input
-                      type="checkbox"
-                      checked={task.completed}
-                      onChange={() => handleToggleTaskCompleted(task.id)}
-                      className="mt-1 rounded text-purple-950 cursor-pointer"
-                    />
-                    <h4 className={`font-bold text-purple-950 text-sm ${task.completed ? 'line-through text-purple-400' : ''}`}>
-                      {task.title}
-                    </h4>
+                    <input type="checkbox" checked={task.completed} onChange={() => handleToggleTaskCompleted(task.id)} className="mt-1 rounded text-purple-950 cursor-pointer" />
+                    <h4 className={`font-bold text-purple-950 text-sm ${task.completed ? 'line-through text-purple-400' : ''}`}>{task.title}</h4>
                   </div>
-
-                  {task.description && (
-                    <p className="text-xs text-purple-800/80">{task.description}</p>
-                  )}
-
-                  <div className="pt-2 border-t border-purple-100/60 flex items-center justify-between text-[11px] text-purple-700">
-                    <span className="flex items-center gap-1 font-medium">
-                      <User className="w-3 h-3 text-purple-500" />
-                      {task.assignedTo || '-'}
-                    </span>
-                    {task.dueDate && (
-                      <span className="flex items-center gap-1 font-mono text-[10px] text-purple-600 bg-purple-50 px-2 py-0.5 rounded-lg border border-purple-100">
-                        <Calendar className="w-3 h-3" />
-                        {task.dueDate}
-                      </span>
-                    )}
-                  </div>
+                  <p className="text-xs text-purple-800/80">{task.description}</p>
                 </div>
               ))}
             </div>
           ) : (
             <div className="space-y-3">
               {filteredTasks.map(task => (
-                <div key={task.id} className="glass-panel p-3 border border-[#E2D2EA] flex items-center justify-between gap-3 hover:shadow-xs transition">
+                <div key={task.id} className="glass-panel p-3 border border-[#E2D2EA] flex items-center justify-between gap-3">
                   <div className="flex items-center gap-3 min-w-0">
-                    <input
-                      type="checkbox"
-                      checked={task.completed}
-                      onChange={() => handleToggleTaskCompleted(task.id)}
-                      className="rounded text-purple-950 cursor-pointer shrink-0"
-                    />
+                    <input type="checkbox" checked={task.completed} onChange={() => handleToggleTaskCompleted(task.id)} className="rounded text-purple-950 shrink-0 cursor-pointer" />
                     <div className="min-w-0">
                       <div className="flex items-center gap-2 flex-wrap">
-                        <h4 className={`font-bold text-purple-950 text-sm truncate ${task.completed ? 'line-through text-purple-400' : ''}`}>
-                          {task.title}
-                        </h4>
-                        <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-[#FFEBF3] text-purple-950 border border-[#E2D2EA]">
-                          {task.category}
-                        </span>
-                        <span className="text-[11px] text-purple-700 font-medium">
-                          ({task.assignedTo})
+                        <h4 className={`font-bold text-purple-950 text-sm ${task.completed ? 'line-through text-purple-400' : ''}`}>{task.title}</h4>
+                        <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-[#FFEBF3] text-purple-950 border border-[#E2D2EA]">{task.category}</span>
+                        <span className={`px-2 py-0.5 rounded text-[10px] font-bold border flex items-center gap-1 ${
+                          task.completed || task.status === 'completed'
+                            ? 'bg-emerald-100 text-emerald-900 border-emerald-300'
+                            : task.status === 'in_progress'
+                            ? 'bg-sky-100 text-sky-900 border-sky-300'
+                            : 'bg-amber-100 text-amber-900 border-amber-300'
+                        }`}>
+                          {task.completed || task.status === 'completed' ? (
+                            <>
+                              <CheckCircle2 className="w-3 h-3 text-emerald-600" />
+                              <span>เสร็จสมบูรณ์</span>
+                            </>
+                          ) : task.status === 'in_progress' ? (
+                            <>
+                              <Clock className="w-3 h-3 text-sky-600" />
+                              <span>กำลังทำ</span>
+                            </>
+                          ) : (
+                            <>
+                              <Clock className="w-3 h-3 text-amber-600" />
+                              <span>รอดำเนินการ</span>
+                            </>
+                          )}
                         </span>
                       </div>
-                      {task.description && (
-                        <p className="text-xs text-purple-800/80 truncate max-w-xl">{task.description}</p>
-                      )}
+                      {task.description && <p className="text-xs text-purple-800/80 truncate">{task.description}</p>}
                     </div>
                   </div>
-
-                  {/* Action buttons: PenLine button directly next to Delete button */}
                   <div className="flex items-center gap-1 shrink-0">
-                    <button
-                      onClick={() => handleOpenEditTask(task)}
-                      className="text-amber-500 hover:bg-amber-50 p-1 rounded transition cursor-pointer"
-                      title="แก้ไขงาน"
-                    >
+                    <button onClick={() => handleOpenEditTask(task)} className="text-amber-500 hover:bg-amber-50 p-1 rounded transition cursor-pointer" title="แก้ไข">
                       <PenLine className="w-3.5 h-3.5" />
                     </button>
-                    <button
-                      onClick={() => handleDeleteTask(task.id)}
-                      className="text-rose-500 hover:bg-rose-50 p-1 rounded transition cursor-pointer"
-                      title="ลบงาน"
-                    >
+                    <button onClick={() => handleDeleteTask(task.id)} className="text-rose-500 hover:bg-rose-50 p-1 rounded transition cursor-pointer" title="ลบ">
                       <Trash2 className="w-3.5 h-3.5" />
                     </button>
                   </div>
@@ -743,19 +723,29 @@ export default function TodoListModule({
               {filteredFollowupItems.map(item => (
                 <div key={item.id} className="glass-panel p-5 border border-[#E2D2EA] space-y-3 hover:shadow-xs transition">
                   <div className="flex items-center justify-between gap-2">
-                    <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold border flex items-center gap-1 ${
+                    <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold border flex items-center gap-1.5 ${
                       item.status === 'following'
                         ? 'bg-amber-100 text-amber-900 border-amber-300'
                         : item.status === 'hold'
                         ? 'bg-orange-100 text-orange-900 border-orange-300'
                         : 'bg-emerald-100 text-emerald-900 border-emerald-300'
                     }`}>
-                      <span className={`w-1.5 h-1.5 rounded-full ${
-                        item.status === 'following' ? 'bg-amber-500' :
-                        item.status === 'hold' ? 'bg-orange-500' :
-                        'bg-emerald-500'
-                      }`} />
-                      {item.status === 'following' ? 'กำลังตามงาน' : item.status === 'hold' ? 'Hold งาน ⏸️' : 'ติดตามเรียบร้อย'}
+                      {item.status === 'following' ? (
+                        <>
+                          <Clock className="w-3 h-3 text-amber-600" />
+                          <span>กำลังตามงาน</span>
+                        </>
+                      ) : item.status === 'hold' ? (
+                        <>
+                          <PauseCircle className="w-3 h-3 text-orange-600" />
+                          <span>Hold งาน</span>
+                        </>
+                      ) : (
+                        <>
+                          <CheckCircle2 className="w-3 h-3 text-emerald-600" />
+                          <span>ติดตามเรียบร้อย</span>
+                        </>
+                      )}
                     </span>
 
                     <div className="flex items-center gap-1">
@@ -886,25 +876,26 @@ export default function TodoListModule({
                 const getStatusInfo = (status) => {
                   switch (status) {
                     case 'submitted':
-                      return { label: 'ส่งไฟล์แล้ว 🟢', bg: 'bg-emerald-100 text-emerald-900 border-emerald-300', dot: 'bg-emerald-500 animate-pulse' };
+                      return { label: 'ส่งไฟล์แล้ว', bg: 'bg-emerald-100 text-emerald-900 border-emerald-300', icon: CheckCircle2, iconColor: 'text-emerald-600' };
                     case 'approved':
-                      return { label: 'อนุมัติแล้ว 🔵', bg: 'bg-blue-100 text-blue-900 border-blue-300', dot: 'bg-blue-500' };
+                      return { label: 'อนุมัติแล้ว', bg: 'bg-blue-100 text-blue-900 border-blue-300', icon: CheckCheck, iconColor: 'text-blue-600' };
                     case 'needs_revision':
-                      return { label: 'รอแก้ไข 🟡', bg: 'bg-yellow-100 text-yellow-900 border-yellow-300', dot: 'bg-yellow-500' };
+                      return { label: 'รอแก้ไข', bg: 'bg-yellow-100 text-yellow-900 border-yellow-300', icon: AlertCircle, iconColor: 'text-yellow-600' };
                     case 'not_submitted':
                     default:
-                      return { label: 'ยังไม่ส่งไฟล์ 🟠', bg: 'bg-amber-100 text-amber-900 border-amber-300', dot: 'bg-amber-500' };
+                      return { label: 'ยังไม่ส่งไฟล์', bg: 'bg-amber-100 text-amber-900 border-amber-300', icon: Clock, iconColor: 'text-amber-600' };
                   }
                 };
 
                 const statusInfo = getStatusInfo(file.deliveryStatus);
+                const StatusIcon = statusInfo.icon;
 
                 return (
                   <div key={file.id} className="glass-panel p-4 border border-[#E2D2EA] space-y-3 hover:shadow-xs transition">
                     <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                       <div className="flex items-center gap-2 flex-wrap">
                         <span className={`px-3 py-1 rounded-full text-xs font-extrabold border flex items-center gap-1.5 ${statusInfo.bg}`}>
-                          <span className={`w-2 h-2 rounded-full ${statusInfo.dot}`} />
+                          <StatusIcon className={`w-3.5 h-3.5 ${statusInfo.iconColor}`} />
                           <span>{statusInfo.label}</span>
                         </span>
 
@@ -922,7 +913,7 @@ export default function TodoListModule({
                               : 'bg-emerald-600 text-white hover:bg-emerald-700'
                           }`}
                         >
-                          {isSubmitted ? 'เปลี่ยนเป็น: ยังไม่ส่ง' : 'สลับเป็น: ส่งไฟล์แล้ว 🟢'}
+                          {isSubmitted ? 'เปลี่ยนเป็น: ยังไม่ส่ง' : 'สลับเป็น: ส่งไฟล์แล้ว'}
                         </button>
 
                         <button
@@ -1005,8 +996,9 @@ export default function TodoListModule({
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-xs p-4 animate-in fade-in duration-150 overflow-y-auto">
           <div className="glass-panel max-w-lg w-full p-6 space-y-4 border-[#E2D2EA] shadow-2xl bg-white/95 my-8">
             <div className="flex items-center justify-between border-b border-purple-100 pb-3">
-              <h3 className="text-base font-bold text-purple-950">
-                {editingTask ? '✏️ แก้ไขงาน To-Do' : '+ สร้างงาน To-Do ใหม่'}
+              <h3 className="text-base font-bold text-purple-950 flex items-center gap-1.5">
+                <PenLine className="w-4 h-4 text-purple-700" />
+                <span>{editingTask ? 'แก้ไขงาน To-Do' : 'สร้างงาน To-Do ใหม่'}</span>
               </h3>
               <button onClick={() => setShowAddTaskModal(false)} className="text-purple-400 font-bold hover:text-purple-700">
                 <X className="w-4 h-4" />
@@ -1014,22 +1006,22 @@ export default function TodoListModule({
             </div>
             <form onSubmit={handleSaveTask} className="space-y-3 text-xs">
               <div>
-                <label className="block font-bold mb-1 text-purple-950">หัวข้องาน</label>
+                <label className="block font-bold mb-1">หัวข้องาน</label>
                 <input
                   type="text"
                   required
                   value={taskFormData.title}
                   onChange={e => setTaskFormData({ ...taskFormData, title: e.target.value })}
-                  className="w-full px-3 py-2 border border-[#E2D2EA] rounded-xl focus:outline-none focus:ring-1 focus:ring-purple-400"
+                  className="w-full px-3 py-2 border rounded-xl"
                 />
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block font-bold mb-1 text-purple-950">หมวดหมู่</label>
+                  <label className="block font-bold mb-1">หมวดหมู่</label>
                   <select
                     value={taskFormData.category}
                     onChange={e => setTaskFormData({ ...taskFormData, category: e.target.value })}
-                    className="w-full px-3 py-2 border border-[#E2D2EA] rounded-xl font-bold bg-white"
+                    className="w-full px-3 py-2 border rounded-xl font-bold bg-white"
                   >
                     <option value="Promotion Plan">Promotion Plan</option>
                     <option value="Content Plan">Content Plan</option>
@@ -1037,59 +1029,48 @@ export default function TodoListModule({
                   </select>
                 </div>
                 <div>
-                  <label className="block font-bold mb-1 text-purple-950">ความสำคัญ (Priority)</label>
+                  <label className="block font-bold mb-1">สถานะ (Status)</label>
                   <select
-                    value={taskFormData.priority}
-                    onChange={e => setTaskFormData({ ...taskFormData, priority: e.target.value })}
-                    className="w-full px-3 py-2 border border-[#E2D2EA] rounded-xl font-bold bg-white"
+                    value={taskFormData.status}
+                    onChange={e => setTaskFormData({ ...taskFormData, status: e.target.value })}
+                    className="w-full px-3 py-2 border rounded-xl font-bold bg-white"
                   >
-                    <option value="urgent">ด่วนมาก (Urgent)</option>
-                    <option value="high">ด่วน (High)</option>
-                    <option value="normal">ปกติ (Normal)</option>
+                    <option value="pending">รอดำเนินการ</option>
+                    <option value="in_progress">กำลังทำ</option>
+                    <option value="completed">เสร็จสมบูรณ์</option>
                   </select>
                 </div>
               </div>
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block font-bold mb-1 text-purple-950">ผู้รับผิดชอบ</label>
-                  <input
-                    type="text"
-                    required
-                    value={taskFormData.assignedTo}
-                    onChange={e => setTaskFormData({ ...taskFormData, assignedTo: e.target.value })}
-                    className="w-full px-3 py-2 border border-[#E2D2EA] rounded-xl focus:outline-none focus:ring-1 focus:ring-purple-400"
-                  />
-                </div>
-                <div>
-                  <label className="block font-bold mb-1 text-purple-950">กำหนดส่ง (Due Date)</label>
-                  <input
-                    type="date"
-                    value={taskFormData.dueDate}
-                    onChange={e => setTaskFormData({ ...taskFormData, dueDate: e.target.value })}
-                    className="w-full px-3 py-2 border border-[#E2D2EA] rounded-xl font-mono focus:outline-none focus:ring-1 focus:ring-purple-400"
-                  />
-                </div>
+              <div>
+                <label className="block font-bold mb-1">ผู้รับผิดชอบ</label>
+                <input
+                  type="text"
+                  required
+                  value={taskFormData.assignedTo}
+                  onChange={e => setTaskFormData({ ...taskFormData, assignedTo: e.target.value })}
+                  className="w-full px-3 py-2 border rounded-xl"
+                />
               </div>
               <div>
-                <label className="block font-bold mb-1 text-purple-950">รายละเอียดงาน</label>
+                <label className="block font-bold mb-1">รายละเอียดงาน</label>
                 <textarea
                   rows={3}
                   value={taskFormData.description}
                   onChange={e => setTaskFormData({ ...taskFormData, description: e.target.value })}
-                  className="w-full px-3 py-2 border border-[#E2D2EA] rounded-xl focus:outline-none focus:ring-1 focus:ring-purple-400"
+                  className="w-full px-3 py-2 border rounded-xl"
                 />
               </div>
               <div className="pt-2 flex justify-end gap-2">
                 <button
                   type="button"
                   onClick={() => setShowAddTaskModal(false)}
-                  className="px-4 py-2 bg-purple-50 text-purple-900 font-bold rounded-xl hover:bg-purple-100"
+                  className="px-4 py-2 bg-purple-50 font-bold rounded-xl"
                 >
                   ยกเลิก
                 </button>
                 <button
                   type="submit"
-                  className="px-5 py-2 bg-purple-950 text-white font-bold rounded-xl hover:bg-purple-900 shadow-xs"
+                  className="px-5 py-2 bg-purple-950 text-white font-bold rounded-xl"
                 >
                   {editingTask ? 'บันทึกการแก้ไข' : '+ บันทึกงาน'}
                 </button>
@@ -1104,8 +1085,9 @@ export default function TodoListModule({
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-xs p-4 animate-in fade-in duration-150 overflow-y-auto">
           <div className="glass-panel max-w-lg w-full p-6 space-y-4 border-[#E2D2EA] shadow-2xl bg-white/95 my-8">
             <div className="flex items-center justify-between border-b border-purple-100 pb-3">
-              <h3 className="text-base font-bold text-purple-950">
-                {editingFollowup ? '✏️ แก้ไขงานที่ต้องติดตาม' : '+ บันทึกงานที่ต้องติดตาม (Follow-Up)'}
+              <h3 className="text-base font-bold text-purple-950 flex items-center gap-1.5">
+                <BellRing className="w-4 h-4 text-amber-600" />
+                <span>{editingFollowup ? 'แก้ไขงานที่ต้องติดตาม' : 'บันทึกงานที่ต้องติดตาม (Follow-Up)'}</span>
               </h3>
               <button onClick={() => setShowAddFollowupModal(false)} className="text-purple-400 font-bold hover:text-purple-700">
                 <X className="w-4 h-4" />
@@ -1141,9 +1123,9 @@ export default function TodoListModule({
                     onChange={e => setFollowupFormData({ ...followupFormData, status: e.target.value })}
                     className="w-full px-3 py-2 border border-[#E2D2EA] rounded-xl font-bold bg-white"
                   >
-                    <option value="following">กำลังตามงาน 🟡</option>
-                    <option value="hold">Hold งาน (พักไว้ชั่วคราว) ⏸️</option>
-                    <option value="completed">ติดตามเรียบร้อย 🟢</option>
+                    <option value="following">กำลังตามงาน</option>
+                    <option value="hold">Hold งาน (พักไว้ชั่วคราว)</option>
+                    <option value="completed">ติดตามเรียบร้อย</option>
                   </select>
                 </div>
               </div>
@@ -1182,8 +1164,9 @@ export default function TodoListModule({
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-xs p-4 animate-in fade-in duration-150 overflow-y-auto">
           <div className="glass-panel max-w-lg w-full p-6 space-y-4 border-[#E2D2EA] shadow-2xl bg-white/95 my-8">
             <div className="flex items-center justify-between border-b border-purple-100 pb-3">
-              <h3 className="text-base font-bold text-purple-950">
-                {editingFile ? '✏️ แก้ไขรายการติดตามไฟล์งาน' : '+ เพิ่มรายการติดตามไฟล์งาน'}
+              <h3 className="text-base font-bold text-purple-950 flex items-center gap-1.5">
+                <FolderCheck className="w-4 h-4 text-emerald-600" />
+                <span>{editingFile ? 'แก้ไขรายการติดตามไฟล์งาน' : 'เพิ่มรายการติดตามไฟล์งาน'}</span>
               </h3>
               <button onClick={() => setShowAddFileModal(false)} className="text-purple-400 font-bold hover:text-purple-700">
                 <X className="w-4 h-4" />
@@ -1222,10 +1205,10 @@ export default function TodoListModule({
                     onChange={e => setFileFormData({ ...fileFormData, deliveryStatus: e.target.value })}
                     className="w-full px-3 py-2 border border-[#E2D2EA] rounded-xl font-bold bg-white"
                   >
-                    <option value="not_submitted">ยังไม่ส่งไฟล์ 🟠</option>
-                    <option value="submitted">ส่งไฟล์แล้ว 🟢</option>
-                    <option value="needs_revision">รอแก้ไข 🟡</option>
-                    <option value="approved">อนุมัติแล้ว 🔵</option>
+                    <option value="not_submitted">ยังไม่ส่งไฟล์</option>
+                    <option value="submitted">ส่งไฟล์แล้ว</option>
+                    <option value="needs_revision">รอแก้ไข</option>
+                    <option value="approved">อนุมัติแล้ว</option>
                   </select>
                 </div>
               </div>
