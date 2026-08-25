@@ -141,9 +141,9 @@ export default function App() {
       if (dbGroups) {
         const seen = new Set();
         setContentGroups(dbGroups
-          .map(g => ({ 
-            ...g, 
-            colorClass: g.color_class || 'bg-slate-500 text-white', 
+          .map(g => ({
+            ...g,
+            colorClass: g.color_class || 'bg-slate-500 text-white',
             subCategories: g.sub_categories || [],
             subCategoryColors: g.sub_category_colors || {}
           }))
@@ -419,7 +419,7 @@ export default function App() {
 
   return (
     <div className="min-h-screen bg-[#FCFAF7] text-purple-950 font-sans selection:bg-purple-200 selection:text-purple-950 flex flex-col justify-between">
-      
+
       <div>
         {/* Navigation Bar */}
         <NavigationHeader
@@ -569,3 +569,4 @@ export default function App() {
     </div>
   );
 }
+

@@ -3999,8 +3999,8 @@ export default function ContentPlanModule({
                                   setOpenColorPalette(null);
                                 }}
                                 className={`w-7 h-7 rounded-full ${c.dot} transition-all cursor-pointer shadow-sm hover:scale-110 ${isSelected
-                                    ? 'ring-2 ring-offset-2 ring-purple-950 scale-110'
-                                    : 'hover:ring-2 hover:ring-offset-1 hover:ring-purple-400'
+                                  ? 'ring-2 ring-offset-2 ring-purple-950 scale-110'
+                                  : 'hover:ring-2 hover:ring-offset-1 hover:ring-purple-400'
                                   }`}
                               />
                             );
@@ -4113,8 +4113,8 @@ export default function ContentPlanModule({
                                             setOpenSubColorPalette(null);
                                           }}
                                           className={`w-6 h-6 rounded-full ${c.dot} transition-all cursor-pointer shadow-sm hover:scale-110 ${isSelected
-                                              ? 'ring-2 ring-offset-1 ring-purple-950 scale-110'
-                                              : 'hover:ring-2 hover:ring-offset-1 hover:ring-purple-400'
+                                            ? 'ring-2 ring-offset-1 ring-purple-950 scale-110'
+                                            : 'hover:ring-2 hover:ring-offset-1 hover:ring-purple-400'
                                             }`}
                                         />
                                       );
@@ -4196,8 +4196,8 @@ export default function ContentPlanModule({
                           title={c.label}
                           onClick={() => setNewGroupColor(c.value)}
                           className={`w-7 h-7 rounded-full ${c.dot} transition-all cursor-pointer shadow-sm hover:scale-110 ${isSelected
-                              ? 'ring-2 ring-offset-2 ring-purple-950 scale-110'
-                              : 'hover:ring-2 hover:ring-offset-1 hover:ring-purple-400'
+                            ? 'ring-2 ring-offset-2 ring-purple-950 scale-110'
+                            : 'hover:ring-2 hover:ring-offset-1 hover:ring-purple-400'
                             }`}
                         />
                       );
@@ -4296,10 +4296,10 @@ export default function ContentPlanModule({
                             if (file.type.startsWith('image/')) {
                               event.preventDefault();
                               try {
-                                  const compressed = await compressImage(file);
-                                  this.selection.insertHTML(`<img src="${compressed}" style="max-width: 100%; height: auto;" />`);
+                                const compressed = await compressImage(file);
+                                this.selection.insertHTML(`<img src="${compressed}" style="max-width: 100%; height: auto;" />`);
                               } catch (err) {
-                                  console.error('Image compression failed:', err);
+                                console.error('Image compression failed:', err);
                               }
                               return false;
                             }

@@ -1,13 +1,13 @@
 import React, { useState } from 'react';
-import { 
-  Package, 
-  CheckSquare, 
-  Square, 
-  AlertTriangle, 
-  TrendingUp, 
-  Clock, 
-  Plus, 
-  DollarSign, 
+import {
+  Package,
+  CheckSquare,
+  Square,
+  AlertTriangle,
+  TrendingUp,
+  Clock,
+  Plus,
+  DollarSign,
   Sparkles,
   Layers,
   Image as ImageIcon,
@@ -23,7 +23,7 @@ export default function ProductPlanModule({
   onAddCampaign
 }) {
   const [showAddCampaignModal, setShowAddCampaignModal] = useState(false);
-  
+
   // New campaign state
   const [name, setName] = useState('');
   const [productId, setProductId] = useState(products[0]?.id || '');
@@ -97,7 +97,7 @@ export default function ProductPlanModule({
 
   return (
     <div className="space-y-6 animate-in fade-in duration-300">
-      
+
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 glass-panel p-6">
         <div>
@@ -128,19 +128,19 @@ export default function ProductPlanModule({
           const roi = camp.budget > 0 ? (((camp.actual_revenue - camp.budget) / camp.budget) * 100).toFixed(0) : 0;
 
           return (
-            <div 
+            <div
               key={camp.id}
               className="glass-panel p-6 hover:border-pink-300 transition-all duration-300"
             >
               <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
-                
+
                 {/* Left: Product & Campaign Meta Info */}
                 <div className="flex flex-col sm:flex-row sm:items-center gap-4 flex-1">
                   <div className="flex items-start gap-4">
-                    <img 
-                      src={product.image_url} 
+                    <img
+                      src={product.image_url}
                       alt={product.name}
-                      className="w-16 h-16 rounded-2xl object-cover border border-pink-200 shadow-sm flex-shrink-0" 
+                      className="w-16 h-16 rounded-2xl object-cover border border-pink-200 shadow-sm flex-shrink-0"
                     />
                     <div>
                       <div className="flex items-center gap-2 flex-wrap mb-1">
@@ -171,9 +171,8 @@ export default function ProductPlanModule({
                     {/* Item 1: Image Ready */}
                     <button
                       onClick={() => onToggleStageChecklist(camp.id, 'image_ready')}
-                      className={`w-full p-2.5 rounded-xl text-left flex items-center justify-between transition cursor-pointer font-bold ${
-                        camp.image_ready ? 'bg-emerald-100 text-emerald-950 border border-emerald-300' : 'bg-pink-50/70 text-rose-900 hover:bg-pink-100'
-                      }`}
+                      className={`w-full p-2.5 rounded-xl text-left flex items-center justify-between transition cursor-pointer font-bold ${camp.image_ready ? 'bg-emerald-100 text-emerald-950 border border-emerald-300' : 'bg-pink-50/70 text-rose-900 hover:bg-pink-100'
+                        }`}
                     >
                       <span className="flex items-center gap-2 font-bold">
                         <ImageIcon className="w-4 h-4 text-emerald-600" />
@@ -185,9 +184,8 @@ export default function ProductPlanModule({
                     {/* Item 2: Scheduled */}
                     <button
                       onClick={() => onToggleStageChecklist(camp.id, 'scheduled')}
-                      className={`w-full p-2.5 rounded-xl text-left flex items-center justify-between transition cursor-pointer font-bold ${
-                        camp.scheduled ? 'bg-sky-100 text-sky-950 border border-sky-300' : 'bg-pink-50/70 text-rose-900 hover:bg-pink-100'
-                      }`}
+                      className={`w-full p-2.5 rounded-xl text-left flex items-center justify-between transition cursor-pointer font-bold ${camp.scheduled ? 'bg-sky-100 text-sky-950 border border-sky-300' : 'bg-pink-50/70 text-rose-900 hover:bg-pink-100'
+                        }`}
                     >
                       <span className="flex items-center gap-2 font-bold">
                         <Clock className="w-4 h-4 text-sky-600" />
@@ -199,9 +197,8 @@ export default function ProductPlanModule({
                     {/* Item 3: Posted */}
                     <button
                       onClick={() => onToggleStageChecklist(camp.id, 'posted')}
-                      className={`w-full p-2.5 rounded-xl text-left flex items-center justify-between transition cursor-pointer font-bold ${
-                        camp.posted ? 'bg-purple-100 text-purple-950 border border-purple-300' : 'bg-pink-50/70 text-rose-900 hover:bg-pink-100'
-                      }`}
+                      className={`w-full p-2.5 rounded-xl text-left flex items-center justify-between transition cursor-pointer font-bold ${camp.posted ? 'bg-purple-100 text-purple-950 border border-purple-300' : 'bg-pink-50/70 text-rose-900 hover:bg-pink-100'
+                        }`}
                     >
                       <span className="flex items-center gap-2 font-bold">
                         <Send className="w-4 h-4 text-purple-600" />
@@ -249,7 +246,7 @@ export default function ProductPlanModule({
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-rose-950/40 backdrop-blur-sm p-4 animate-in fade-in">
           <div className="w-full max-w-lg bg-white border border-pink-200 rounded-3xl p-6 shadow-2xl space-y-4">
             <h3 className="text-lg font-black text-rose-950">สร้างแคมเปญสินค้าใหม่</h3>
-            
+
             <form onSubmit={handleCreateCampaign} className="space-y-3 text-xs">
               <div>
                 <label className="block text-rose-800 font-extrabold mb-1">ชื่อแคมเปญ</label>

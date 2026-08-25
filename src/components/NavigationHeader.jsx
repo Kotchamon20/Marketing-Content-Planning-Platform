@@ -60,10 +60,10 @@ export default function NavigationHeader({
         <div className="flex items-center justify-between gap-4">
           {/* Logo & Brand Info */}
           <div className="flex items-center gap-3">
-            <img 
-              src="/logo.jpg" 
-              alt="Marketing & Content Planning Platform Logo" 
-              className="w-11 h-11 rounded-2xl object-cover shadow-xs border border-[#E2D2EA]" 
+            <img
+              src="/logo.jpg"
+              alt="Marketing & Content Planning Platform Logo"
+              className="w-11 h-11 rounded-2xl object-cover shadow-xs border border-[#E2D2EA]"
             />
             <div>
               <div className="flex items-center gap-2">
@@ -86,11 +86,10 @@ export default function NavigationHeader({
             {/* LINE Notifications Module Button (Moved from tabs) */}
             <button
               onClick={() => onSelectTab('notification-engine')}
-              className={`p-2 rounded-xl border transition flex items-center gap-1.5 text-xs font-bold shadow-xs cursor-pointer h-[34px] ${
-                activeTab === 'notification-engine' 
-                  ? 'bg-purple-600 text-white border-purple-700' 
+              className={`p-2 rounded-xl border transition flex items-center gap-1.5 text-xs font-bold shadow-xs cursor-pointer h-[34px] ${activeTab === 'notification-engine'
+                  ? 'bg-purple-600 text-white border-purple-700'
                   : 'bg-[#FCFAF7] hover:bg-[#FFEBF3]/50 text-purple-900 border-[#E2D2EA]'
-              }`}
+                }`}
               title="จัดการระบบ LINE Notifications"
             >
               <Bell className={`w-4 h-4 ${activeTab === 'notification-engine' ? 'text-white' : 'text-green-600'}`} />
@@ -156,8 +155,8 @@ export default function NavigationHeader({
                 key={tab.id}
                 onClick={() => onSelectTab(tab.id)}
                 className={`relative flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-extrabold transition-all whitespace-nowrap cursor-pointer ${isActive
-                    ? 'bg-gradient-to-r from-[#F0E6F5] via-[#FFEBF3] to-[#E6F2FF] text-purple-950 border border-[#E2D2EA] shadow-xs scale-[1.02]'
-                    : 'text-purple-900/80 hover:text-purple-950 hover:bg-[#FFEBF3]/30 border border-transparent'
+                  ? 'bg-gradient-to-r from-[#F0E6F5] via-[#FFEBF3] to-[#E6F2FF] text-purple-950 border border-[#E2D2EA] shadow-xs scale-[1.02]'
+                  : 'text-purple-900/80 hover:text-purple-950 hover:bg-[#FFEBF3]/30 border border-transparent'
                   }`}
               >
                 <Icon className={`w-4 h-4 transition-transform ${isActive ? 'text-purple-950 scale-110' : 'text-purple-400'}`} />
@@ -193,9 +192,9 @@ export default function NavigationHeader({
                 </button>
               );
             })}
-            
+
             <div className="my-2 border-t border-purple-100/50"></div>
-            
+
             {/* LINE Notifications Mobile Button */}
             <button
               onClick={() => {

@@ -1,16 +1,16 @@
 import React, { useState, useEffect } from 'react';
-import { 
-  MessageSquare, 
-  Settings, 
-  Bell, 
-  AlertTriangle, 
-  CheckCircle2, 
-  QrCode, 
-  Smartphone, 
-  Send, 
-  Sparkles, 
-  Clock, 
-  RefreshCw, 
+import {
+  MessageSquare,
+  Settings,
+  Bell,
+  AlertTriangle,
+  CheckCircle2,
+  QrCode,
+  Smartphone,
+  Send,
+  Sparkles,
+  Clock,
+  RefreshCw,
   FileText,
   UserCheck,
   Users,
@@ -54,7 +54,7 @@ export default function NotificationEngineModule({
       }
       setIsLoadingGroup(false);
     };
-    
+
     if (activeSubTab === 'line_pairing') {
       fetchLineGroup();
     }
@@ -90,7 +90,7 @@ export default function NotificationEngineModule({
 
   return (
     <div className="space-y-6 animate-in fade-in duration-300">
-      
+
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 glass-panel p-6 border-pink-200">
         <div>
@@ -109,36 +109,32 @@ export default function NotificationEngineModule({
         <div className="flex items-center gap-1.5 bg-pink-50 p-1.5 rounded-2xl border border-pink-200 flex-wrap shadow-inner">
           <button
             onClick={() => setActiveSubTab('flex_preview')}
-            className={`px-3.5 py-2 rounded-xl text-xs font-extrabold transition-all flex items-center gap-2 cursor-pointer ${
-              activeSubTab === 'flex_preview' ? 'bg-gradient-to-r from-[#F0E6F5] via-[#FFEBF3] to-[#E6F2FF] text-purple-950 border border-[#E2D2EA] shadow-xs scale-[1.02]' : 'text-purple-900/80 hover:text-purple-950 hover:bg-pink-100/50'
-            }`}
+            className={`px-3.5 py-2 rounded-xl text-xs font-extrabold transition-all flex items-center gap-2 cursor-pointer ${activeSubTab === 'flex_preview' ? 'bg-gradient-to-r from-[#F0E6F5] via-[#FFEBF3] to-[#E6F2FF] text-purple-950 border border-[#E2D2EA] shadow-xs scale-[1.02]' : 'text-purple-900/80 hover:text-purple-950 hover:bg-pink-100/50'
+              }`}
           >
             <Smartphone className="w-3.5 h-3.5" />
             <span>LINE Flex Preview (FR-4.1)</span>
           </button>
           <button
             onClick={() => setActiveSubTab('rules')}
-            className={`px-3.5 py-2 rounded-xl text-xs font-extrabold transition-all flex items-center gap-2 cursor-pointer ${
-              activeSubTab === 'rules' ? 'bg-gradient-to-r from-[#F0E6F5] via-[#FFEBF3] to-[#E6F2FF] text-purple-950 border border-[#E2D2EA] shadow-xs scale-[1.02]' : 'text-purple-900/80 hover:text-purple-950 hover:bg-pink-100/50'
-            }`}
+            className={`px-3.5 py-2 rounded-xl text-xs font-extrabold transition-all flex items-center gap-2 cursor-pointer ${activeSubTab === 'rules' ? 'bg-gradient-to-r from-[#F0E6F5] via-[#FFEBF3] to-[#E6F2FF] text-purple-950 border border-[#E2D2EA] shadow-xs scale-[1.02]' : 'text-purple-900/80 hover:text-purple-950 hover:bg-pink-100/50'
+              }`}
           >
             <Clock className="w-3.5 h-3.5" />
             <span>กฎเวลาแจ้งเตือน (FR-4.2)</span>
           </button>
           <button
             onClick={() => setActiveSubTab('line_pairing')}
-            className={`px-3.5 py-2 rounded-xl text-xs font-extrabold transition-all flex items-center gap-2 cursor-pointer ${
-              activeSubTab === 'line_pairing' ? 'bg-gradient-to-r from-[#F0E6F5] via-[#FFEBF3] to-[#E6F2FF] text-purple-950 border border-[#E2D2EA] shadow-xs scale-[1.02]' : 'text-purple-900/80 hover:text-purple-950 hover:bg-pink-100/50'
-            }`}
+            className={`px-3.5 py-2 rounded-xl text-xs font-extrabold transition-all flex items-center gap-2 cursor-pointer ${activeSubTab === 'line_pairing' ? 'bg-gradient-to-r from-[#F0E6F5] via-[#FFEBF3] to-[#E6F2FF] text-purple-950 border border-[#E2D2EA] shadow-xs scale-[1.02]' : 'text-purple-900/80 hover:text-purple-950 hover:bg-pink-100/50'
+              }`}
           >
             <Users className="w-3.5 h-3.5" />
             <span>ผูกบัญชี LINE รายฝ่าย (FR-4.3)</span>
           </button>
           <button
             onClick={() => setActiveSubTab('digest')}
-            className={`px-3.5 py-2 rounded-xl text-xs font-extrabold transition-all flex items-center gap-2 cursor-pointer ${
-              activeSubTab === 'digest' ? 'bg-gradient-to-r from-[#F0E6F5] via-[#FFEBF3] to-[#E6F2FF] text-purple-950 border border-[#E2D2EA] shadow-xs scale-[1.02]' : 'text-purple-900/80 hover:text-purple-950 hover:bg-pink-100/50'
-            }`}
+            className={`px-3.5 py-2 rounded-xl text-xs font-extrabold transition-all flex items-center gap-2 cursor-pointer ${activeSubTab === 'digest' ? 'bg-gradient-to-r from-[#F0E6F5] via-[#FFEBF3] to-[#E6F2FF] text-purple-950 border border-[#E2D2EA] shadow-xs scale-[1.02]' : 'text-purple-900/80 hover:text-purple-950 hover:bg-pink-100/50'
+              }`}
           >
             <Layers className="w-3.5 h-3.5" />
             <span>สรุปประจำวัน Daily Digest (FR-4.4)</span>
@@ -149,7 +145,7 @@ export default function NotificationEngineModule({
       {/* SUB-TAB 1: DYNAMIC FLEX MESSAGE & MOBILE SIMULATOR (FR-4.3 & FR-4.4) */}
       {activeSubTab === 'flex_preview' && (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          
+
           {/* Left Column: Template Configurator */}
           <div className="glass-panel p-6 space-y-5">
             <h3 className="font-bold text-rose-950 text-base border-b border-pink-100 pb-3 flex items-center gap-2">
@@ -214,7 +210,7 @@ export default function NotificationEngineModule({
                 >
                   บันทึกแม่แบบ
                 </button>
-                
+
                 <button
                   onClick={handleSendTestMessage}
                   disabled={isSendingTest}
@@ -236,7 +232,7 @@ export default function NotificationEngineModule({
 
             {/* Mobile Phone Mockup */}
             <div className="w-72 bg-pink-950 border-4 border-pink-900 rounded-[2.5rem] p-3 shadow-2xl relative overflow-hidden">
-              
+
               {/* Phone Speaker Notch */}
               <div className="w-24 h-4 bg-pink-900 rounded-b-xl mx-auto mb-2 flex items-center justify-center">
                 <div className="w-8 h-1 bg-pink-800 rounded-full" />
@@ -255,7 +251,7 @@ export default function NotificationEngineModule({
 
               {/* Chat Body */}
               <div className="bg-[#8cabd9] p-3 min-h-[360px] max-h-[400px] overflow-y-auto space-y-3 font-sans">
-                
+
                 {/* System Timestamp */}
                 <div className="text-center">
                   <span className="text-[9px] bg-black/20 text-white px-2 py-0.5 rounded-full font-medium">วันนี้ 11:45 น.</span>
@@ -263,11 +259,10 @@ export default function NotificationEngineModule({
 
                 {/* LINE Flex Message Card Container */}
                 <div className="bg-white rounded-xl overflow-hidden shadow-lg border border-pink-100 text-slate-900 text-[11px] animate-in zoom-in-95 duration-200">
-                  
+
                   {/* Card Header Banner */}
-                  <div className={`p-3 text-white font-bold flex items-center justify-between ${
-                    displayCampaign.stage_status === 'overdue' ? 'bg-rose-600' : 'bg-pink-600'
-                  }`}>
+                  <div className={`p-3 text-white font-bold flex items-center justify-between ${displayCampaign.stage_status === 'overdue' ? 'bg-rose-600' : 'bg-pink-600'
+                    }`}>
                     <span className="flex items-center gap-1">
                       {displayCampaign.stage_status === 'overdue' ? 'OVERDUE ALERT' : 'WORKFLOW ALERT'}
                     </span>
@@ -277,7 +272,7 @@ export default function NotificationEngineModule({
                   {/* Card Body */}
                   <div className="p-3 space-y-2">
                     <div className="font-extrabold text-slate-800 text-xs">{displayCampaign.name}</div>
-                    
+
                     <p className="text-slate-600 leading-snug bg-pink-50 p-2 rounded-lg border border-pink-100 font-mono text-[10px]">
                       {previewMessage}
                     </p>
@@ -343,11 +338,10 @@ export default function NotificationEngineModule({
                 <div className="flex items-center gap-3">
                   <button
                     onClick={() => onToggleRuleActive(rule.id)}
-                    className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition cursor-pointer shadow-sm ${
-                      rule.is_active 
-                        ? 'bg-emerald-100 text-emerald-800 border border-emerald-200' 
+                    className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition cursor-pointer shadow-sm ${rule.is_active
+                        ? 'bg-emerald-100 text-emerald-800 border border-emerald-200'
                         : 'bg-pink-100/60 text-pink-400 border border-pink-200'
-                    }`}
+                      }`}
                   >
                     {rule.is_active ? 'เปิดใช้งาน (Active)' : 'ปิดใช้งาน (Disabled)'}
                   </button>
@@ -372,7 +366,7 @@ export default function NotificationEngineModule({
           </div>
 
           <div className="max-w-md mx-auto">
-            
+
             {/* QR Code pairing wizard */}
             <div className="p-6 rounded-3xl bg-white/90 border border-pink-200 flex flex-col items-center justify-center text-center space-y-4 shadow-sm">
               {isLoadingGroup ? (
@@ -393,8 +387,8 @@ export default function NotificationEngineModule({
                     <p className="text-[10px] text-slate-400 mt-2 break-all">ID: {connectedLineGroup.group_id}</p>
                   </div>
                   <div className="pt-2 w-full">
-                    <button 
-                      onClick={() => setConnectedLineGroup(null)} 
+                    <button
+                      onClick={() => setConnectedLineGroup(null)}
                       className="text-[10px] text-rose-500 hover:text-rose-700 font-bold underline"
                     >
                       ต้องการเปลี่ยนกลุ่ม? (สแกนใหม่)

@@ -104,7 +104,7 @@ export default function LineFlexModal({ isOpen, onClose, defaultCampaign }) {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-xs p-4 animate-in fade-in duration-200 overflow-y-auto">
       <div className="glass-panel max-w-3xl w-full p-6 space-y-5 border-[#E2D2EA] bg-white/95 shadow-2xl my-8">
-        
+
         {/* Header */}
         <div className="flex items-center justify-between border-b border-purple-100 pb-4">
           <div className="flex items-center gap-3">
@@ -124,7 +124,7 @@ export default function LineFlexModal({ isOpen, onClose, defaultCampaign }) {
             </div>
           </div>
 
-          <button 
+          <button
             onClick={onClose}
             className="w-8 h-8 rounded-full bg-purple-50 hover:bg-purple-100 text-purple-700 font-bold transition flex items-center justify-center"
           >
@@ -133,10 +133,10 @@ export default function LineFlexModal({ isOpen, onClose, defaultCampaign }) {
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          
+
           {/* Column 1: Config Form */}
           <form onSubmit={handleSendPushAlert} className="space-y-3 text-xs">
-            
+
             {/* Group ID Input + DB Sync */}
             <div className="p-3 rounded-xl bg-purple-50/70 border border-[#E2D2EA] space-y-2">
               <div className="flex items-center justify-between text-purple-950 font-bold">
@@ -262,11 +262,10 @@ export default function LineFlexModal({ isOpen, onClose, defaultCampaign }) {
 
             {/* Notification Result Banner */}
             {sendResult && (
-              <div className={`p-3 rounded-xl border text-xs font-medium ${
-                sendResult.success 
-                  ? 'bg-emerald-50 text-emerald-900 border-emerald-200' 
+              <div className={`p-3 rounded-xl border text-xs font-medium ${sendResult.success
+                  ? 'bg-emerald-50 text-emerald-900 border-emerald-200'
                   : 'bg-rose-50 text-rose-900 border-rose-200'
-              }`}>
+                }`}>
                 <div className="flex items-center gap-2 font-bold mb-0.5">
                   {sendResult.success ? <CheckCircle2 className="w-4 h-4 text-emerald-600" /> : <AlertCircle className="w-4 h-4 text-rose-600" />}
                   <span>{sendResult.success ? 'ส่งแจ้งเตือนสำเร็จ!' : 'เกิดข้อความแจ้งเตือน'}</span>

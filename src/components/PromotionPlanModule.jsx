@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import JoditEditor from 'jodit-react';
-import { 
+import {
   fetchBranchBudgetsFromSupabase,
   fetchPromotionPlansFromSupabase,
   upsertPromotionPlanToSupabase,
@@ -395,7 +395,7 @@ export default function PromotionPlanModule({
     }
 
     setShowAddModal(false);
-    
+
     // Sync to Supabase
     const savedData = await upsertPromotionPlanToSupabase(planToSave);
     if (!editingPlan && savedData && savedData[0] && savedData[0].id) {
@@ -541,8 +541,8 @@ export default function PromotionPlanModule({
             <button
               onClick={() => setSelectedCategory('all')}
               className={`px-3 py-1.5 rounded-xl font-bold transition whitespace-nowrap cursor-pointer ${selectedCategory === 'all'
-                  ? 'bg-purple-950 text-white shadow-xs'
-                  : 'bg-white text-purple-900 hover:bg-purple-50 border border-[#E2D2EA]'
+                ? 'bg-purple-950 text-white shadow-xs'
+                : 'bg-white text-purple-900 hover:bg-purple-50 border border-[#E2D2EA]'
                 }`}
             >
               ทั้งหมด
@@ -553,8 +553,8 @@ export default function PromotionPlanModule({
                 key={cat.id}
                 onClick={() => setSelectedCategory(cat.name)}
                 className={`px-3 py-1.5 rounded-xl font-bold transition whitespace-nowrap cursor-pointer ${selectedCategory === cat.name
-                    ? 'bg-purple-950 text-white shadow-xs'
-                    : 'bg-white text-purple-900 hover:bg-purple-50 border border-[#E2D2EA]'
+                  ? 'bg-purple-950 text-white shadow-xs'
+                  : 'bg-white text-purple-900 hover:bg-purple-50 border border-[#E2D2EA]'
                   }`}
               >
                 {cat.label || cat.name}
@@ -704,10 +704,10 @@ export default function PromotionPlanModule({
 
                     <div className="flex items-center gap-1.5">
                       <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold flex items-center gap-1 ${plan.status === 'active'
-                          ? 'bg-emerald-100 text-emerald-800 border border-emerald-200'
-                          : plan.status === 'planned'
-                            ? 'bg-amber-100 text-amber-900 border border-amber-200'
-                            : 'bg-slate-100 text-slate-700 border border-slate-200'
+                        ? 'bg-emerald-100 text-emerald-800 border border-emerald-200'
+                        : plan.status === 'planned'
+                          ? 'bg-amber-100 text-amber-900 border border-amber-200'
+                          : 'bg-slate-100 text-slate-700 border border-slate-200'
                         }`}>
                         <span className={`w-1.5 h-1.5 rounded-full ${plan.status === 'active' ? 'bg-emerald-500 animate-pulse' : 'bg-amber-500'}`} />
                         <span>{plan.status === 'active' ? 'Active' : plan.status === 'planned' ? 'Planned' : 'Completed'}</span>
@@ -884,7 +884,7 @@ export default function PromotionPlanModule({
 
             <form onSubmit={handleSaveForm} className="flex-1 overflow-hidden flex flex-col mt-4 min-h-0">
               <div className="flex-1 overflow-y-auto pr-2 text-xs flex flex-col lg:flex-row gap-8 min-h-0">
-                
+
                 {/* Left Side: Form Fields */}
                 <div className="w-full lg:w-[380px] xl:w-[420px] space-y-5 shrink-0">
                   <div>
@@ -1020,7 +1020,7 @@ export default function PromotionPlanModule({
                         </div>
                       </div>
                     </div>
-                    
+
                     <div className="bg-[#F6EDFA] p-3 rounded-xl border border-purple-100 flex items-center justify-between gap-3">
                       <div className="text-xs font-bold text-purple-900">
                         ⚡ ทางลัด: เลือกแบบเต็มเดือน
@@ -1029,7 +1029,7 @@ export default function PromotionPlanModule({
                         type="month"
                         onChange={(e) => {
                           const val = e.target.value; // e.g., "2026-08"
-                          if(val) {
+                          if (val) {
                             const [year, month] = val.split('-');
                             const firstDay = `${year}-${month}-01`;
                             const lastDay = new Date(year, month, 0).getDate();
@@ -1105,7 +1105,7 @@ export default function PromotionPlanModule({
                             'source', '|',
                             'bold', 'strikethrough', 'underline', 'italic', '|',
                             'ul', 'ol', '|',
-                            'outdent', 'indent',  '|',
+                            'outdent', 'indent', '|',
                             'font', 'fontsize', 'brush', 'paragraph', '|',
                             'image', 'video', 'table', 'link', '|',
                             'align', 'undo', 'redo', '|',

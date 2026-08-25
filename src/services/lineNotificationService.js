@@ -147,22 +147,30 @@ export async function sendLineFlexCardAlert(targetId = '', alertData = {}, token
           {
             type: 'box', layout: 'vertical', margin: 'lg', spacing: 'sm',
             contents: [
-              { type: 'box', layout: 'baseline', spacing: 'sm', contents: [
-                { type: 'text', text: '📱 ช่องทาง', color: '#8C7A9E', size: 'xs', flex: 2 },
-                { type: 'text', text: platform, color: '#3C2A4D', size: 'xs', flex: 4, weight: 'bold' }
-              ]},
-              { type: 'box', layout: 'baseline', spacing: 'sm', contents: [
-                { type: 'text', text: '📅 โพสต์วัน', color: '#8C7A9E', size: 'xs', flex: 2 },
-                { type: 'text', text: publishDate, color: '#3C2A4D', size: 'xs', flex: 4, weight: 'bold' }
-              ]},
-              { type: 'box', layout: 'baseline', spacing: 'sm', contents: [
-                { type: 'text', text: '👤 ผู้ดูแล', color: '#8C7A9E', size: 'xs', flex: 2 },
-                { type: 'text', text: assignedTo, color: '#3C2A4D', size: 'xs', flex: 4, weight: 'bold' }
-              ]},
-              { type: 'box', layout: 'baseline', spacing: 'sm', contents: [
-                { type: 'text', text: '⚠️ สถานะ', color: '#8C7A9E', size: 'xs', flex: 2 },
-                { type: 'text', text: status, color: '#D946EF', size: 'xs', flex: 4, weight: 'bold' }
-              ]},
+              {
+                type: 'box', layout: 'baseline', spacing: 'sm', contents: [
+                  { type: 'text', text: '📱 ช่องทาง', color: '#8C7A9E', size: 'xs', flex: 2 },
+                  { type: 'text', text: platform, color: '#3C2A4D', size: 'xs', flex: 4, weight: 'bold' }
+                ]
+              },
+              {
+                type: 'box', layout: 'baseline', spacing: 'sm', contents: [
+                  { type: 'text', text: '📅 โพสต์วัน', color: '#8C7A9E', size: 'xs', flex: 2 },
+                  { type: 'text', text: publishDate, color: '#3C2A4D', size: 'xs', flex: 4, weight: 'bold' }
+                ]
+              },
+              {
+                type: 'box', layout: 'baseline', spacing: 'sm', contents: [
+                  { type: 'text', text: '👤 ผู้ดูแล', color: '#8C7A9E', size: 'xs', flex: 2 },
+                  { type: 'text', text: assignedTo, color: '#3C2A4D', size: 'xs', flex: 4, weight: 'bold' }
+                ]
+              },
+              {
+                type: 'box', layout: 'baseline', spacing: 'sm', contents: [
+                  { type: 'text', text: '⚠️ สถานะ', color: '#8C7A9E', size: 'xs', flex: 2 },
+                  { type: 'text', text: status, color: '#D946EF', size: 'xs', flex: 4, weight: 'bold' }
+                ]
+              },
             ]
           }
         ]

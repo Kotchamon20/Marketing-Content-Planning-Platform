@@ -1,15 +1,15 @@
 import React, { useState } from 'react';
 import LineFlexModal from './LineFlexModal';
-import { 
-  Target, 
-  Calendar, 
-  TrendingUp, 
-  MessageSquare, 
-  Plus, 
-  Send, 
-  Clock, 
-  AlertTriangle, 
-  CheckCircle2, 
+import {
+  Target,
+  Calendar,
+  TrendingUp,
+  MessageSquare,
+  Plus,
+  Send,
+  Clock,
+  AlertTriangle,
+  CheckCircle2,
   ArrowRight,
   Zap,
   Layers,
@@ -39,7 +39,7 @@ export default function DashboardOverview({
 
   // 1. Today's Tasks & Content Posts
   const todayContent = contentItems.filter(c => c.publish_date === todayStr || c.status === 'scheduled');
-  
+
   // 2. Product Plan Arrived / Active Campaigns
   const activeCampaigns = campaigns.filter(c => c.status === 'active' || c.stage_status === 't_minus_2' || c.stage_status === 'overdue');
   const overdueCampaigns = campaigns.filter(c => c.stage_status === 'overdue');
@@ -55,7 +55,7 @@ export default function DashboardOverview({
 
   return (
     <div className="space-y-6 animate-in fade-in duration-300">
-      
+
       {/* Top Banner Hero (Palette #61 Whisper-Soft Pastel Theme) */}
       <div className="relative rounded-3xl overflow-hidden bg-gradient-to-r from-[#F5EEF8] via-[#FFF0F6] to-[#EEF6FF] text-purple-950 p-8 border border-[#E2D2EA] shadow-xs">
         <div className="relative z-10 max-w-3xl space-y-3">
@@ -63,11 +63,11 @@ export default function DashboardOverview({
             <Sparkles className="w-3.5 h-3.5 text-purple-600" />
             <span>ศูนย์รวมการบริหารและติดตามภาพรวมแผนการตลาด (Command Center)</span>
           </div>
-          
+
           <h1 className="text-2xl sm:text-3xl font-black tracking-tight text-purple-950">
             ภาพรวมงานสำคัญประจำวัน & แผนการตลาด
           </h1>
-          
+
           <p className="text-xs sm:text-sm text-purple-900/80 font-medium leading-relaxed max-w-2xl">
             เช็กงานที่ต้องทำวันนี้ แคมเปญ Product Plan ที่มาถึง และรายการงาน To-Do ที่กำลังจะมาถึงในจุดเดียว
           </p>
@@ -99,7 +99,7 @@ export default function DashboardOverview({
 
       {/* KPI Cards Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-        
+
         {/* Card 1 */}
         <div className="glass-panel p-5 relative overflow-hidden group hover:border-pink-300 transition-all duration-300">
           <div className="flex items-center justify-between">
@@ -345,7 +345,7 @@ export default function DashboardOverview({
               ตรวจสอบว่าแคมเปญไหนเปิดตัวชนกัน เพื่อจัดสรรงบและกำลังคนไม่ให้กระจุกตัว
             </p>
           </div>
-          <button 
+          <button
             onClick={() => onNavigateTab('product-plan')}
             className="text-xs text-purple-700 hover:text-purple-950 font-extrabold flex items-center gap-1 cursor-pointer"
           >
@@ -361,7 +361,7 @@ export default function DashboardOverview({
             </div>
           ) : (
             campaigns.map((camp) => (
-              <div 
+              <div
                 key={camp.id}
                 className="p-4 rounded-2xl bg-white border border-[#E2D2EA] hover:shadow-xs transition"
               >
@@ -397,14 +397,13 @@ export default function DashboardOverview({
 
                 {/* Progress Visual Bar */}
                 <div className="w-full bg-purple-100 h-2.5 rounded-full overflow-hidden relative">
-                  <div 
-                    className={`h-full rounded-full transition-all duration-500 ${
-                      camp.stage_status === 'overdue' 
-                        ? 'bg-rose-500' 
+                  <div
+                    className={`h-full rounded-full transition-all duration-500 ${camp.stage_status === 'overdue'
+                        ? 'bg-rose-500'
                         : camp.stage_status === 't_minus_2'
-                        ? 'bg-amber-500'
-                        : 'bg-gradient-to-r from-purple-950 to-pink-600'
-                    }`}
+                          ? 'bg-amber-500'
+                          : 'bg-gradient-to-r from-purple-950 to-pink-600'
+                      }`}
                     style={{ width: camp.posted ? '100%' : camp.scheduled ? '70%' : camp.image_ready ? '40%' : '15%' }}
                   />
                 </div>
@@ -415,12 +414,13 @@ export default function DashboardOverview({
       </div>
 
       {/* Live LINE Flex Card Notification Modal */}
-      <LineFlexModal 
-        isOpen={showLineModal} 
-        onClose={() => setShowLineModal(false)} 
+      <LineFlexModal
+        isOpen={showLineModal}
+        onClose={() => setShowLineModal(false)}
         defaultCampaign={campaigns[0]}
       />
 
     </div>
   );
 }
+

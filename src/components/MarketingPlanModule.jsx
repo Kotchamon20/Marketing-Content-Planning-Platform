@@ -1,18 +1,18 @@
 import React, { useState } from 'react';
-import { 
-  Compass, 
-  Target, 
-  PieChart, 
-  ThumbsUp, 
-  Plus, 
-  Layers, 
-  Users, 
-  ShieldAlert, 
+import {
+  Compass,
+  Target,
+  PieChart,
+  ThumbsUp,
+  Plus,
+  Layers,
+  Users,
+  ShieldAlert,
   AlertCircle,
-  Zap, 
-  Clock, 
-  CheckCircle2, 
-  DollarSign, 
+  Zap,
+  Clock,
+  CheckCircle2,
+  DollarSign,
   Sparkles,
   ArrowRight,
   TrendingUp,
@@ -88,7 +88,7 @@ export default function MarketingPlanModule({
 
   return (
     <div className="space-y-6 animate-in fade-in duration-300">
-      
+
       {/* Module Header & Sub-tab navigation */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 glass-panel p-6">
         <div>
@@ -107,27 +107,24 @@ export default function MarketingPlanModule({
         <div className="flex items-center gap-1.5 bg-pink-50 p-1.5 rounded-2xl border border-pink-200 flex-wrap shadow-inner">
           <button
             onClick={() => setActiveSubTab('canvas')}
-            className={`px-3.5 py-2 rounded-xl text-xs font-extrabold transition-all flex items-center gap-2 cursor-pointer ${
-              activeSubTab === 'canvas' ? 'bg-gradient-to-r from-[#F0E6F5] via-[#FFEBF3] to-[#E6F2FF] text-purple-950 border border-[#E2D2EA] shadow-xs scale-[1.02]' : 'text-purple-900/80 hover:text-purple-950 hover:bg-pink-100/50'
-            }`}
+            className={`px-3.5 py-2 rounded-xl text-xs font-extrabold transition-all flex items-center gap-2 cursor-pointer ${activeSubTab === 'canvas' ? 'bg-gradient-to-r from-[#F0E6F5] via-[#FFEBF3] to-[#E6F2FF] text-purple-950 border border-[#E2D2EA] shadow-xs scale-[1.02]' : 'text-purple-900/80 hover:text-purple-950 hover:bg-pink-100/50'
+              }`}
           >
             <Compass className="w-3.5 h-3.5" />
             <span>Strategy Canvas (FR-2.1)</span>
           </button>
           <button
             onClick={() => setActiveSubTab('brainstorm')}
-            className={`px-3.5 py-2 rounded-xl text-xs font-extrabold transition-all flex items-center gap-2 cursor-pointer ${
-              activeSubTab === 'brainstorm' ? 'bg-gradient-to-r from-[#F0E6F5] via-[#FFEBF3] to-[#E6F2FF] text-purple-950 border border-[#E2D2EA] shadow-xs scale-[1.02]' : 'text-purple-900/80 hover:text-purple-950 hover:bg-pink-100/50'
-            }`}
+            className={`px-3.5 py-2 rounded-xl text-xs font-extrabold transition-all flex items-center gap-2 cursor-pointer ${activeSubTab === 'brainstorm' ? 'bg-gradient-to-r from-[#F0E6F5] via-[#FFEBF3] to-[#E6F2FF] text-purple-950 border border-[#E2D2EA] shadow-xs scale-[1.02]' : 'text-purple-900/80 hover:text-purple-950 hover:bg-pink-100/50'
+              }`}
           >
             <Zap className="w-3.5 h-3.5" />
             <span>กระดานไอเดีย (FR-2.2)</span>
           </button>
           <button
             onClick={() => setActiveSubTab('budget')}
-            className={`px-3.5 py-2 rounded-xl text-xs font-extrabold transition-all flex items-center gap-2 cursor-pointer ${
-              activeSubTab === 'budget' ? 'bg-gradient-to-r from-[#F0E6F5] via-[#FFEBF3] to-[#E6F2FF] text-purple-950 border border-[#E2D2EA] shadow-xs scale-[1.02]' : 'text-purple-900/80 hover:text-purple-950 hover:bg-pink-100/50'
-            }`}
+            className={`px-3.5 py-2 rounded-xl text-xs font-extrabold transition-all flex items-center gap-2 cursor-pointer ${activeSubTab === 'budget' ? 'bg-gradient-to-r from-[#F0E6F5] via-[#FFEBF3] to-[#E6F2FF] text-purple-950 border border-[#E2D2EA] shadow-xs scale-[1.02]' : 'text-purple-900/80 hover:text-purple-950 hover:bg-pink-100/50'
+              }`}
           >
             <PieChart className="w-3.5 h-3.5" />
             <span>จัดสรรงบประมาณ (FR-2.3)</span>
@@ -138,7 +135,7 @@ export default function MarketingPlanModule({
       {/* SUB-TAB 1: STRATEGY CANVAS (STP / SWOT / JOURNEY) (FR-2.1) */}
       {activeSubTab === 'canvas' && (
         <div className="space-y-6">
-          
+
           {/* Plan Meta Banner */}
           <div className="glass-panel p-6 border-pink-200">
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -162,7 +159,7 @@ export default function MarketingPlanModule({
 
           {/* STP Strategy Section Grid */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            
+
             {/* Segmentation */}
             <div className="glass-panel p-5 space-y-3">
               <div className="flex items-center gap-2 text-rose-950 font-extrabold text-sm">
@@ -348,7 +345,7 @@ export default function MarketingPlanModule({
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-rose-950/40 backdrop-blur-sm p-4 animate-in fade-in">
           <div className="w-full max-w-md bg-white border border-pink-200 rounded-3xl p-6 shadow-2xl space-y-4">
             <h3 className="text-lg font-black text-rose-950">เสนอไอเดียแคมเปญใหม่</h3>
-            
+
             <form onSubmit={handleCreateIdea} className="space-y-3 text-xs">
               <div>
                 <label className="block text-rose-800 font-extrabold mb-1">ชื่อไอเดีย / Concept</label>

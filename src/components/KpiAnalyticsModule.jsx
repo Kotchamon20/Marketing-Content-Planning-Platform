@@ -1,21 +1,21 @@
 import React, { useState } from 'react';
-import { 
-  BarChart3, 
-  ShoppingBag, 
-  Store, 
-  Share2, 
-  TrendingUp, 
-  Target, 
-  DollarSign, 
-  Users, 
-  Filter, 
-  Plus, 
-  CheckCircle2, 
-  AlertCircle, 
-  ArrowUpRight, 
-  Sparkles, 
-  Layers, 
-  Eye, 
+import {
+  BarChart3,
+  ShoppingBag,
+  Store,
+  Share2,
+  TrendingUp,
+  Target,
+  DollarSign,
+  Users,
+  Filter,
+  Plus,
+  CheckCircle2,
+  AlertCircle,
+  ArrowUpRight,
+  Sparkles,
+  Layers,
+  Eye,
   Edit3,
   Trash2,
   Settings,
@@ -177,7 +177,7 @@ export default function KpiAnalyticsModule({ campaigns = [], products = [], onSh
   const totalOrders = filteredKpiItems.reduce((acc, i) => acc + (i.ordersCount || 0), 0);
   const avgRoas = (filteredKpiItems.reduce((acc, i) => acc + (i.roas || 0), 0) / (filteredKpiItems.length || 1)).toFixed(1);
   const avgCpa = Math.round(filteredKpiItems.reduce((acc, i) => acc + (i.cpa || 0), 0) / (filteredKpiItems.length || 1));
-  const overallAchievementPercent = totalTargetRevenue > 0 
+  const overallAchievementPercent = totalTargetRevenue > 0
     ? Math.min(100, Math.round((totalActualRevenue / totalTargetRevenue) * 100))
     : 0;
 
@@ -197,7 +197,7 @@ export default function KpiAnalyticsModule({ campaigns = [], products = [], onSh
 
   return (
     <div className="space-y-6 animate-in fade-in duration-300">
-      
+
       {/* Header Banner & Mode Switcher */}
       <div className="glass-panel p-6 border-[#E2D2EA]">
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
@@ -214,11 +214,10 @@ export default function KpiAnalyticsModule({ campaigns = [], products = [], onSh
             <div className="flex items-center gap-2 mt-3 flex-wrap">
               <button
                 onClick={() => setKpiAnalysisMode('ecommerce')}
-                className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 cursor-pointer border ${
-                  kpiAnalysisMode === 'ecommerce'
+                className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 cursor-pointer border ${kpiAnalysisMode === 'ecommerce'
                     ? 'bg-purple-950 text-white border-purple-950 shadow-xs'
                     : 'bg-white text-purple-900 border-[#E2D2EA] hover:bg-purple-50'
-                }`}
+                  }`}
               >
                 <ShoppingBag className="w-3.5 h-3.5" />
                 <span>1. KPI ยอดขาย E-Commerce</span>
@@ -226,11 +225,10 @@ export default function KpiAnalyticsModule({ campaigns = [], products = [], onSh
 
               <button
                 onClick={() => setKpiAnalysisMode('content')}
-                className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 cursor-pointer border ${
-                  kpiAnalysisMode === 'content'
+                className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 cursor-pointer border ${kpiAnalysisMode === 'content'
                     ? 'bg-purple-950 text-white border-purple-950 shadow-xs'
                     : 'bg-white text-purple-900 border-[#E2D2EA] hover:bg-purple-50'
-                }`}
+                  }`}
               >
                 <Share2 className="w-3.5 h-3.5" />
                 <span>2. KPI โพสต์ Organic & โซเชียล</span>
@@ -238,11 +236,10 @@ export default function KpiAnalyticsModule({ campaigns = [], products = [], onSh
 
               <button
                 onClick={() => setKpiAnalysisMode('ads')}
-                className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 cursor-pointer border ${
-                  kpiAnalysisMode === 'ads'
+                className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 cursor-pointer border ${kpiAnalysisMode === 'ads'
                     ? 'bg-gradient-to-r from-purple-950 via-pink-900 to-purple-900 text-white border-purple-950 shadow-xs'
                     : 'bg-white text-purple-900 border-[#E2D2EA] hover:bg-purple-50'
-                }`}
+                  }`}
               >
                 <Megaphone className="w-3.5 h-3.5 text-pink-300" />
                 <span>3. วิเคราะห์ผลการยิง Ads & งบโฆษณา</span>
@@ -288,11 +285,10 @@ export default function KpiAnalyticsModule({ campaigns = [], products = [], onSh
         <div className="flex items-center gap-2 mt-6 pt-4 border-t border-purple-100/60 overflow-x-auto">
           <button
             onClick={() => { setActiveCategory('all'); setSelectedBranch('all'); }}
-            className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 cursor-pointer ${
-              activeCategory === 'all'
+            className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 cursor-pointer ${activeCategory === 'all'
                 ? 'bg-gradient-to-r from-[#F0E6F5] via-[#FFEBF3] to-[#E6F2FF] text-purple-950 border border-[#E2D2EA] shadow-xs scale-[1.02]'
                 : 'text-purple-900/80 hover:text-purple-950 hover:bg-[#FFEBF3]/30 border border-transparent'
-            }`}
+              }`}
           >
             <Layers className="w-4 h-4 text-purple-600" />
             <span>รวมทุกกลุ่ม ({kpiItems.length})</span>
@@ -306,11 +302,10 @@ export default function KpiAnalyticsModule({ campaigns = [], products = [], onSh
               <button
                 key={cat.id}
                 onClick={() => { setActiveCategory(cat.id); setSelectedBranch('all'); }}
-                className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 cursor-pointer whitespace-nowrap ${
-                  isActive
+                className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 cursor-pointer whitespace-nowrap ${isActive
                     ? 'bg-gradient-to-r from-[#F0E6F5] via-[#FFEBF3] to-[#E6F2FF] text-purple-950 border border-[#E2D2EA] shadow-xs scale-[1.02]'
                     : 'text-purple-900/80 hover:text-purple-950 hover:bg-[#FFEBF3]/30 border border-transparent'
-                }`}
+                  }`}
               >
                 <span>{cat.name}</span>
                 <span className="px-1.5 py-0.2 bg-white/70 text-purple-950 rounded-full text-[10px] border border-[#E2D2EA]">
@@ -324,7 +319,7 @@ export default function KpiAnalyticsModule({ campaigns = [], products = [], onSh
 
       {/* KPI Metric Summary Cards Grid (Switching based on Mode) */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        
+
         {kpiAnalysisMode === 'ecommerce' && (
           <>
             {/* E-Commerce Metric Card 1 */}
@@ -559,21 +554,21 @@ export default function KpiAnalyticsModule({ campaigns = [], products = [], onSh
               <Filter className="w-4 h-4 text-purple-600" />
               <span>
                 ตารางวิเคราะห์ KPI: {
-                  kpiAnalysisMode === 'ecommerce' 
-                    ? 'แคมเปญการขายสินค้าออนไลน์ (E-Commerce)' 
+                  kpiAnalysisMode === 'ecommerce'
+                    ? 'แคมเปญการขายสินค้าออนไลน์ (E-Commerce)'
                     : kpiAnalysisMode === 'content'
-                    ? 'โพสต์และโซเชียลมีเดีย (Online Content Post)'
-                    : 'รายงานวิเคราะห์การยิง Ads & งบโฆษณา (Paid Ads Performance)'
+                      ? 'โพสต์และโซเชียลมีเดีย (Online Content Post)'
+                      : 'รายงานวิเคราะห์การยิง Ads & งบโฆษณา (Paid Ads Performance)'
                 }
               </span>
             </h3>
             <p className="text-xs text-purple-800/80 font-medium mt-0.5">
               {
-                kpiAnalysisMode === 'ecommerce' 
-                  ? 'วิเคราะห์ตัวเลขตามหลักการตลาด ROAS / CPA / Conversion Rate / AOV' 
+                kpiAnalysisMode === 'ecommerce'
+                  ? 'วิเคราะห์ตัวเลขตามหลักการตลาด ROAS / CPA / Conversion Rate / AOV'
                   : kpiAnalysisMode === 'content'
-                  ? 'วิเคราะห์ตัวเลข Reach / Engagement ER% / VTR% / CTR%'
-                  : 'วิเคราะห์สถานะการยิง Ads (มียิงไหม / ใช้เงินเท่าไหร่ / ได้ผลเท่าไหร่ และ ROAS)'
+                    ? 'วิเคราะห์ตัวเลข Reach / Engagement ER% / VTR% / CTR%'
+                    : 'วิเคราะห์สถานะการยิง Ads (มียิงไหม / ใช้เงินเท่าไหร่ / ได้ผลเท่าไหร่ และ ROAS)'
               }
             </p>
           </div>
@@ -586,7 +581,7 @@ export default function KpiAnalyticsModule({ campaigns = [], products = [], onSh
               <tr>
                 <th className="py-3 px-4">ชื่อแคมเปญ / โพสต์</th>
                 <th className="py-3 px-4">หมวด / กลุ่ม</th>
-                
+
                 {kpiAnalysisMode === 'ecommerce' && (
                   <>
                     <th className="py-3 px-4 text-right">เป้ายอดขาย (Target)</th>
@@ -948,13 +943,12 @@ export default function KpiAnalyticsModule({ campaigns = [], products = [], onSh
                     <Activity className="w-3.5 h-3.5 text-purple-700" />
                     <span>แคมเปญนี้มียิงโฆษณา (Paid Ads) หรือไม่?</span>
                   </span>
-                  
+
                   <button
                     type="button"
                     onClick={() => setNewKpiIsAds(!newKpiIsAds)}
-                    className={`px-3 py-1 rounded-full text-xs font-bold transition flex items-center gap-1 cursor-pointer ${
-                      newKpiIsAds ? 'bg-emerald-600 text-white shadow-xs' : 'bg-purple-200 text-purple-800'
-                    }`}
+                    className={`px-3 py-1 rounded-full text-xs font-bold transition flex items-center gap-1 cursor-pointer ${newKpiIsAds ? 'bg-emerald-600 text-white shadow-xs' : 'bg-purple-200 text-purple-800'
+                      }`}
                   >
                     {newKpiIsAds ? '🟢 มียิง Ads (Paid)' : '⚪ ไม่ได้ยิง Ads (Organic)'}
                   </button>
