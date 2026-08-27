@@ -1747,7 +1747,7 @@ export default function PromotionPlanModule({
 
 /* ─────────────────────────────────────────────────────────────
    DocExportPreviewModal — Multi-page A4 Preview + Export
-   Preview shows separate white A4 sheets: หน้า 1, 2, 3 ...
+   Preview shows continuous A4 sheets
    Export: html2canvas → slice into A4 pages for PDF/PNG
 ───────────────────────────────────────────────────────────── */
 export function DocExportPreviewModal({ plan, onClose, isPublicStandalone = false }) {
@@ -1841,13 +1841,11 @@ export function DocExportPreviewModal({ plan, onClose, isPublicStandalone = fals
 
   // ── Measure content height after mount → set numPages ──────
   useEffect(() => {
-    const el = measureRef.current;
+    const el = captureRef.current;
     if (!el) return;
-    // Wait one frame for images/fonts to begin laying out
     const id = requestAnimationFrame(() => {
       const h = el.scrollHeight;
-      const usableH = A4_H - PAD_H * 2;
-      setNumPages(Math.max(1, Math.ceil(h / usableH)));
+      setNumPages(Math.max(1, Math.ceil(h / A4_H)));
     });
     return () => cancelAnimationFrame(id);
   }, [plan.docContent, plan.title]);
@@ -1913,27 +1911,27 @@ body{font-family:'Sarabun','Noto Sans Thai',sans-serif;font-size:13px;color:#1a0
   const handleExportImage = useCallback(async (pagesToExport) => {
     setIsExporting(true); setExportType('image'); setShowPngPicker(false);
     try {
-      const canvas    = await runCapture();
-      const sliceH    = Math.floor(canvas.height / numPages);
+      const canvas = await runCapture();
+      const pageHpx = Math.floor((canvas.width * A4_H) / A4_W);
 
-      if (pagesToExport.length === numPages) {
-        // All pages → just download full canvas
+      if (!pagesToExport || pagesToExport.length === 0 || pagesToExport.length === numPages) {
         const link = document.createElement('a');
         link.download = `${(plan.title||'doc').replace(/\s+/g,'_')}.png`;
         link.href = canvas.toDataURL('image/png');
         link.click();
       } else {
-        // Merge only selected slices vertically
-        const totalH = sliceH * pagesToExport.length;
+        const totalH = pageHpx * pagesToExport.length;
         const merged = document.createElement('canvas');
         merged.width  = canvas.width;
         merged.height = totalH;
         const ctx = merged.getContext('2d');
         pagesToExport.forEach((pageIdx, i) => {
+          const sy = pageIdx * pageHpx;
+          const sh = Math.min(pageHpx, canvas.height - sy);
           ctx.drawImage(
             canvas,
-            0, pageIdx * sliceH, canvas.width, sliceH,  // source rect
-            0, i * sliceH,       canvas.width, sliceH   // dest rect
+            0, sy, canvas.width, sh,
+            0, i * pageHpx, canvas.width, sh
           );
         });
         const link = document.createElement('a');
@@ -1984,9 +1982,6 @@ body{font-family:'Sarabun','Noto Sans Thai',sans-serif;font-size:13px;color:#1a0
       console.error(err); alert('เกิดข้อผิดพลาดในการ Export PDF');
     } finally { setIsExporting(false); setExportType(null); }
   }, [runCapture, plan]);
-
-  // ── Usable height per A4 page (minus padding) ─────────────
-  const usablePageH = A4_H - PAD_H * 2;
 
   // ── Create shareable direct web link ──────────────────────
   const handleCreateShareLink = useCallback(async () => {
@@ -2209,97 +2204,62 @@ body{font-family:'Sarabun','Noto Sans Thai',sans-serif;font-size:13px;color:#1a0
         </div>
       )}
 
+      {/* ── Scrollable preview: Unified continuous A4 document sheet ── */}
+      <div className="flex-1 overflow-y-auto bg-[#b8b8b8] py-8 flex flex-col items-center gap-4 px-4">
+        <div
+          style={{
+            width: A4_W,
+            minHeight: A4_H,
+            padding: `${PAD_H}px ${PAD_LR}px`,
+            background: '#ffffff',
+            boxShadow: '0 6px 32px rgba(0,0,0,0.25)',
+            position: 'relative',
+            boxSizing: 'border-box',
+            borderRadius: 4,
+            backgroundImage:
+              'repeating-linear-gradient(to bottom, transparent 0px, transparent 1122px, #c084fc 1122px, #c084fc 1124px)',
+            backgroundAttachment: 'local',
+          }}
+        >
+          <DocContent />
 
-      {/* ── Scrollable preview: N separate A4 sheets ── */}
-      <div className="flex-1 overflow-y-auto bg-gray-300 py-8 flex flex-col items-center gap-6 px-4">
-
-        {Array.from({ length: numPages }, (_, pageIdx) => {
-          // Each page card clips content to A4_H using overflow:hidden
-          // and shifts content up by (pageIdx * usablePageH) minus top padding offset
-          const offsetY = pageIdx * usablePageH - PAD_H;
-          return (
-            <div key={pageIdx} style={{ position: 'relative', flexShrink: 0 }}>
-              {/* Page number label above each sheet */}
-              <div style={{
-                position: 'absolute', top: -22, left: 0, right: 0,
-                display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 8,
-              }}>
-                <span style={{
-                  background: '#7e22ce', color: '#fff',
-                  fontSize: 10, fontWeight: 700, padding: '2px 10px', borderRadius: 20,
-                  letterSpacing: '0.05em',
-                }}>
-                  หน้า {pageIdx + 1}
-                </span>
-              </div>
-
-              {/* A4 white card */}
-              <div style={{
-                width: A4_W,
-                height: A4_H,
-                overflow: 'hidden',
-                background: '#fff',
-                boxShadow: '0 4px 28px rgba(0,0,0,0.18)',
-                position: 'relative',
-                flexShrink: 0,
-              }}>
-                {/* Content shifted to show the right slice for this page */}
-                <div style={{
-                  position: 'absolute',
-                  top: -offsetY,
-                  left: PAD_LR,
-                  right: PAD_LR,
-                  paddingTop: pageIdx === 0 ? PAD_H : PAD_H / 2,
-                }}>
-                  <DocContent />
-                </div>
-
-                {/* Page number footer inside each card */}
-                <div style={{
-                  position: 'absolute',
-                  bottom: 14,
-                  left: PAD_LR,
-                  right: PAD_LR,
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  fontSize: 10,
-                  color: '#9ca3af',
-                  borderTop: '1px solid #f3f0ff',
-                  paddingTop: 8,
-                  background: '#fff',
-                }}>
-                  <span>NITAN Marketing Platform</span>
-                  <span>หน้า {pageIdx + 1} / {numPages}</span>
-                </div>
-              </div>
-            </div>
-          );
-        })}
+          {/* Document Footer */}
+          <div
+            style={{
+              marginTop: 36,
+              paddingTop: 14,
+              borderTop: '1.5px solid #f3e8ff',
+              display: 'flex',
+              justifyContent: 'space-between',
+              fontSize: 10,
+              color: '#9ca3af',
+              fontWeight: 500,
+            }}
+          >
+            <span>NITAN Marketing Platform</span>
+            <span>สร้างเมื่อ {new Date().toLocaleDateString('th-TH')}</span>
+          </div>
+        </div>
       </div>
 
-      {/* ── Hidden measurement div (no clip, no padding constraints) ── */}
-      <div style={{
-        position: 'fixed', top: 0, left: '-9999px',
-        width: A4_W - PAD_LR * 2,
-        pointerEvents: 'none', visibility: 'hidden', zIndex: -1,
-      }}>
-        <div ref={measureRef}><DocContent /></div>
-      </div>
-
-      {/* ── Hidden capture div (full content, no clipping, with padding) ── */}
+      {/* ── Hidden capture div (for high-res html2canvas capture) ── */}
       <div style={{
         position: 'fixed', top: 0, left: '-9999px',
         width: A4_W,
         pointerEvents: 'none', zIndex: -1,
       }}>
-        <div ref={captureRef} style={{ padding: `${PAD_H}px ${PAD_LR}px`, background: '#fff' }}>
+        <div ref={captureRef} style={{ width: A4_W, padding: `${PAD_H}px ${PAD_LR}px`, background: '#fff', boxSizing: 'border-box' }}>
           <DocContent />
+          <div style={{ marginTop: 36, paddingTop: 14, borderTop: '1.5px solid #f3e8ff', display: 'flex', justifyContent: 'space-between', fontSize: 10, color: '#9ca3af', fontWeight: 500 }}>
+            <span>NITAN Marketing Platform</span>
+            <span>สร้างเมื่อ {new Date().toLocaleDateString('th-TH')}</span>
+          </div>
         </div>
       </div>
 
       {/* ── Bottom hint ── */}
       <div className="shrink-0 bg-purple-900/95 px-6 py-2 flex items-center justify-center text-[11px] text-purple-300">
-        <span>📄 แต่ละกล่องขาว = 1 หน้า A4 &nbsp;·&nbsp; <strong className="text-white">Export PDF</strong> จะแบ่งเป็น {numPages} หน้าอัตโนมัติ</span>
+        <span>📄 ความยาวเอกสาร: {numPages} หน้า A4 &nbsp;·&nbsp; <strong className="text-white">พิมพ์</strong> และ <strong className="text-white">Export PDF</strong> จะจัดแบ่งหน้าให้อัตโนมัติ</span>
       </div>
     </div>
   );
