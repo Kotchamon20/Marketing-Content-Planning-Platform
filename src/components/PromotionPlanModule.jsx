@@ -1945,14 +1945,13 @@ body{font-family:'Sarabun','Noto Sans Thai',sans-serif;font-size:13px;color:#1a0
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>${plan.title || 'เอกสารแผนแคมเปญ'} — NITAN</title>
-<link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;600;700&display=swap" rel="stylesheet">
 <style>
+@import url('https://fonts.googleapis.com/css2?family=Sarabun:wght@400;600;700&display=swap');
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 html{background:#e0e0e0;min-height:100vh}
-body{font-family:'Sarabun','Noto Sans Thai',sans-serif;font-size:13px;color:#1a0030;line-height:1.75;background:#e0e0e0;display:flex;flex-direction:column;align-items:center;padding:32px 16px 48px;gap:28px}
+body{font-family:'Sarabun','Noto Sans Thai','TH Sarabun New',Arial,sans-serif;font-size:13px;color:#1a0030;line-height:1.75;background:#e0e0e0;display:flex;flex-direction:column;align-items:center;padding:32px 16px 48px;gap:28px}
 .page{width:794px;min-height:auto;padding:56px 60px 60px;background:#fff;box-shadow:0 4px 24px rgba(0,0,0,0.16);position:relative}
 .page-footer{display:flex;justify-content:space-between;margin-top:24px;padding-top:10px;border-top:1px solid #f3f0ff;font-size:10px;color:#9ca3af}
-.page-num-badge{background:#7e22ce;color:#fff;font-size:10px;font-weight:700;padding:2px 10px;border-radius:20px;letter-spacing:.05em;margin-bottom:8px;display:inline-block}
 .hd{border-bottom:2.5px solid #4f0074;padding-bottom:14px;margin-bottom:18px}
 .ht{display:flex;align-items:center;gap:10px;margin-bottom:5px}
 .cb{background:#4f0074;color:#fff;font-size:10px;font-weight:700;padding:2px 9px;border-radius:4px;font-family:monospace}
