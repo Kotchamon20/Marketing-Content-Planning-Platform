@@ -1097,7 +1097,7 @@ export default function PromotionPlanModule({
 
                 </div>
 
-                {/* Right Side: Rich Text Editor */}
+                {/* Right Side: Rich Text Editor with Live Header & Footer Preview */}
                 <div className="flex-1 flex flex-col min-w-0">
                   <div className="flex-1 flex flex-col h-full min-h-[450px]">
                     <label className="block text-purple-950 font-bold mb-1 flex items-center justify-between shrink-0">
@@ -1105,112 +1105,145 @@ export default function PromotionPlanModule({
                         <FileText className="w-4 h-4 text-purple-700" />
                         <span>เนื้อหาเอกสารแผนแคมเปญ (Doc Format / Campaign Brief):</span>
                       </span>
-                      <span className="text-[10px] text-purple-700 font-medium hidden xl:inline">รองรับตารางจาก AI และ Notion</span>
+                      <span className="text-[10px] text-purple-700 font-medium hidden xl:inline">
+                        แสดงหัวกระดาษและท้ายกระดาษจริงเหมือนตอนพิมพ์
+                      </span>
                     </label>
-                    <div className="bg-white border border-[#E2D2EA] rounded-xl overflow-hidden shadow-inner text-purple-950 font-sans flex-1 flex flex-col min-h-0">
-                      <JoditEditor
-                        value={formData.docContent}
-                        config={{
-                          readonly: false,
-                          height: 680,
-                          minHeight: 680,
-                          askBeforePasteHTML: false,
-                          askBeforePasteFromWord: false,
-                          defaultActionOnPaste: 'insert_as_html',
-                          placeholder: "ใส่เอกสารบรีฟ... วางตารางจาก AI หรือ Word ได้เลย",
-                          // A4 page-simulation: gray outer bg, white A4 card inside
-                          buttons: [
-                            'source', '|',
-                            'bold', 'strikethrough', 'underline', 'italic', '|',
-                            'ul', 'ol', '|',
-                            'outdent', 'indent', '|',
-                            'font', 'fontsize', 'brush', 'paragraph', '|',
-                            'image', 'video', 'table', 'link', '|',
-                            'align', 'undo', 'redo', '|',
-                            'hr', 'eraser', 'fullsize'
-                          ],
-                          uploader: {
-                            insertImageAsBase64URI: true
-                          },
-                          showXPathInStatusbar: false,
-                          showWordsCounter: false,
-                          showCharsCounter: false,
-                          imageProcessor: {
-                            replaceDataURIToBlobIdInView: true
-                          },
-                          events: {
-                            /* ── afterInit: inject A4 page-simulation CSS into editor body ── */
-                            afterInit: function (editor) {
-                              try {
-                                const body = editor.editor;
-                                const workplace = editor.workplace;
-                                if (body) {
-                                  Object.assign(body.style, {
-                                    fontFamily: "'Sarabun','Noto Sans Thai',sans-serif",
-                                    fontSize: '13px',
-                                    color: '#1a0030',
-                                    lineHeight: '1.8',
-                                    background: '#ffffff',
-                                    width: '682px',
-                                    minWidth: '682px',
-                                    margin: '24px auto',
-                                    padding: '72px 60px 80px',
-                                    boxShadow: '0 2px 12px rgba(0,0,0,0.18)',
-                                    boxSizing: 'border-box',
-                                    /* Purple line every A4 height (1123px) = page break indicator */
-                                    backgroundImage:
-                                      'repeating-linear-gradient(to bottom, transparent 0px, transparent 1122px, #c084fc 1122px, #c084fc 1125px)',
-                                    backgroundAttachment: 'local',
-                                  });
-                                }
-                                if (workplace) {
-                                  Object.assign(workplace.style, {
-                                    background: '#d0d0d0',
-                                    overflowX: 'auto',
-                                  });
-                                }
-                              } catch (e) { /* safe ignore */ }
-                            },
-                            beforeUpload: async function (files) {
-                              if (files && files.length > 0) {
-                                for (let i = 0; i < files.length; i++) {
-                                  const file = files[i];
-                                  if (file.type.startsWith('image/')) {
-                                    try {
-                                      const compressed = await compressImage(file);
-                                      this.selection.insertHTML(`<img src="${compressed}" style="max-width: 100%; height: auto;" />`);
-                                    } catch (err) {
-                                      console.error('File compression failed:', err);
-                                    }
-                                  }
-                                }
-                                return false;
-                              }
-                            },
-                            drop: async function (event) {
-                              const files = event.dataTransfer?.files;
-                              if (files && files.length > 0) {
-                                const file = files[0];
-                                if (file.type.startsWith('image/')) {
-                                  event.preventDefault();
+
+                    {/* Scrollable A4 Document Editor Container */}
+                    <div className="bg-[#dcdcdc] border border-[#E2D2EA] rounded-xl overflow-y-auto p-3 sm:p-5 flex flex-col items-center gap-2 shadow-inner flex-1 min-h-0">
+                      
+                      {/* A4 Paper Sheet Simulation */}
+                      <div className="w-full max-w-[760px] bg-white rounded-lg shadow-xl border border-gray-300 flex flex-col transition-all">
+                        
+                        {/* ── Live Header (หัวกระดาษจริงเหมือนตอน Print) ── */}
+                        <div className="p-6 pb-4 border-b-[2.5px] border-[#4f0074] select-none bg-white rounded-t-lg">
+                          <div className="flex items-center gap-2.5 mb-1 flex-wrap">
+                            <span className="bg-[#4f0074] text-white text-[10px] font-bold px-2.5 py-0.5 rounded font-mono">
+                              {formData.code || 'PROMO-CODE'}
+                            </span>
+                            <h2 className="text-base sm:text-lg font-bold text-[#1a0030] truncate">
+                              {formData.title || 'ชื่อแผนแคมเปญโปรโมท (ระบุในฟอร์มด้านซ้าย)'}
+                            </h2>
+                          </div>
+                          <p className="text-[11px] text-[#7e22ce] mb-3 font-medium">เอกสารแผนแคมเปญโปรโมท (Campaign Doc Brief)</p>
+
+                          {/* Meta Grid 6 ช่อง */}
+                          <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                            <div className="bg-[#f5f0ff] border border-[#e2d2ea] rounded-lg p-2">
+                              <span className="text-[9px] text-[#7e22ce] font-bold block uppercase tracking-wider">ประเภทแผน</span>
+                              <span className="text-xs font-bold text-[#1a0030] truncate block">{formData.category || '-'}</span>
+                            </div>
+                            <div className="bg-[#f5f0ff] border border-[#e2d2ea] rounded-lg p-2">
+                              <span className="text-[9px] text-[#7e22ce] font-bold block uppercase tracking-wider">สินค้าเป้าหมาย</span>
+                              <span className="text-xs font-bold text-[#1a0030] truncate block">{formData.targetProductName || '-'}</span>
+                            </div>
+                            <div className="bg-[#f5f0ff] border border-[#e2d2ea] rounded-lg p-2">
+                              <span className="text-[9px] text-[#7e22ce] font-bold block uppercase tracking-wider">งบจัดสรร</span>
+                              <span className="text-xs font-bold text-[#1a0030] truncate block">
+                                {formData.budget ? `฿${Number(formData.budget).toLocaleString()}` : '-'}
+                              </span>
+                            </div>
+                            <div className="bg-[#f5f0ff] border border-[#e2d2ea] rounded-lg p-2">
+                              <span className="text-[9px] text-[#7e22ce] font-bold block uppercase tracking-wider">เป้าหมายยอดขาย</span>
+                              <span className="text-xs font-bold text-[#1a0030] truncate block">
+                                {formData.projectedSales ? `฿${Number(formData.projectedSales).toLocaleString()}` : '-'}
+                              </span>
+                            </div>
+                            <div className="bg-[#f5f0ff] border border-[#e2d2ea] rounded-lg p-2">
+                              <span className="text-[9px] text-[#7e22ce] font-bold block uppercase tracking-wider">ช่วงเวลา</span>
+                              <span className="text-xs font-bold text-[#1a0030] truncate block">
+                                {formData.startDate && formData.endDate ? `${formData.startDate} → ${formData.endDate}` : '-'}
+                              </span>
+                            </div>
+                            <div className="bg-[#f5f0ff] border border-[#e2d2ea] rounded-lg p-2">
+                              <span className="text-[9px] text-[#7e22ce] font-bold block uppercase tracking-wider">สาขา</span>
+                              <span className="text-xs font-bold text-[#1a0030] truncate block">{formData.targetBranch || '-'}</span>
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* ── Editor Body (พิมพ์เนื้อหาเอกสาร) ── */}
+                        <div className="flex-1 min-h-[500px]">
+                          <JoditEditor
+                            value={formData.docContent}
+                            config={{
+                              readonly: false,
+                              height: 560,
+                              minHeight: 560,
+                              askBeforePasteHTML: false,
+                              askBeforePasteFromWord: false,
+                              defaultActionOnPaste: 'insert_as_html',
+                              placeholder: "ใส่เนื้อหาเอกสาร... พิมพ์หรือวางตาราง ข้อความ รูปภาพ ได้ที่นี่",
+                              buttons: [
+                                'source', '|',
+                                'bold', 'strikethrough', 'underline', 'italic', '|',
+                                'ul', 'ol', '|',
+                                'outdent', 'indent', '|',
+                                'font', 'fontsize', 'brush', 'paragraph', '|',
+                                'image', 'video', 'table', 'link', '|',
+                                'align', 'undo', 'redo', '|',
+                                'hr', 'eraser', 'fullsize'
+                              ],
+                              uploader: {
+                                insertImageAsBase64URI: true
+                              },
+                              showXPathInStatusbar: false,
+                              showWordsCounter: false,
+                              showCharsCounter: false,
+                              imageProcessor: {
+                                replaceDataURIToBlobIdInView: true
+                              },
+                              events: {
+                                afterInit: function (editor) {
                                   try {
-                                    const compressed = await compressImage(file);
-                                    this.selection.insertHTML(`<img src="${compressed}" style="max-width: 100%; height: auto;" />`);
-                                  } catch (err) {
-                                    console.error('Image compression failed:', err);
+                                    const body = editor.editor;
+                                    const workplace = editor.workplace;
+                                    if (body) {
+                                      Object.assign(body.style, {
+                                        fontFamily: "'Sarabun','Noto Sans Thai',sans-serif",
+                                        fontSize: '13px',
+                                        color: '#1a0030',
+                                        lineHeight: '1.8',
+                                        background: '#ffffff',
+                                        padding: '24px 32px 40px',
+                                        boxSizing: 'border-box',
+                                        minHeight: '480px',
+                                        /* Purple line every A4 height (1123px) = page break indicator */
+                                        backgroundImage:
+                                          'repeating-linear-gradient(to bottom, transparent 0px, transparent 1122px, #c084fc 1122px, #c084fc 1125px)',
+                                        backgroundAttachment: 'local',
+                                      });
+                                    }
+                                    if (workplace) {
+                                      Object.assign(workplace.style, {
+                                        background: '#ffffff',
+                                        border: 'none',
+                                      });
+                                    }
+                                  } catch (e) { /* safe ignore */ }
+                                },
+                                beforeUpload: async function (files) {
+                                  if (files && files.length > 0) {
+                                    for (let i = 0; i < files.length; i++) {
+                                      const file = files[i];
+                                      if (file.type.startsWith('image/')) {
+                                        try {
+                                          const compressed = await compressImage(file);
+                                          this.selection.insertHTML(`<img src="${compressed}" style="max-width: 100%; height: auto;" />`);
+                                        } catch (err) {
+                                          console.error('File compression failed:', err);
+                                        }
+                                      }
+                                    }
+                                    return false;
                                   }
-                                  return false;
-                                }
-                              }
-                            },
-                            paste: async function (event) {
-                              const clipboardData = event.clipboardData || window.clipboardData;
-                              if (clipboardData && clipboardData.items) {
-                                for (let i = 0; i < clipboardData.items.length; i++) {
-                                  const item = clipboardData.items[i];
-                                  if (item.type.indexOf('image') !== -1) {
-                                    const file = item.getAsFile();
-                                    if (file) {
+                                },
+                                drop: async function (event) {
+                                  const files = event.dataTransfer?.files;
+                                  if (files && files.length > 0) {
+                                    const file = files[0];
+                                    if (file.type.startsWith('image/')) {
                                       event.preventDefault();
                                       try {
                                         const compressed = await compressImage(file);
@@ -1221,14 +1254,41 @@ export default function PromotionPlanModule({
                                       return false;
                                     }
                                   }
+                                },
+                                paste: async function (event) {
+                                  const clipboardData = event.clipboardData || window.clipboardData;
+                                  if (clipboardData && clipboardData.items) {
+                                    for (let i = 0; i < clipboardData.items.length; i++) {
+                                      const item = clipboardData.items[i];
+                                      if (item.type.indexOf('image') !== -1) {
+                                        const file = item.getAsFile();
+                                        if (file) {
+                                          event.preventDefault();
+                                          try {
+                                            const compressed = await compressImage(file);
+                                            this.selection.insertHTML(`<img src="${compressed}" style="max-width: 100%; height: auto;" />`);
+                                          } catch (err) {
+                                            console.error('Image compression failed:', err);
+                                          }
+                                          return false;
+                                        }
+                                      }
+                                    }
+                                  }
                                 }
                               }
-                            }
-                          }
-                        }}
-                        onBlur={(newContent) => setFormData(prev => ({ ...prev, docContent: newContent }))}
-                      />
+                            }}
+                            onBlur={(newContent) => setFormData(prev => ({ ...prev, docContent: newContent }))}
+                          />
+                        </div>
 
+                        {/* ── Live Footer (ท้ายกระดาษจริงเหมือนตอน Print) ── */}
+                        <div className="px-6 py-3 bg-purple-50/40 border-t border-purple-100 flex items-center justify-between text-[10px] text-gray-400 select-none rounded-b-lg font-medium">
+                          <span>NITAN Marketing Platform</span>
+                          <span>สร้างเมื่อ {new Date().toLocaleDateString('th-TH')}</span>
+                        </div>
+
+                      </div>
                     </div>
                   </div>
                 </div>
