@@ -1097,7 +1097,7 @@ export default function PromotionPlanModule({
 
                 </div>
 
-                {/* Right Side: Rich Text Editor with Live Header & Footer Preview */}
+                {/* Right Side: Rich Text Editor */}
                 <div className="flex-1 flex flex-col min-w-0">
                   <div className="flex-1 flex flex-col h-full min-h-[450px]">
                     <label className="block text-purple-950 font-bold mb-1 flex items-center justify-between shrink-0">
@@ -1105,145 +1105,79 @@ export default function PromotionPlanModule({
                         <FileText className="w-4 h-4 text-purple-700" />
                         <span>เนื้อหาเอกสารแผนแคมเปญ (Doc Format / Campaign Brief):</span>
                       </span>
-                      <span className="text-[10px] text-purple-700 font-medium hidden xl:inline">
-                        แสดงหัวกระดาษและท้ายกระดาษจริงเหมือนตอนพิมพ์
-                      </span>
+                      <span className="text-[10px] text-purple-700 font-medium hidden xl:inline">รองรับตารางจาก AI และ Notion</span>
                     </label>
-
-                    {/* Scrollable A4 Document Editor Container */}
-                    <div className="bg-[#dcdcdc] border border-[#E2D2EA] rounded-xl overflow-y-auto p-3 sm:p-5 flex flex-col items-center gap-2 shadow-inner flex-1 min-h-0">
-                      
-                      {/* A4 Paper Sheet Simulation */}
-                      <div className="w-full max-w-[760px] bg-white rounded-lg shadow-xl border border-gray-300 flex flex-col transition-all">
-                        
-                        {/* ── Live Header (หัวกระดาษจริงเหมือนตอน Print) ── */}
-                        <div className="p-6 pb-4 border-b-[2.5px] border-[#4f0074] select-none bg-white rounded-t-lg">
-                          <div className="flex items-center gap-2.5 mb-1 flex-wrap">
-                            <span className="bg-[#4f0074] text-white text-[10px] font-bold px-2.5 py-0.5 rounded font-mono">
-                              {formData.code || 'PROMO-CODE'}
-                            </span>
-                            <h2 className="text-base sm:text-lg font-bold text-[#1a0030] truncate">
-                              {formData.title || 'ชื่อแผนแคมเปญโปรโมท (ระบุในฟอร์มด้านซ้าย)'}
-                            </h2>
-                          </div>
-                          <p className="text-[11px] text-[#7e22ce] mb-3 font-medium">เอกสารแผนแคมเปญโปรโมท (Campaign Doc Brief)</p>
-
-                          {/* Meta Grid 6 ช่อง */}
-                          <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-                            <div className="bg-[#f5f0ff] border border-[#e2d2ea] rounded-lg p-2">
-                              <span className="text-[9px] text-[#7e22ce] font-bold block uppercase tracking-wider">ประเภทแผน</span>
-                              <span className="text-xs font-bold text-[#1a0030] truncate block">{formData.category || '-'}</span>
-                            </div>
-                            <div className="bg-[#f5f0ff] border border-[#e2d2ea] rounded-lg p-2">
-                              <span className="text-[9px] text-[#7e22ce] font-bold block uppercase tracking-wider">สินค้าเป้าหมาย</span>
-                              <span className="text-xs font-bold text-[#1a0030] truncate block">{formData.targetProductName || '-'}</span>
-                            </div>
-                            <div className="bg-[#f5f0ff] border border-[#e2d2ea] rounded-lg p-2">
-                              <span className="text-[9px] text-[#7e22ce] font-bold block uppercase tracking-wider">งบจัดสรร</span>
-                              <span className="text-xs font-bold text-[#1a0030] truncate block">
-                                {formData.budget ? `฿${Number(formData.budget).toLocaleString()}` : '-'}
-                              </span>
-                            </div>
-                            <div className="bg-[#f5f0ff] border border-[#e2d2ea] rounded-lg p-2">
-                              <span className="text-[9px] text-[#7e22ce] font-bold block uppercase tracking-wider">เป้าหมายยอดขาย</span>
-                              <span className="text-xs font-bold text-[#1a0030] truncate block">
-                                {formData.projectedSales ? `฿${Number(formData.projectedSales).toLocaleString()}` : '-'}
-                              </span>
-                            </div>
-                            <div className="bg-[#f5f0ff] border border-[#e2d2ea] rounded-lg p-2">
-                              <span className="text-[9px] text-[#7e22ce] font-bold block uppercase tracking-wider">ช่วงเวลา</span>
-                              <span className="text-xs font-bold text-[#1a0030] truncate block">
-                                {formData.startDate && formData.endDate ? `${formData.startDate} → ${formData.endDate}` : '-'}
-                              </span>
-                            </div>
-                            <div className="bg-[#f5f0ff] border border-[#e2d2ea] rounded-lg p-2">
-                              <span className="text-[9px] text-[#7e22ce] font-bold block uppercase tracking-wider">สาขา</span>
-                              <span className="text-xs font-bold text-[#1a0030] truncate block">{formData.targetBranch || '-'}</span>
-                            </div>
-                          </div>
-                        </div>
-
-                        {/* ── Editor Body (พิมพ์เนื้อหาเอกสาร) ── */}
-                        <div className="flex-1 min-h-[500px]">
-                          <JoditEditor
-                            value={formData.docContent}
-                            config={{
-                              readonly: false,
-                              height: 560,
-                              minHeight: 560,
-                              askBeforePasteHTML: false,
-                              askBeforePasteFromWord: false,
-                              defaultActionOnPaste: 'insert_as_html',
-                              placeholder: "ใส่เนื้อหาเอกสาร... พิมพ์หรือวางตาราง ข้อความ รูปภาพ ได้ที่นี่",
-                              buttons: [
-                                'source', '|',
-                                'bold', 'strikethrough', 'underline', 'italic', '|',
-                                'ul', 'ol', '|',
-                                'outdent', 'indent', '|',
-                                'font', 'fontsize', 'brush', 'paragraph', '|',
-                                'image', 'video', 'table', 'link', '|',
-                                'align', 'undo', 'redo', '|',
-                                'hr', 'eraser', 'fullsize'
-                              ],
-                              uploader: {
-                                insertImageAsBase64URI: true
-                              },
-                              showXPathInStatusbar: false,
-                              showWordsCounter: false,
-                              showCharsCounter: false,
-                              imageProcessor: {
-                                replaceDataURIToBlobIdInView: true
-                              },
-                              events: {
-                                afterInit: function (editor) {
-                                  try {
-                                    const body = editor.editor;
-                                    const workplace = editor.workplace;
-                                    if (body) {
-                                      Object.assign(body.style, {
-                                        fontFamily: "'Sarabun','Noto Sans Thai',sans-serif",
-                                        fontSize: '13px',
-                                        color: '#1a0030',
-                                        lineHeight: '1.8',
-                                        background: '#ffffff',
-                                        padding: '24px 32px 40px',
-                                        boxSizing: 'border-box',
-                                        minHeight: '480px',
-                                        /* Purple line every A4 height (1123px) = page break indicator */
-                                        backgroundImage:
-                                          'repeating-linear-gradient(to bottom, transparent 0px, transparent 1122px, #c084fc 1122px, #c084fc 1125px)',
-                                        backgroundAttachment: 'local',
-                                      });
+                    <div className="bg-white border border-[#E2D2EA] rounded-xl overflow-hidden shadow-inner text-purple-950 font-sans flex-1 flex flex-col min-h-0">
+                      <JoditEditor
+                        value={formData.docContent}
+                        config={{
+                          readonly: false,
+                          height: 680,
+                          minHeight: 680,
+                          askBeforePasteHTML: false,
+                          askBeforePasteFromWord: false,
+                          defaultActionOnPaste: 'insert_as_html',
+                          placeholder: "ใส่เอกสารบรีฟ... วางตารางจาก AI หรือ Word ได้เลย",
+                          buttons: [
+                            'source', '|',
+                            'bold', 'strikethrough', 'underline', 'italic', '|',
+                            'ul', 'ol', '|',
+                            'outdent', 'indent', '|',
+                            'font', 'fontsize', 'brush', 'paragraph', '|',
+                            'image', 'video', 'table', 'link', '|',
+                            'align', 'undo', 'redo', '|',
+                            'hr', 'eraser', 'fullsize'
+                          ],
+                          uploader: {
+                            insertImageAsBase64URI: true
+                          },
+                          showXPathInStatusbar: false,
+                          showWordsCounter: false,
+                          showCharsCounter: false,
+                          imageProcessor: {
+                            replaceDataURIToBlobIdInView: true
+                          },
+                          events: {
+                            beforeUpload: async function (files) {
+                              if (files && files.length > 0) {
+                                for (let i = 0; i < files.length; i++) {
+                                  const file = files[i];
+                                  if (file.type.startsWith('image/')) {
+                                    try {
+                                      const compressed = await compressImage(file);
+                                      this.selection.insertHTML(`<img src="${compressed}" style="max-width: 100%; height: auto;" />`);
+                                    } catch (err) {
+                                      console.error('File compression failed:', err);
                                     }
-                                    if (workplace) {
-                                      Object.assign(workplace.style, {
-                                        background: '#ffffff',
-                                        border: 'none',
-                                      });
-                                    }
-                                  } catch (e) { /* safe ignore */ }
-                                },
-                                beforeUpload: async function (files) {
-                                  if (files && files.length > 0) {
-                                    for (let i = 0; i < files.length; i++) {
-                                      const file = files[i];
-                                      if (file.type.startsWith('image/')) {
-                                        try {
-                                          const compressed = await compressImage(file);
-                                          this.selection.insertHTML(`<img src="${compressed}" style="max-width: 100%; height: auto;" />`);
-                                        } catch (err) {
-                                          console.error('File compression failed:', err);
-                                        }
-                                      }
-                                    }
-                                    return false;
                                   }
-                                },
-                                drop: async function (event) {
-                                  const files = event.dataTransfer?.files;
-                                  if (files && files.length > 0) {
-                                    const file = files[0];
-                                    if (file.type.startsWith('image/')) {
+                                }
+                                return false;
+                              }
+                            },
+                            drop: async function (event) {
+                              const files = event.dataTransfer?.files;
+                              if (files && files.length > 0) {
+                                const file = files[0];
+                                if (file.type.startsWith('image/')) {
+                                  event.preventDefault();
+                                  try {
+                                    const compressed = await compressImage(file);
+                                    this.selection.insertHTML(`<img src="${compressed}" style="max-width: 100%; height: auto;" />`);
+                                  } catch (err) {
+                                    console.error('Image compression failed:', err);
+                                  }
+                                  return false;
+                                }
+                              }
+                            },
+                            paste: async function (event) {
+                              const clipboardData = event.clipboardData || window.clipboardData;
+                              if (clipboardData && clipboardData.items) {
+                                for (let i = 0; i < clipboardData.items.length; i++) {
+                                  const item = clipboardData.items[i];
+                                  if (item.type.indexOf('image') !== -1) {
+                                    const file = item.getAsFile();
+                                    if (file) {
                                       event.preventDefault();
                                       try {
                                         const compressed = await compressImage(file);
@@ -1254,41 +1188,13 @@ export default function PromotionPlanModule({
                                       return false;
                                     }
                                   }
-                                },
-                                paste: async function (event) {
-                                  const clipboardData = event.clipboardData || window.clipboardData;
-                                  if (clipboardData && clipboardData.items) {
-                                    for (let i = 0; i < clipboardData.items.length; i++) {
-                                      const item = clipboardData.items[i];
-                                      if (item.type.indexOf('image') !== -1) {
-                                        const file = item.getAsFile();
-                                        if (file) {
-                                          event.preventDefault();
-                                          try {
-                                            const compressed = await compressImage(file);
-                                            this.selection.insertHTML(`<img src="${compressed}" style="max-width: 100%; height: auto;" />`);
-                                          } catch (err) {
-                                            console.error('Image compression failed:', err);
-                                          }
-                                          return false;
-                                        }
-                                      }
-                                    }
-                                  }
                                 }
                               }
-                            }}
-                            onBlur={(newContent) => setFormData(prev => ({ ...prev, docContent: newContent }))}
-                          />
-                        </div>
-
-                        {/* ── Live Footer (ท้ายกระดาษจริงเหมือนตอน Print) ── */}
-                        <div className="px-6 py-3 bg-purple-50/40 border-t border-purple-100 flex items-center justify-between text-[10px] text-gray-400 select-none rounded-b-lg font-medium">
-                          <span>NITAN Marketing Platform</span>
-                          <span>สร้างเมื่อ {new Date().toLocaleDateString('th-TH')}</span>
-                        </div>
-
-                      </div>
+                            }
+                          }
+                        }}
+                        onBlur={(newContent) => setFormData(prev => ({ ...prev, docContent: newContent }))}
+                      />
                     </div>
                   </div>
                 </div>
@@ -1784,20 +1690,20 @@ export function DocExportPreviewModal({ plan, onClose, isPublicStandalone = fals
   const S = {
     docBody: {
       fontFamily: "'Sarabun','Noto Sans Thai',sans-serif",
-      fontSize: 13,
+      fontSize: 12.5,
       color: '#1a0030',
-      lineHeight: 1.75,
+      lineHeight: 1.6,
       width: '100%',
     },
-    header: { borderBottom: '2.5px solid #4f0074', paddingBottom: 14, marginBottom: 18 },
-    headerTop: { display: 'flex', alignItems: 'center', gap: 10, marginBottom: 5 },
-    badge: { background: '#4f0074', color: '#fff', fontSize: 10, fontWeight: 700, padding: '2px 9px', borderRadius: 4, fontFamily: 'monospace' },
-    title: { fontSize: 18, fontWeight: 700, color: '#1a0030', margin: 0 },
-    subtitle: { fontSize: 11, color: '#7e22ce', marginTop: 3 },
-    metaGrid: { display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 8, marginBottom: 22 },
-    metaCell: { background: '#f5f0ff', border: '1px solid #e2d2ea', borderRadius: 7, padding: '8px 10px' },
-    metaLabel: { fontSize: 9, color: '#7e22ce', fontWeight: 700, display: 'block', marginBottom: 2, textTransform: 'uppercase', letterSpacing: '0.04em' },
-    metaValue: { fontSize: 12, fontWeight: 700, color: '#1a0030' },
+    header: { borderBottom: '2px solid #4f0074', paddingBottom: 10, marginBottom: 12 },
+    headerTop: { display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 },
+    badge: { background: '#4f0074', color: '#fff', fontSize: 10, fontWeight: 700, padding: '2px 8px', borderRadius: 4, fontFamily: 'monospace' },
+    title: { fontSize: 16, fontWeight: 700, color: '#1a0030', margin: 0 },
+    subtitle: { fontSize: 10.5, color: '#7e22ce', marginTop: 2 },
+    metaGrid: { display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 6, marginBottom: 14 },
+    metaCell: { background: '#f5f0ff', border: '1px solid #e2d2ea', borderRadius: 6, padding: '6px 8px' },
+    metaLabel: { fontSize: 8.5, color: '#7e22ce', fontWeight: 700, display: 'block', marginBottom: 1, textTransform: 'uppercase', letterSpacing: '0.04em' },
+    metaValue: { fontSize: 11.5, fontWeight: 700, color: '#1a0030' },
   };
 
   // ── Full content (rendered once, measured / captured) ──────
@@ -1824,11 +1730,11 @@ export function DocExportPreviewModal({ plan, onClose, isPublicStandalone = fals
 
       {/* Rich-text body */}
       <div
-        className="[&_h1]:text-[17px] [&_h1]:font-bold [&_h1]:mt-4 [&_h1]:mb-2 [&_h1]:text-[#1a0030]
-          [&_h2]:text-sm [&_h2]:font-bold [&_h2]:mt-3 [&_h2]:mb-1.5 [&_h2]:text-[#3b0764] [&_h2]:border-l-[3px] [&_h2]:border-violet-600 [&_h2]:pl-2
+        className="[&_h1]:text-[15px] [&_h1]:font-bold [&_h1]:mt-3 [&_h1]:mb-1.5 [&_h1]:text-[#1a0030]
+          [&_h2]:text-[13px] [&_h2]:font-bold [&_h2]:mt-2.5 [&_h2]:mb-1 [&_h2]:text-[#3b0764] [&_h2]:border-l-[3px] [&_h2]:border-violet-600 [&_h2]:pl-2
           [&_h3]:text-xs [&_h3]:font-bold [&_h3]:mt-2 [&_h3]:mb-1 [&_h3]:text-[#4f0074]
-          [&_p]:mb-2 [&_ul]:list-disc [&_ul]:ml-5 [&_ol]:list-decimal [&_ol]:ml-5 [&_li]:mb-1
-          [&_table]:w-full [&_table]:border-collapse [&_table]:text-xs [&_table]:my-3
+          [&_p]:mb-1.5 [&_ul]:list-disc [&_ul]:ml-4 [&_ol]:list-decimal [&_ol]:ml-4 [&_li]:mb-0.5
+          [&_table]:w-full [&_table]:border-collapse [&_table]:text-[11.5px] [&_table]:my-2
           [&_th]:bg-purple-100 [&_th]:border [&_th]:border-purple-300 [&_th]:p-1.5 [&_th]:font-bold [&_th]:text-left
           [&_td]:border [&_td]:border-purple-200 [&_td]:p-1.5 [&_td]:align-top
           [&_strong]:font-bold [&_em]:italic [&_img]:max-w-full [&_img]:h-auto"
@@ -1841,11 +1747,12 @@ export function DocExportPreviewModal({ plan, onClose, isPublicStandalone = fals
 
   // ── Measure content height after mount → set numPages ──────
   useEffect(() => {
-    const el = captureRef.current;
+    const el = measureRef.current;
     if (!el) return;
     const id = requestAnimationFrame(() => {
       const h = el.scrollHeight;
-      setNumPages(Math.max(1, Math.ceil(h / A4_H)));
+      const usableH = A4_H - PAD_H * 2;
+      setNumPages(Math.max(1, Math.ceil(h / usableH)));
     });
     return () => cancelAnimationFrame(id);
   }, [plan.docContent, plan.title]);
@@ -2204,45 +2111,81 @@ body{font-family:'Sarabun','Noto Sans Thai',sans-serif;font-size:13px;color:#1a0
         </div>
       )}
 
-      {/* ── Scrollable preview: Unified continuous A4 document sheet ── */}
-      <div className="flex-1 overflow-y-auto bg-[#b8b8b8] py-8 flex flex-col items-center gap-4 px-4">
-        <div
-          style={{
-            width: A4_W,
-            minHeight: A4_H,
-            padding: `${PAD_H}px ${PAD_LR}px`,
-            background: '#ffffff',
-            boxShadow: '0 6px 32px rgba(0,0,0,0.25)',
-            position: 'relative',
-            boxSizing: 'border-box',
-            borderRadius: 4,
-            backgroundImage:
-              'repeating-linear-gradient(to bottom, transparent 0px, transparent 1122px, #c084fc 1122px, #c084fc 1124px)',
-            backgroundAttachment: 'local',
-          }}
-        >
-          <DocContent />
+      {/* ── Scrollable preview: Separate A4 sheets (หน้า 1, หน้า 2, ...) ── */}
+      <div className="flex-1 overflow-y-auto bg-gray-300 py-8 flex flex-col items-center gap-6 px-4">
+        {Array.from({ length: numPages }, (_, pageIdx) => {
+          const usablePageH = A4_H - PAD_H * 2;
+          const offsetY = pageIdx * usablePageH;
+          return (
+            <div key={pageIdx} style={{ position: 'relative', flexShrink: 0 }}>
+              {/* Page number badge */}
+              <div style={{
+                position: 'absolute', top: -22, left: 0, right: 0,
+                display: 'flex', justifyContent: 'center', alignItems: 'center',
+              }}>
+                <span style={{
+                  background: '#7e22ce', color: '#fff',
+                  fontSize: 10, fontWeight: 700, padding: '2px 10px', borderRadius: 20,
+                  letterSpacing: '0.05em',
+                }}>
+                  หน้า {pageIdx + 1}
+                </span>
+              </div>
 
-          {/* Document Footer */}
-          <div
-            style={{
-              marginTop: 36,
-              paddingTop: 14,
-              borderTop: '1.5px solid #f3e8ff',
-              display: 'flex',
-              justifyContent: 'space-between',
-              fontSize: 10,
-              color: '#9ca3af',
-              fontWeight: 500,
-            }}
-          >
-            <span>NITAN Marketing Platform</span>
-            <span>สร้างเมื่อ {new Date().toLocaleDateString('th-TH')}</span>
-          </div>
-        </div>
+              {/* A4 white card */}
+              <div style={{
+                width: A4_W,
+                height: A4_H,
+                overflow: 'hidden',
+                background: '#fff',
+                boxShadow: '0 4px 28px rgba(0,0,0,0.18)',
+                position: 'relative',
+                flexShrink: 0,
+              }}>
+                {/* Content shifted for each page */}
+                <div style={{
+                  position: 'absolute',
+                  top: -offsetY + (pageIdx === 0 ? 0 : PAD_H),
+                  left: PAD_LR,
+                  right: PAD_LR,
+                  paddingTop: PAD_H,
+                }}>
+                  <DocContent />
+                </div>
+
+                {/* Page number footer */}
+                <div style={{
+                  position: 'absolute',
+                  bottom: 14,
+                  left: PAD_LR,
+                  right: PAD_LR,
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  fontSize: 10,
+                  color: '#9ca3af',
+                  borderTop: '1px solid #f3f0ff',
+                  paddingTop: 8,
+                  background: '#fff',
+                }}>
+                  <span>NITAN Marketing Platform</span>
+                  <span>หน้า {pageIdx + 1} / {numPages}</span>
+                </div>
+              </div>
+            </div>
+          );
+        })}
       </div>
 
-      {/* ── Hidden capture div (for high-res html2canvas capture) ── */}
+      {/* ── Hidden measurement div ── */}
+      <div style={{
+        position: 'fixed', top: 0, left: '-9999px',
+        width: A4_W - PAD_LR * 2,
+        pointerEvents: 'none', visibility: 'hidden', zIndex: -1,
+      }}>
+        <div ref={measureRef}><DocContent /></div>
+      </div>
+
+      {/* ── Hidden capture div ── */}
       <div style={{
         position: 'fixed', top: 0, left: '-9999px',
         width: A4_W,
@@ -2250,16 +2193,12 @@ body{font-family:'Sarabun','Noto Sans Thai',sans-serif;font-size:13px;color:#1a0
       }}>
         <div ref={captureRef} style={{ width: A4_W, padding: `${PAD_H}px ${PAD_LR}px`, background: '#fff', boxSizing: 'border-box' }}>
           <DocContent />
-          <div style={{ marginTop: 36, paddingTop: 14, borderTop: '1.5px solid #f3e8ff', display: 'flex', justifyContent: 'space-between', fontSize: 10, color: '#9ca3af', fontWeight: 500 }}>
-            <span>NITAN Marketing Platform</span>
-            <span>สร้างเมื่อ {new Date().toLocaleDateString('th-TH')}</span>
-          </div>
         </div>
       </div>
 
       {/* ── Bottom hint ── */}
       <div className="shrink-0 bg-purple-900/95 px-6 py-2 flex items-center justify-center text-[11px] text-purple-300">
-        <span>📄 ความยาวเอกสาร: {numPages} หน้า A4 &nbsp;·&nbsp; <strong className="text-white">พิมพ์</strong> และ <strong className="text-white">Export PDF</strong> จะจัดแบ่งหน้าให้อัตโนมัติ</span>
+        <span>📄 แต่ละกล่องขาว = 1 หน้า A4 &nbsp;·&nbsp; <strong className="text-white">Export PDF</strong> จะแบ่งเป็น {numPages} หน้าอัตโนมัติ</span>
       </div>
     </div>
   );
