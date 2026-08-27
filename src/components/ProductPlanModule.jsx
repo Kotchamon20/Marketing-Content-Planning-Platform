@@ -28,11 +28,15 @@ export default function ProductPlanModule({
   onAddCampaign,
   onEditCampaign,
   onDeleteCampaign,
-  onAddProduct
+  onAddProduct,
+  onEditProduct,
+  onDeleteProduct
 }) {
   const [showAddCampaignModal, setShowAddCampaignModal] = useState(false);
   const [showAddProductModal, setShowAddProductModal] = useState(false);
   const [editingCampaign, setEditingCampaign] = useState(null);
+  const [editingProduct, setEditingProduct] = useState(null);
+  const [showProductCatalog, setShowProductCatalog] = useState(false);
 
   // Form campaign state
   const [name, setName] = useState('');
@@ -129,6 +133,15 @@ export default function ProductPlanModule({
     }
   };
 
+  const openProductModal = (product = null) => {
+    setEditingProduct(product);
+    setNewProdName(product?.name || '');
+    setNewProdSku(product?.sku || '');
+    setNewProdPrice(product?.price || '');
+    setNewProdImage(product?.image_url || '');
+    setShowAddProductModal(true);
+  };
+
   const handleQuickAddProduct = (e) => {
     e?.preventDefault();
     if (!newProdName.trim()) {
@@ -136,26 +149,35 @@ export default function ProductPlanModule({
       return;
     }
 
-    const createdProduct = {
-      id: `prod-${Date.now()}`,
-      team_id: 'team-1',
-      name: newProdName.trim(),
-      sku: newProdSku.trim() || `SKU-${Math.floor(1000 + Math.random() * 9000)}`,
-      price: Number(newProdPrice) || 0,
-      image_url: newProdImage.trim() || 'https://images.unsplash.com/photo-1522335789203-aabd1fc54bc9?w=300&auto=format&fit=crop&q=60'
-    };
-
-    if (onAddProduct) {
-      onAddProduct(createdProduct);
+    if (editingProduct) {
+      // Edit existing product
+      const updated = {
+        ...editingProduct,
+        name: newProdName.trim(),
+        sku: newProdSku.trim() || editingProduct.sku,
+        price: Number(newProdPrice) || editingProduct.price,
+        image_url: newProdImage.trim() || editingProduct.image_url
+      };
+      if (onEditProduct) onEditProduct(updated);
+    } else {
+      // Create new product
+      const createdProduct = {
+        id: `prod-${Date.now()}`,
+        team_id: 'team-1',
+        name: newProdName.trim(),
+        sku: newProdSku.trim() || `SKU-${Math.floor(1000 + Math.random() * 9000)}`,
+        price: Number(newProdPrice) || 0,
+        image_url: newProdImage.trim() || 'https://images.unsplash.com/photo-1522335789203-aabd1fc54bc9?w=300&auto=format&fit=crop&q=60'
+      };
+      if (onAddProduct) onAddProduct(createdProduct);
+      setProductId(createdProduct.id);
     }
 
-    // Auto-select this newly created product
-    setProductId(createdProduct.id);
     setNewProdName('');
     setNewProdSku('');
     setNewProdPrice('');
     setNewProdImage('');
-    setShowInlineAddProduct(false);
+    setEditingProduct(null);
     setShowAddProductModal(false);
   };
 
@@ -267,20 +289,24 @@ export default function ProductPlanModule({
               <Package className="w-5 h-5" />
             </span>
             <div>
-              <h2 className="text-xl font-black text-rose-950">Module 3: Product Plan & Campaign Readiness</h2>
+              <h2 className="text-xl font-black text-rose-950">Module 3: Product Plan &amp; Campaign Readiness</h2>
               <p className="text-xs text-rose-800 font-bold">ผูกแคมเปญกับสินค้า ตรวจสอบสถานะการเตรียมงาน (FR-3.2) และดูยอดขาย ROI (FR-3.4)</p>
             </div>
           </div>
         </div>
 
         <div className="flex items-center gap-2.5 flex-wrap self-start md:self-auto">
-          {/* Button: Add Product */}
+          {/* Button: Manage Products */}
           <button
-            onClick={() => setShowAddProductModal(true)}
-            className="px-4 py-2.5 bg-white hover:bg-pink-50 text-rose-900 font-bold rounded-xl text-xs transition border border-pink-200 shadow-xs flex items-center gap-1.5 cursor-pointer"
+            onClick={() => setShowProductCatalog(!showProductCatalog)}
+            className={`px-4 py-2.5 font-bold rounded-xl text-xs transition border shadow-xs flex items-center gap-1.5 cursor-pointer ${
+              showProductCatalog
+                ? 'bg-rose-100 hover:bg-rose-200 text-rose-900 border-rose-200'
+                : 'bg-white hover:bg-pink-50 text-rose-900 border-pink-200'
+            }`}
           >
             <Tag className="w-3.5 h-3.5 text-pink-600" />
-            <span>+ เพิ่มสินค้าใหม่</span>
+            <span>จัดการสินค้า ({allAvailableProducts.length})</span>
           </button>
 
           {/* Button: Create Campaign */}
@@ -293,6 +319,65 @@ export default function ProductPlanModule({
           </button>
         </div>
       </div>
+
+      {/* Product Catalog Panel */}
+      {showProductCatalog && (
+        <div className="glass-panel p-5 animate-in fade-in duration-200">
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="text-sm font-black text-rose-950 flex items-center gap-2">
+              <Tag className="w-4 h-4 text-pink-600" />
+              รายการสินค้าทั้งหมด ({allAvailableProducts.length} รายการ)
+            </h3>
+            <button
+              onClick={() => openProductModal()}
+              className="flex items-center gap-1.5 px-3.5 py-1.5 bg-pink-600 hover:bg-pink-700 text-white rounded-xl text-xs font-bold transition cursor-pointer shadow-sm"
+            >
+              <Plus className="w-3.5 h-3.5" />
+              + เพิ่มสินค้าใหม่
+            </button>
+          </div>
+
+          {allAvailableProducts.length === 0 ? (
+            <p className="text-xs text-rose-700 font-bold text-center py-4">ยังไม่มีสินค้าในระบบ</p>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
+              {allAvailableProducts.map(prod => (
+                <div key={prod.id} className="bg-white/80 border border-pink-200 rounded-2xl p-3 flex items-center gap-3 hover:border-pink-300 transition group">
+                  <img
+                    src={prod.image_url || 'https://images.unsplash.com/photo-1522335789203-aabd1fc54bc9?w=300&auto=format&fit=crop&q=60'}
+                    alt={prod.name}
+                    className="w-10 h-10 rounded-xl object-cover border border-pink-200 shrink-0"
+                  />
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs font-black text-rose-950 truncate">{prod.name}</p>
+                    <p className="text-[10px] text-rose-700 font-bold">{prod.sku} · ฿{Number(prod.price).toLocaleString()}</p>
+                  </div>
+                  <div className="flex flex-col gap-1 opacity-0 group-hover:opacity-100 transition shrink-0">
+                    <button
+                      onClick={() => openProductModal(prod)}
+                      className="p-1.5 bg-pink-100 hover:bg-pink-200 rounded-lg cursor-pointer"
+                      title="แก้ไขสินค้า"
+                    >
+                      <Edit2 className="w-3 h-3 text-pink-700" />
+                    </button>
+                    <button
+                      onClick={() => {
+                        if (window.confirm(`ลบสินค้า "${prod.name}" ออกจากระบบ?`)) {
+                          if (onDeleteProduct) onDeleteProduct(prod.id);
+                        }
+                      }}
+                      className="p-1.5 bg-rose-50 hover:bg-rose-100 rounded-lg cursor-pointer"
+                      title="ลบสินค้า"
+                    >
+                      <Trash2 className="w-3 h-3 text-rose-500" />
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Campaign List Grid — 2 columns */}
       <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
@@ -660,18 +745,21 @@ export default function ProductPlanModule({
         </div>
       )}
 
-      {/* MODAL 2: STANDALONE ADD PRODUCT MODAL */}
+      {/* MODAL 2: ADD / EDIT PRODUCT MODAL */}
       {showAddProductModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-rose-950/40 backdrop-blur-sm p-4 animate-in fade-in">
           <div className="w-full max-w-md bg-white border border-pink-200 rounded-3xl p-6 shadow-2xl space-y-4">
             <div className="flex items-center justify-between">
               <h3 className="text-lg font-black text-rose-950 flex items-center gap-2">
                 <Tag className="w-5 h-5 text-pink-600" />
-                เพิ่มสินค้าใหม่เข้าสู่ระบบ
+                {editingProduct ? 'แก้ไขข้อมูลสินค้า' : 'เพิ่มสินค้าใหม่เข้าสู่ระบบ'}
               </h3>
               <button
                 type="button"
-                onClick={() => setShowAddProductModal(false)}
+                onClick={() => {
+                  setShowAddProductModal(false);
+                  setEditingProduct(null);
+                }}
                 className="text-gray-400 hover:text-gray-600 p-1 cursor-pointer"
               >
                 <X className="w-5 h-5" />
@@ -728,7 +816,10 @@ export default function ProductPlanModule({
               <div className="flex justify-end gap-2 pt-3 border-t border-pink-100">
                 <button
                   type="button"
-                  onClick={() => setShowAddProductModal(false)}
+                  onClick={() => {
+                    setShowAddProductModal(false);
+                    setEditingProduct(null);
+                  }}
                   className="px-4 py-2 bg-pink-100 text-rose-800 rounded-xl hover:bg-pink-200 font-bold cursor-pointer"
                 >
                   ยกเลิก
@@ -737,7 +828,7 @@ export default function ProductPlanModule({
                   type="submit"
                   className="px-5 py-2 bg-pink-600 hover:bg-pink-700 text-white font-bold rounded-xl transition cursor-pointer shadow-sm"
                 >
-                  บันทึกสินค้า
+                  {editingProduct ? 'บันทึกการแก้ไขสินค้า' : 'บันทึกสินค้า'}
                 </button>
               </div>
             </form>

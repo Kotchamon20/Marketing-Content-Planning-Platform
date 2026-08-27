@@ -25,6 +25,7 @@ import {
   deleteCampaignFromSupabase,
   upsertMarketingPlanToSupabase,
   upsertProductToSupabase,
+  deleteProductFromSupabase,
   fetchContentGroupsFromSupabase,
   upsertContentGroupToSupabase,
   deleteContentGroupFromSupabase,
@@ -448,6 +449,18 @@ export default function App() {
     showSaveToast(`เพิ่มสินค้า "${newProduct.name}" เข้าสู่ระบบเรียบร้อยแล้ว!`);
   };
 
+  const handleEditProduct = (updatedProduct) => {
+    setProducts(prev => prev.map(p => p.id === updatedProduct.id ? { ...p, ...updatedProduct } : p));
+    upsertProductToSupabase(updatedProduct);
+    showSaveToast(`แก้ไขสินค้า "${updatedProduct.name}" เรียบร้อยแล้ว!`);
+  };
+
+  const handleDeleteProduct = (productId) => {
+    setProducts(prev => prev.filter(p => p.id !== productId));
+    deleteProductFromSupabase(productId);
+    showSaveToast('ลบสินค้าออกจากระบบเรียบร้อยแล้ว!');
+  };
+
   // Notification Engine Triggering — always inject team_id so currentTeamLogs filter passes
   const handleTriggerNotification = (logEntry) => {
     const enrichedLog = {
@@ -573,6 +586,8 @@ export default function App() {
               onEditCampaign={handleEditCampaign}
               onDeleteCampaign={handleDeleteCampaign}
               onAddProduct={handleAddProduct}
+              onEditProduct={handleEditProduct}
+              onDeleteProduct={handleDeleteProduct}
             />
           )}
 
