@@ -483,12 +483,6 @@ export default function App() {
           </div>
           <h2 className="text-xl font-bold text-white">ไม่พบเอกสาร</h2>
           <p className="text-sm text-slate-400 max-w-md">{publicDocError || 'ไม่พบเอกสารที่ระบุ หรือเอกสารอาจถูกลบไปแล้ว'}</p>
-          <a
-            href={window.location.pathname}
-            className="mt-4 px-5 py-2.5 bg-purple-700 hover:bg-purple-600 text-white font-bold text-sm rounded-xl transition cursor-pointer"
-          >
-            🏠 เข้าสู่ระบบหน้าหลัก
-          </a>
         </div>
       );
     }

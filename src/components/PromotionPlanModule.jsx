@@ -2104,15 +2104,8 @@ body{font-family:'Sarabun','Noto Sans Thai',sans-serif;font-size:13px;color:#1a0
             </button>
           )}
 
-          {/* Close or Home Button */}
-          {isPublicStandalone ? (
-            <a
-              href={window.location.pathname}
-              className="flex items-center gap-1 px-3 py-1.5 bg-purple-800 hover:bg-purple-700 text-white text-xs font-bold rounded-lg transition cursor-pointer"
-            >
-              <span>🏠 เข้าสู่ระบบ</span>
-            </a>
-          ) : (
+          {/* Close Button (Only in modal mode) */}
+          {!isPublicStandalone && (
             <button onClick={onClose}
               className="flex items-center gap-1 px-3 py-1.5 bg-white/10 hover:bg-white/20 text-white text-xs font-bold rounded-lg transition cursor-pointer">
               <X className="w-3.5 h-3.5"/><span>ปิด</span>
