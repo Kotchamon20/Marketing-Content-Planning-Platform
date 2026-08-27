@@ -294,8 +294,8 @@ export default function ProductPlanModule({
         </div>
       </div>
 
-      {/* Campaign List Grid */}
-      <div className="space-y-4">
+      {/* Campaign List Grid — 2 columns */}
+      <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
         {campaigns.length === 0 ? (
           <div className="glass-panel p-8 text-center text-rose-800 font-bold text-sm">
             <Package className="w-10 h-10 text-pink-400 mx-auto mb-2 opacity-60" />
@@ -310,127 +310,99 @@ export default function ProductPlanModule({
             return (
               <div
                 key={camp.id}
-                className="glass-panel p-5 hover:border-pink-300 transition-all duration-300"
+                className="glass-panel p-5 hover:border-pink-300 transition-all duration-300 flex flex-col"
               >
-                {/* Main row: Product info + Checklist + ROI */}
-                <div className="flex flex-col lg:flex-row lg:items-stretch justify-between gap-4">
-
-                  {/* Left: Product & Campaign Meta Info */}
-                  <div className="flex items-start gap-4 flex-1 min-w-0">
-                    <img
-                      src={product.image_url || 'https://images.unsplash.com/photo-1522335789203-aabd1fc54bc9?w=300&auto=format&fit=crop&q=60'}
-                      alt={product.name}
-                      className="w-14 h-14 rounded-2xl object-cover border border-pink-200 shadow-sm flex-shrink-0"
-                    />
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 flex-wrap mb-1">
-                        <span className="text-[10px] uppercase font-bold text-rose-800 bg-pink-100 px-2.5 py-0.5 rounded-full border border-pink-200">
-                          {product.sku || 'SKU'}
-                        </span>
-                        {getStageBadge(camp.stage_status)}
-                      </div>
-                      <h3 className="font-extrabold text-rose-950 text-base leading-tight">{camp.name}</h3>
-                      <p className="text-xs text-rose-900 mt-1 font-bold">
-                        สินค้า: <span className="text-rose-950 font-black">{product.name}</span> (฿{Number(product.price).toLocaleString()})
-                      </p>
-                      <p className="text-xs text-rose-800 mt-0.5 font-bold">
-                        📅 {camp.start_date} — {camp.end_date}
-                      </p>
+                {/* Top: Product image + info */}
+                <div className="flex items-start gap-3 mb-4">
+                  <img
+                    src={product.image_url || 'https://images.unsplash.com/photo-1522335789203-aabd1fc54bc9?w=300&auto=format&fit=crop&q=60'}
+                    alt={product.name}
+                    className="w-12 h-12 rounded-xl object-cover border border-pink-200 shadow-sm flex-shrink-0"
+                  />
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-1.5 flex-wrap mb-1">
+                      <span className="text-[9px] uppercase font-bold text-rose-800 bg-pink-100 px-2 py-0.5 rounded-full border border-pink-200">
+                        {product.sku || 'SKU'}
+                      </span>
+                      {getStageBadge(camp.stage_status)}
                     </div>
+                    <h3 className="font-extrabold text-rose-950 text-sm leading-tight truncate">{camp.name}</h3>
+                    <p className="text-[11px] text-rose-900 mt-0.5 font-bold truncate">
+                      📦 {product.name} · ฿{Number(product.price).toLocaleString()}
+                    </p>
+                    <p className="text-[11px] text-rose-700 mt-0.5 font-semibold">
+                      📅 {camp.start_date} — {camp.end_date}
+                    </p>
                   </div>
+                </div>
 
-                  {/* Stage Checklist Controls (FR-3.2) */}
-                  <div className="p-4 rounded-2xl bg-white border border-pink-200 space-y-2 lg:w-80 shadow-sm shrink-0">
-                    <div className="text-xs font-black text-rose-950 border-b border-pink-100 pb-1.5 flex items-center justify-between">
-                      <span>ติดตามสถานะเตรียมงาน (FR-3.2)</span>
-                      <span className="text-[10px] text-rose-700 font-bold">คลิกทำเครื่องหมาย</span>
-                    </div>
-
-                    <div className="space-y-1.5 text-xs">
-                      {/* Item 1: Image Ready */}
-                      <button
-                        onClick={() => onToggleStageChecklist(camp.id, 'image_ready')}
-                        className={`w-full p-2.5 rounded-xl text-left flex items-center justify-between transition cursor-pointer font-bold ${camp.image_ready ? 'bg-emerald-100 text-emerald-950 border border-emerald-300' : 'bg-pink-50/70 text-rose-900 hover:bg-pink-100'
-                          }`}
-                      >
-                        <span className="flex items-center gap-2 font-bold">
-                          <ImageIcon className="w-4 h-4 text-emerald-600" />
-                          <span>1. ภาพและอาร์ตเวิร์กพร้อม (Image Ready)</span>
-                        </span>
-                        {camp.image_ready ? <CheckSquare className="w-4 h-4 text-emerald-600" /> : <Square className="w-4 h-4 text-pink-400" />}
-                      </button>
-
-                      {/* Item 2: Scheduled */}
-                      <button
-                        onClick={() => onToggleStageChecklist(camp.id, 'scheduled')}
-                        className={`w-full p-2.5 rounded-xl text-left flex items-center justify-between transition cursor-pointer font-bold ${camp.scheduled ? 'bg-sky-100 text-sky-950 border border-sky-300' : 'bg-pink-50/70 text-rose-900 hover:bg-pink-100'
-                          }`}
-                      >
-                        <span className="flex items-center gap-2 font-bold">
-                          <Clock className="w-4 h-4 text-sky-600" />
-                          <span>2. ตั้งเวลาโพสต์ในระบบแล้ว (Scheduled)</span>
-                        </span>
-                        {camp.scheduled ? <CheckSquare className="w-4 h-4 text-sky-600" /> : <Square className="w-4 h-4 text-pink-400" />}
-                      </button>
-
-                      {/* Item 3: Posted */}
-                      <button
-                        onClick={() => onToggleStageChecklist(camp.id, 'posted')}
-                        className={`w-full p-2.5 rounded-xl text-left flex items-center justify-between transition cursor-pointer font-bold ${camp.posted ? 'bg-purple-100 text-purple-950 border border-purple-300' : 'bg-pink-50/70 text-rose-900 hover:bg-pink-100'
-                          }`}
-                      >
-                        <span className="flex items-center gap-2 font-bold">
-                          <Send className="w-4 h-4 text-purple-600" />
-                          <span>3. โพสต์จริงเรียบร้อยแล้ว (Posted)</span>
-                        </span>
-                        {camp.posted ? <CheckSquare className="w-4 h-4 text-purple-600" /> : <Square className="w-4 h-4 text-pink-400" />}
-                      </button>
-
-                    </div>
+                {/* Middle: Stage Checklist */}
+                <div className="rounded-2xl bg-white/80 border border-pink-200 p-3 space-y-1.5 mb-3">
+                  <div className="text-[10px] font-black text-rose-800 pb-1 border-b border-pink-100 flex justify-between">
+                    <span>สถานะเตรียมงาน (FR-3.2)</span>
+                    <span className="text-rose-500 font-bold">คลิกทำเครื่องหมาย</span>
                   </div>
+                  <button
+                    onClick={() => onToggleStageChecklist(camp.id, 'image_ready')}
+                    className={`w-full px-2.5 py-2 rounded-xl text-left flex items-center justify-between transition cursor-pointer text-[11px] font-bold ${camp.image_ready ? 'bg-emerald-100 text-emerald-900 border border-emerald-300' : 'bg-pink-50/70 text-rose-900 hover:bg-pink-100'}`}
+                  >
+                    <span className="flex items-center gap-1.5">
+                      <ImageIcon className="w-3.5 h-3.5 text-emerald-600" />
+                      <span>1. ภาพพร้อม (Image Ready)</span>
+                    </span>
+                    {camp.image_ready ? <CheckSquare className="w-3.5 h-3.5 text-emerald-600" /> : <Square className="w-3.5 h-3.5 text-pink-400" />}
+                  </button>
+                  <button
+                    onClick={() => onToggleStageChecklist(camp.id, 'scheduled')}
+                    className={`w-full px-2.5 py-2 rounded-xl text-left flex items-center justify-between transition cursor-pointer text-[11px] font-bold ${camp.scheduled ? 'bg-sky-100 text-sky-900 border border-sky-300' : 'bg-pink-50/70 text-rose-900 hover:bg-pink-100'}`}
+                  >
+                    <span className="flex items-center gap-1.5">
+                      <Clock className="w-3.5 h-3.5 text-sky-600" />
+                      <span>2. ตั้งเวลาโพสต์แล้ว (Scheduled)</span>
+                    </span>
+                    {camp.scheduled ? <CheckSquare className="w-3.5 h-3.5 text-sky-600" /> : <Square className="w-3.5 h-3.5 text-pink-400" />}
+                  </button>
+                  <button
+                    onClick={() => onToggleStageChecklist(camp.id, 'posted')}
+                    className={`w-full px-2.5 py-2 rounded-xl text-left flex items-center justify-between transition cursor-pointer text-[11px] font-bold ${camp.posted ? 'bg-purple-100 text-purple-900 border border-purple-300' : 'bg-pink-50/70 text-rose-900 hover:bg-pink-100'}`}
+                  >
+                    <span className="flex items-center gap-1.5">
+                      <Send className="w-3.5 h-3.5 text-purple-600" />
+                      <span>3. โพสต์จริงแล้ว (Posted)</span>
+                    </span>
+                    {camp.posted ? <CheckSquare className="w-3.5 h-3.5 text-purple-600" /> : <Square className="w-3.5 h-3.5 text-pink-400" />}
+                  </button>
+                </div>
 
-                  {/* ROI & Performance Stats (FR-3.4) */}
-                  <div className="p-4 rounded-2xl bg-white border border-pink-200 flex flex-col justify-center space-y-2 min-w-[176px] shrink-0 shadow-sm">
-                    <div className="text-xs font-black text-rose-900 flex items-center justify-between">
-                      <span>สรุปผล ROI (FR-3.4)</span>
-                      <TrendingUp className="w-4 h-4 text-emerald-600" />
-                    </div>
-
-                    <div>
-                      <div className="text-xl font-black text-rose-950">฿{Number(camp.actual_revenue).toLocaleString()}</div>
-                      <div className="text-[11px] text-rose-800 font-bold mt-0.5">
-                        เป้าหมาย: ฿{Number(camp.revenue_target).toLocaleString()}
-                      </div>
-                    </div>
-
-                    <div className="pt-2 border-t border-pink-100 flex items-center justify-between text-xs font-bold">
-                      <span className="text-rose-800">งบแคมเปญ:</span>
-                      <span className="font-black text-rose-950">฿{Number(camp.budget).toLocaleString()}</span>
-                    </div>
-
-                    <div className="flex items-center justify-between text-xs">
-                      <span className="text-rose-800 font-bold">ผลตอบแทน:</span>
-                      <span className="font-black text-emerald-600">+{roi}% ROI</span>
-                    </div>
+                {/* Bottom: ROI Stats */}
+                <div className="rounded-2xl bg-white/80 border border-pink-200 p-3 grid grid-cols-2 gap-2 text-xs mb-3">
+                  <div className="flex flex-col">
+                    <span className="text-[10px] text-rose-700 font-bold">ยอดขายจริง</span>
+                    <span className="font-black text-rose-950 text-base">฿{Number(camp.actual_revenue).toLocaleString()}</span>
+                    <span className="text-[10px] text-rose-600">เป้า: ฿{Number(camp.revenue_target).toLocaleString()}</span>
                   </div>
-
+                  <div className="flex flex-col items-end justify-center">
+                    <span className="text-[10px] text-rose-700 font-bold">งบแคมเปญ</span>
+                    <span className="font-black text-rose-950">฿{Number(camp.budget).toLocaleString()}</span>
+                    <span className="font-extrabold text-emerald-600 text-sm mt-0.5">+{roi}% ROI</span>
+                  </div>
                 </div>
 
                 {/* Footer Action Bar */}
-                <div className="mt-4 pt-3 border-t border-pink-100/80 flex items-center justify-end gap-2">
+                <div className="mt-auto pt-3 border-t border-pink-100/80 flex items-center justify-end gap-2">
                   <button
                     onClick={() => openEditModal(camp)}
-                    className="flex items-center gap-1.5 px-4 py-1.5 bg-pink-50 hover:bg-pink-100 text-rose-800 border border-pink-200 rounded-xl text-xs font-bold transition cursor-pointer"
+                    className="flex items-center gap-1.5 px-3.5 py-1.5 bg-pink-50 hover:bg-pink-100 text-rose-800 border border-pink-200 rounded-xl text-[11px] font-bold transition cursor-pointer"
                   >
                     <Edit2 className="w-3.5 h-3.5 text-pink-600" />
-                    แก้ไขแคมเปญ
+                    แก้ไข
                   </button>
                   <button
                     onClick={() => handleDelete(camp.id, camp.name)}
-                    className="flex items-center gap-1.5 px-4 py-1.5 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 rounded-xl text-xs font-bold transition cursor-pointer"
+                    className="flex items-center gap-1.5 px-3.5 py-1.5 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 rounded-xl text-[11px] font-bold transition cursor-pointer"
                   >
                     <Trash2 className="w-3.5 h-3.5 text-rose-500" />
-                    ลบแคมเปญ
+                    ลบ
                   </button>
                 </div>
               </div>
