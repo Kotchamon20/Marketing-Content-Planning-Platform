@@ -251,6 +251,7 @@ export async function upsertCampaignToSupabase(campaign) {
     const payload = {
       name: campaign.name || campaign.title || 'แคมเปญใหม่',
       description: campaign.description || '',
+      product_id: isUuid(campaign.product_id) ? campaign.product_id : undefined,
       start_date: campaign.start_date || new Date().toISOString().split('T')[0],
       end_date: campaign.end_date || new Date(Date.now() + 86400000 * 30).toISOString().split('T')[0],
       budget: Number(campaign.budget) || 0,
@@ -260,6 +261,10 @@ export async function upsertCampaignToSupabase(campaign) {
       scheduled: Boolean(campaign.scheduled),
       posted: Boolean(campaign.posted)
     };
+
+    if (isUuid(campaign.id)) {
+      payload.id = campaign.id;
+    }
 
     const { data, error } = await supabase
       .from('campaigns')

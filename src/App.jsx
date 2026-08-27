@@ -22,6 +22,7 @@ import {
   deleteContentItemFromSupabase,
   deleteAllContentItemsFromSupabase,
   upsertCampaignToSupabase,
+  deleteCampaignFromSupabase,
   upsertMarketingPlanToSupabase,
   upsertProductToSupabase,
   fetchContentGroupsFromSupabase,
@@ -429,6 +430,24 @@ export default function App() {
     showSaveToast('บันทึกเพิ่มแคมเปญสินค้าใหม่ลง DB เรียบร้อยแล้ว!');
   };
 
+  const handleEditCampaign = (updatedCampaign) => {
+    setCampaigns(prev => prev.map(c => c.id === updatedCampaign.id ? { ...c, ...updatedCampaign } : c));
+    upsertCampaignToSupabase(updatedCampaign);
+    showSaveToast(`บันทึกการแก้ไขแคมเปญ "${updatedCampaign.name}" เรียบร้อยแล้ว!`);
+  };
+
+  const handleDeleteCampaign = (campaignId) => {
+    setCampaigns(prev => prev.filter(c => c.id !== campaignId));
+    deleteCampaignFromSupabase(campaignId);
+    showSaveToast('ลบแคมเปญสินค้าเรียบร้อยแล้ว!');
+  };
+
+  const handleAddProduct = (newProduct) => {
+    setProducts(prev => [newProduct, ...prev]);
+    upsertProductToSupabase(newProduct);
+    showSaveToast(`เพิ่มสินค้า "${newProduct.name}" เข้าสู่ระบบเรียบร้อยแล้ว!`);
+  };
+
   // Notification Engine Triggering — always inject team_id so currentTeamLogs filter passes
   const handleTriggerNotification = (logEntry) => {
     const enrichedLog = {
@@ -551,6 +570,9 @@ export default function App() {
               products={currentTeamProducts}
               onToggleStageChecklist={handleToggleStageChecklist}
               onAddCampaign={handleAddCampaign}
+              onEditCampaign={handleEditCampaign}
+              onDeleteCampaign={handleDeleteCampaign}
+              onAddProduct={handleAddProduct}
             />
           )}
 
