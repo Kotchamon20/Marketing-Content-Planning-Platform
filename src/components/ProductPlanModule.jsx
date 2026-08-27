@@ -533,7 +533,7 @@ export default function ProductPlanModule({
               <div>
                 <div className="flex items-center justify-between mb-1.5">
                   <label className="block text-rose-800 font-extrabold text-xs">
-                    เลือกสินค้าที่เกี่ยวข้อง *
+                    เลือกสินค้าที่เกี่ยวข้อง <span className="font-normal text-rose-500">(ไม่บังคับ)</span>
                   </label>
                   <button
                     type="button"
@@ -560,7 +560,7 @@ export default function ProductPlanModule({
                   }}
                   className="w-full bg-pink-50/60 border border-pink-200 text-rose-950 p-2.5 rounded-xl font-bold cursor-pointer text-xs focus:ring-2 focus:ring-pink-300 focus:outline-none"
                 >
-                  <option value="" disabled>-- กรุณาเลือกสินค้าที่เคยสร้างแล้ว --</option>
+                  <option value="">-- ไม่เลือกสินค้า (ข้ามขั้นตอนนี้) --</option>
                   {allAvailableProducts.map(prod => (
                     <option key={prod.id} value={prod.id}>
                       📦 {prod.name} (SKU: {prod.sku || 'N/A'}) - ฿{Number(prod.price || 0).toLocaleString()}
