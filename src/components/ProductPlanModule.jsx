@@ -92,17 +92,11 @@ export default function ProductPlanModule({
     return Array.from(map.values());
   }, [products]);
 
-  // Keep productId in sync if products change and nothing is selected
-  React.useEffect(() => {
-    if (!productId && allAvailableProducts.length > 0) {
-      setProductId(allAvailableProducts[0].id);
-    }
-  }, [allAvailableProducts, productId]);
 
   const openCreateModal = () => {
     setEditingCampaign(null);
     setName('');
-    setProductId(allAvailableProducts[0]?.id || '');
+    setProductId('');
     setStartDate(new Date().toISOString().split('T')[0]);
     setEndDate(new Date(Date.now() + 86400000 * 14).toISOString().split('T')[0]);
     setBudget(50000);
@@ -115,7 +109,7 @@ export default function ProductPlanModule({
   const openEditModal = (camp) => {
     setEditingCampaign(camp);
     setName(camp.name || '');
-    setProductId(camp.product_id || allAvailableProducts[0]?.id || '');
+    setProductId(camp.product_id || '');
     setStartDate(camp.start_date || new Date().toISOString().split('T')[0]);
     setEndDate(camp.end_date || new Date(Date.now() + 86400000 * 14).toISOString().split('T')[0]);
     setBudget(camp.budget ?? 50000);
@@ -389,7 +383,7 @@ export default function ProductPlanModule({
           </div>
         ) : (
           campaigns.map((camp) => {
-            const product = allAvailableProducts.find(p => p.id === camp.product_id) || allAvailableProducts[0] || { name: 'สินค้าทั่วไป', sku: 'SKU-001', price: 0, image_url: 'https://images.unsplash.com/photo-1522335789203-aabd1fc54bc9?w=300&auto=format&fit=crop&q=60' };
+            const product = camp.product_id ? (allAvailableProducts.find(p => p.id === camp.product_id) || null) : null;
             const roi = camp.budget > 0 ? (((camp.actual_revenue - camp.budget) / camp.budget) * 100).toFixed(0) : 0;
 
             return (
@@ -397,24 +391,30 @@ export default function ProductPlanModule({
                 key={camp.id}
                 className="glass-panel p-5 hover:border-pink-300 transition-all duration-300 flex flex-col"
               >
-                {/* Top: Product image + info */}
+                {/* Top: Campaign info + optional product */}
                 <div className="flex items-start gap-3 mb-4">
-                  <img
-                    src={product.image_url || 'https://images.unsplash.com/photo-1522335789203-aabd1fc54bc9?w=300&auto=format&fit=crop&q=60'}
-                    alt={product.name}
-                    className="w-12 h-12 rounded-xl object-cover border border-pink-200 shadow-sm flex-shrink-0"
-                  />
+                  {product && (
+                    <img
+                      src={product.image_url || 'https://images.unsplash.com/photo-1522335789203-aabd1fc54bc9?w=300&auto=format&fit=crop&q=60'}
+                      alt={product.name}
+                      className="w-12 h-12 rounded-xl object-cover border border-pink-200 shadow-sm flex-shrink-0"
+                    />
+                  )}
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-1.5 flex-wrap mb-1">
-                      <span className="text-[9px] uppercase font-bold text-rose-800 bg-pink-100 px-2 py-0.5 rounded-full border border-pink-200">
-                        {product.sku || 'SKU'}
-                      </span>
+                      {product && (
+                        <span className="text-[9px] uppercase font-bold text-rose-800 bg-pink-100 px-2 py-0.5 rounded-full border border-pink-200">
+                          {product.sku || 'SKU'}
+                        </span>
+                      )}
                       {getStageBadge(camp.stage_status)}
                     </div>
                     <h3 className="font-extrabold text-rose-950 text-sm leading-tight truncate">{camp.name}</h3>
-                    <p className="text-[11px] text-rose-900 mt-0.5 font-bold truncate">
-                      📦 {product.name} · ฿{Number(product.price).toLocaleString()}
-                    </p>
+                    {product && (
+                      <p className="text-[11px] text-rose-900 mt-0.5 font-bold truncate">
+                        📦 {product.name} · ฿{Number(product.price).toLocaleString()}
+                      </p>
+                    )}
                     <p className="text-[11px] text-rose-700 mt-0.5 font-semibold">
                       📅 {camp.start_date} — {camp.end_date}
                     </p>
