@@ -18,7 +18,9 @@ import {
   Check,
   X,
   Edit2,
-  Trash2
+  Trash2,
+  GripVertical,
+  Calendar
 } from 'lucide-react';
 
 export default function ProductPlanModule({
@@ -28,6 +30,7 @@ export default function ProductPlanModule({
   onAddCampaign,
   onEditCampaign,
   onDeleteCampaign,
+  onReorderCampaigns,
   onAddProduct,
   onEditProduct,
   onDeleteProduct
@@ -37,6 +40,10 @@ export default function ProductPlanModule({
   const [editingCampaign, setEditingCampaign] = useState(null);
   const [editingProduct, setEditingProduct] = useState(null);
   const [showProductCatalog, setShowProductCatalog] = useState(false);
+
+  // Drag and drop state
+  const [draggedCampId, setDraggedCampId] = useState(null);
+  const [dragOverCampId, setDragOverCampId] = useState(null);
 
   // Form campaign state
   const [name, setName] = useState('');
@@ -77,7 +84,7 @@ export default function ProductPlanModule({
           }
         });
       }
-    } catch (e) {}
+    } catch (e) { }
 
     // 3. Fallback default products if totally empty
     if (map.size === 0) {
@@ -272,6 +279,68 @@ export default function ProductPlanModule({
     }
   };
 
+  // Sort by date handler
+  const handleSortByDate = () => {
+    const sorted = [...campaigns].sort((a, b) => {
+      const dateA = a.start_date || '9999-99-99';
+      const dateB = b.start_date || '9999-99-99';
+      return dateA.localeCompare(dateB);
+    });
+    if (onReorderCampaigns) {
+      onReorderCampaigns(sorted);
+    }
+  };
+
+  // Drag & drop handlers
+  const handleDragStart = (e, campId) => {
+    setDraggedCampId(campId);
+    e.dataTransfer.setData('text/plain', campId);
+    e.dataTransfer.effectAllowed = 'move';
+  };
+
+  const handleDragOver = (e, campId) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+    if (dragOverCampId !== campId) {
+      setDragOverCampId(campId);
+    }
+  };
+
+  const handleDragLeave = (e, campId) => {
+    if (dragOverCampId === campId) {
+      setDragOverCampId(null);
+    }
+  };
+
+  const handleDrop = (e, targetCampId) => {
+    e.preventDefault();
+    if (!draggedCampId || draggedCampId === targetCampId) {
+      setDraggedCampId(null);
+      setDragOverCampId(null);
+      return;
+    }
+
+    const fromIndex = campaigns.findIndex(c => c.id === draggedCampId);
+    const toIndex = campaigns.findIndex(c => c.id === targetCampId);
+
+    if (fromIndex !== -1 && toIndex !== -1) {
+      const updated = [...campaigns];
+      const [moved] = updated.splice(fromIndex, 1);
+      updated.splice(toIndex, 0, moved);
+      if (onReorderCampaigns) {
+        onReorderCampaigns(updated);
+      }
+    }
+
+    setDraggedCampId(null);
+    setDragOverCampId(null);
+  };
+
+  const handleDragEnd = () => {
+    setDraggedCampId(null);
+    setDragOverCampId(null);
+  };
+
   return (
     <div className="space-y-6 animate-in fade-in duration-300">
 
@@ -290,14 +359,23 @@ export default function ProductPlanModule({
         </div>
 
         <div className="flex items-center gap-2.5 flex-wrap self-start md:self-auto">
+          {/* Button: Sort by upcoming date */}
+          <button
+            onClick={handleSortByDate}
+            className="px-3.5 py-2.5 bg-white hover:bg-pink-50 text-rose-900 font-bold rounded-xl text-xs transition border border-pink-200 shadow-xs flex items-center gap-1.5 cursor-pointer"
+            title="จัดเรียงแคมเปญตามวันที่เริ่มงานที่จะถึงก่อน (Upcoming First)"
+          >
+            <Calendar className="w-3.5 h-3.5 text-pink-600" />
+            <span>📅 เรียงตามวันที่ใกล้ถึงก่อน</span>
+          </button>
+
           {/* Button: Manage Products */}
           <button
             onClick={() => setShowProductCatalog(!showProductCatalog)}
-            className={`px-4 py-2.5 font-bold rounded-xl text-xs transition border shadow-xs flex items-center gap-1.5 cursor-pointer ${
-              showProductCatalog
+            className={`px-4 py-2.5 font-bold rounded-xl text-xs transition border shadow-xs flex items-center gap-1.5 cursor-pointer ${showProductCatalog
                 ? 'bg-rose-100 hover:bg-rose-200 text-rose-900 border-rose-200'
                 : 'bg-white hover:bg-pink-50 text-rose-900 border-pink-200'
-            }`}
+              }`}
           >
             <Tag className="w-3.5 h-3.5 text-pink-600" />
             <span>จัดการสินค้า ({allAvailableProducts.length})</span>
@@ -385,14 +463,36 @@ export default function ProductPlanModule({
           campaigns.map((camp) => {
             const product = camp.product_id ? (allAvailableProducts.find(p => p.id === camp.product_id) || null) : null;
             const roi = camp.budget > 0 ? (((camp.actual_revenue - camp.budget) / camp.budget) * 100).toFixed(0) : 0;
+            const isDragging = draggedCampId === camp.id;
+            const isDragOver = dragOverCampId === camp.id && !isDragging;
 
             return (
               <div
                 key={camp.id}
-                className="glass-panel p-5 hover:border-pink-300 transition-all duration-300 flex flex-col"
+                draggable="true"
+                onDragStart={(e) => handleDragStart(e, camp.id)}
+                onDragOver={(e) => handleDragOver(e, camp.id)}
+                onDragLeave={(e) => handleDragLeave(e, camp.id)}
+                onDrop={(e) => handleDrop(e, camp.id)}
+                onDragEnd={handleDragEnd}
+                className={`glass-panel p-5 transition-all duration-200 flex flex-col group select-none ${
+                  isDragging
+                    ? 'opacity-40 scale-[0.98] border-2 border-dashed border-rose-400 bg-pink-50/40 shadow-inner'
+                    : isDragOver
+                    ? 'ring-2 ring-pink-500 border-pink-400 bg-pink-50/80 scale-[1.01] shadow-lg'
+                    : 'hover:border-pink-300 hover:shadow-md'
+                }`}
               >
                 {/* Top: Campaign info + optional product */}
                 <div className="flex items-start gap-3 mb-4">
+                  {/* Drag Handle Icon ⠿ (No number badge) */}
+                  <div
+                    className="cursor-grab active:cursor-grabbing p-1 text-rose-300 hover:text-pink-600 rounded-lg hover:bg-pink-100/60 transition shrink-0 self-center"
+                    title="คลิกลากเพื่อจัดเรียงลำดับแคมเปญ (Drag & Drop)"
+                  >
+                    <GripVertical className="w-4 h-4" />
+                  </div>
+
                   {product && (
                     <img
                       src={product.image_url || 'https://images.unsplash.com/photo-1522335789203-aabd1fc54bc9?w=300&auto=format&fit=crop&q=60'}
@@ -541,9 +641,9 @@ export default function ProductPlanModule({
                     className="text-[11px] text-pink-700 hover:text-pink-900 font-bold flex items-center gap-1 bg-pink-100/80 hover:bg-pink-200/80 px-2.5 py-1 rounded-lg cursor-pointer transition shadow-xs"
                   >
                     {showInlineAddProduct ? (
-                      <><X className="w-3 h-3"/><span>ปิดฟอร์มเพิ่มสินค้า</span></>
+                      <><X className="w-3 h-3" /><span>ปิดฟอร์มเพิ่มสินค้า</span></>
                     ) : (
-                      <><Plus className="w-3 h-3"/><span>+ สร้างสินค้าใหม่</span></>
+                      <><Plus className="w-3 h-3" /><span>+ สร้างสินค้าใหม่</span></>
                     )}
                   </button>
                 </div>

@@ -443,6 +443,14 @@ export default function App() {
     showSaveToast('ลบแคมเปญสินค้าเรียบร้อยแล้ว!');
   };
 
+  const handleReorderCampaigns = (reorderedTeamCampaigns) => {
+    setCampaigns(prev => {
+      const otherTeams = prev.filter(c => c.team_id !== activeTeamId);
+      return [...reorderedTeamCampaigns, ...otherTeams];
+    });
+    showSaveToast('จัดลำดับแคมเปญเรียบร้อยแล้ว!');
+  };
+
   const handleAddProduct = (newProduct) => {
     setProducts(prev => [newProduct, ...prev]);
     upsertProductToSupabase(newProduct);
@@ -585,6 +593,7 @@ export default function App() {
               onAddCampaign={handleAddCampaign}
               onEditCampaign={handleEditCampaign}
               onDeleteCampaign={handleDeleteCampaign}
+              onReorderCampaigns={handleReorderCampaigns}
               onAddProduct={handleAddProduct}
               onEditProduct={handleEditProduct}
               onDeleteProduct={handleDeleteProduct}

@@ -51,7 +51,8 @@ import {
   Loader2,
   Link,
   CheckCircle,
-  ExternalLink
+  ExternalLink,
+  GripVertical
 } from 'lucide-react';
 
 import LineFlexModal from './LineFlexModal';
@@ -158,6 +159,12 @@ export default function PromotionPlanModule({
             { task: 'เสร็จแล้ว', completed: false }
           ]
         }));
+        // Sort by nearest upcoming date by default
+        formattedData.sort((a, b) => {
+          const dateA = a.startDate || a.start_date || '9999-99-99';
+          const dateB = b.startDate || b.start_date || '9999-99-99';
+          return dateA.localeCompare(dateB);
+        });
         setPromotionPlans(formattedData);
       }
       setIsLoadingPlans(false);
@@ -176,6 +183,10 @@ export default function PromotionPlanModule({
   const [selectedBranch, setSelectedBranch] = useState('all');
   const [selectedStatus, setSelectedStatus] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
+
+  // Drag and drop state
+  const [draggedPlanId, setDraggedPlanId] = useState(null);
+  const [dragOverPlanId, setDragOverPlanId] = useState(null);
 
   // Modals State
   const [showAddModal, setShowAddModal] = useState(false);
@@ -437,19 +448,95 @@ export default function PromotionPlanModule({
     }));
   };
 
-  // Filtered Logic
-  const filteredPlans = promotionPlans.filter(plan => {
-    const matchCategory = selectedCategory === 'all' || plan.category === selectedCategory;
-    const matchProduct = selectedProduct === 'all' || plan.targetProductName.toLowerCase().includes(selectedProduct.toLowerCase());
-    const matchBranch = selectedBranch === 'all' || plan.targetBranch === selectedBranch || plan.targetBranch === 'ทุกสาขา';
-    const matchStatus = selectedStatus === 'all' || plan.status === selectedStatus;
-    const matchSearch = !searchQuery ||
-      plan.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      plan.code.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      plan.targetProductName.toLowerCase().includes(searchQuery.toLowerCase());
+  // Filtered Logic with Auto-sorting by upcoming date
+  const filteredPlans = promotionPlans
+    .filter(plan => {
+      const matchCategory = selectedCategory === 'all' || plan.category === selectedCategory;
+      const matchProduct = selectedProduct === 'all' || plan.targetProductName.toLowerCase().includes(selectedProduct.toLowerCase());
+      const matchBranch = selectedBranch === 'all' || plan.targetBranch === selectedBranch || plan.targetBranch === 'ทุกสาขา';
+      const matchStatus = selectedStatus === 'all' || plan.status === selectedStatus;
+      const matchSearch = !searchQuery ||
+        plan.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        plan.code.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        plan.targetProductName.toLowerCase().includes(searchQuery.toLowerCase());
 
-    return matchCategory && matchProduct && matchBranch && matchStatus && matchSearch;
-  });
+      return matchCategory && matchProduct && matchBranch && matchStatus && matchSearch;
+    })
+    .sort((a, b) => {
+      const dateA = a.startDate || a.start_date || '9999-99-99';
+      const dateB = b.startDate || b.start_date || '9999-99-99';
+      return dateA.localeCompare(dateB);
+    });
+
+  // Sort by date (nearest upcoming first)
+  const handleSortByDate = () => {
+    setPromotionPlans(prev => {
+      const sorted = [...prev].sort((a, b) => {
+        const dateA = a.startDate || a.start_date || '9999-99-99';
+        const dateB = b.startDate || b.start_date || '9999-99-99';
+        return dateA.localeCompare(dateB);
+      });
+      return sorted;
+    });
+    if (onShowSaveToast) {
+      onShowSaveToast('จัดเรียงแผนโปรโมทตามวันที่เริ่มงานที่จะถึงก่อนเรียบร้อยแล้ว!');
+    }
+  };
+
+  // Drag & Drop handlers for prioritizing promotion plans
+  const handlePlanDragStart = (e, planId) => {
+    setDraggedPlanId(planId);
+    e.dataTransfer.setData('text/plain', planId);
+    e.dataTransfer.effectAllowed = 'move';
+  };
+
+  const handlePlanDragOver = (e, planId) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+    if (dragOverPlanId !== planId) {
+      setDragOverPlanId(planId);
+    }
+  };
+
+  const handlePlanDragLeave = (e, planId) => {
+    if (dragOverPlanId === planId) {
+      setDragOverPlanId(null);
+    }
+  };
+
+  const handlePlanDrop = (e, targetPlanId) => {
+    e.preventDefault();
+    if (!draggedPlanId || draggedPlanId === targetPlanId) {
+      setDraggedPlanId(null);
+      setDragOverPlanId(null);
+      return;
+    }
+
+    setPromotionPlans(prev => {
+      const fromIndex = prev.findIndex(p => p.id === draggedPlanId);
+      const toIndex = prev.findIndex(p => p.id === targetPlanId);
+
+      if (fromIndex !== -1 && toIndex !== -1) {
+        const updated = [...prev];
+        const [moved] = updated.splice(fromIndex, 1);
+        updated.splice(toIndex, 0, moved);
+        return updated;
+      }
+      return prev;
+    });
+
+    if (onShowSaveToast) {
+      onShowSaveToast('จัดลำดับแผนโปรโมทเรียบร้อยแล้ว!');
+    }
+
+    setDraggedPlanId(null);
+    setDragOverPlanId(null);
+  };
+
+  const handlePlanDragEnd = () => {
+    setDraggedPlanId(null);
+    setDragOverPlanId(null);
+  };
 
   // Calculate Metrics
   const totalBudget = filteredPlans.reduce((sum, p) => sum + p.budget, 0);
@@ -477,6 +564,16 @@ export default function PromotionPlanModule({
           </div>
 
           <div className="flex items-center gap-3 flex-wrap">
+            {/* Button: Sort by upcoming date */}
+            <button
+              onClick={handleSortByDate}
+              className="px-3.5 py-2.5 bg-white hover:bg-purple-50 text-purple-950 font-bold rounded-xl text-xs transition border border-[#E2D2EA] flex items-center gap-1.5 cursor-pointer shadow-xs"
+              title="จัดเรียงแผนโปรโมทตามวันที่เริ่มงานที่จะถึงก่อน (Upcoming First)"
+            >
+              <Calendar className="w-4 h-4 text-purple-700" />
+              <span>📅 เรียงตามวันที่ใกล้ถึงก่อน</span>
+            </button>
+
             <button
               onClick={() => setShowManageCategoriesModal(true)}
               className="px-3.5 py-2.5 bg-white hover:bg-purple-50 text-purple-950 font-bold rounded-xl text-xs transition border border-[#E2D2EA] flex items-center gap-2 cursor-pointer shadow-xs"
@@ -702,13 +799,38 @@ export default function PromotionPlanModule({
             const completedTasksCount = plan.checklist.filter(c => c.completed).length;
             const totalTasksCount = plan.checklist.length;
             const progressPercent = totalTasksCount > 0 ? (completedTasksCount / totalTasksCount * 100).toFixed(0) : 0;
+            const isDragging = draggedPlanId === plan.id;
+            const isDragOver = dragOverPlanId === plan.id && !isDragging;
 
             return (
-              <div key={plan.id} className="glass-panel p-5 border-[#E2D2EA] flex flex-col justify-between space-y-4 hover:shadow-md transition">
+              <div
+                key={plan.id}
+                draggable="true"
+                onDragStart={(e) => handlePlanDragStart(e, plan.id)}
+                onDragOver={(e) => handlePlanDragOver(e, plan.id)}
+                onDragLeave={(e) => handlePlanDragLeave(e, plan.id)}
+                onDrop={(e) => handlePlanDrop(e, plan.id)}
+                onDragEnd={handlePlanDragEnd}
+                className={`glass-panel p-5 border-[#E2D2EA] flex flex-col justify-between space-y-4 transition-all duration-200 select-none ${
+                  isDragging
+                    ? 'opacity-40 scale-[0.98] border-2 border-dashed border-purple-400 bg-purple-50/40 shadow-inner'
+                    : isDragOver
+                    ? 'ring-2 ring-purple-500 border-purple-400 bg-purple-50/80 scale-[1.01] shadow-lg'
+                    : 'hover:shadow-md'
+                }`}
+              >
                 <div>
-                  {/* Header Badge Row */}
+                  {/* Header Badge Row with Drag Handle */}
                   <div className="flex items-center justify-between gap-2 mb-2">
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      {/* Drag Handle Icon ⠿ (No number badge) */}
+                      <div
+                        className="cursor-grab active:cursor-grabbing p-1 text-purple-400 hover:text-purple-700 -ml-1 pr-1 transition"
+                        title="คลิกลากเพื่อจัดเรียงลำดับ (Drag & Drop)"
+                      >
+                        <GripVertical className="w-4 h-4" />
+                      </div>
+
                       <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-purple-950 text-white shadow-xs">
                         {plan.code}
                       </span>
