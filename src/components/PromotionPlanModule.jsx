@@ -1690,7 +1690,7 @@ export default function PromotionPlanModule({
    Preview shows separate white A4 sheets: หน้า 1, 2, 3 ...
    Export: html2canvas → slice into A4 pages for PDF/PNG
 ───────────────────────────────────────────────────────────── */
-function DocExportPreviewModal({ plan, onClose }) {
+export function DocExportPreviewModal({ plan, onClose, isPublicStandalone = false }) {
   const measureRef    = useRef(null);
   const captureRef    = useRef(null);
   const pickerRef     = useRef(null);
@@ -1854,9 +1854,6 @@ body{font-family:'Sarabun','Noto Sans Thai',sans-serif;font-size:13px;color:#1a0
     setIsExporting(true); setExportType('image'); setShowPngPicker(false);
     try {
       const canvas    = await runCapture();
-      const pdfW      = 210; // mm reference — not used, just px math below
-      const pageHpx   = Math.floor((canvas.width * (A4_H / A4_W * (A4_W))) / A4_W);
-      // recalc: each A4 page in the captured canvas is canvas.height/numPages px tall
       const sliceH    = Math.floor(canvas.height / numPages);
 
       if (pagesToExport.length === numPages) {
@@ -1931,102 +1928,31 @@ body{font-family:'Sarabun','Noto Sans Thai',sans-serif;font-size:13px;color:#1a0
   // ── Usable height per A4 page (minus padding) ─────────────
   const usablePageH = A4_H - PAD_H * 2;
 
-  // ── Create shareable link (upload HTML to Supabase Storage) ─
+  // ── Create shareable direct web link ──────────────────────
   const handleCreateShareLink = useCallback(async () => {
     setIsSharing(true);
     try {
-      const metaHTML = metaRows
-        .map(r => `<div class="mc"><span class="ml">${r.label}</span><span class="mv">${r.value}</span></div>`)
-        .join('');
-      const docBody = plan.docContent || '<p style="color:#9333ea;font-style:italic">ไม่มีเนื้อหาเอกสาร Doc</p>';
-      const html = `<!DOCTYPE html>
-<html lang="th">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<title>${plan.title || 'เอกสารแผนแคมเปญ'} — NITAN</title>
-<style>
-@import url('https://fonts.googleapis.com/css2?family=Sarabun:wght@400;600;700&display=swap');
-*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
-html{background:#e0e0e0;min-height:100vh}
-body{font-family:'Sarabun','Noto Sans Thai','TH Sarabun New',Arial,sans-serif;font-size:13px;color:#1a0030;line-height:1.75;background:#e0e0e0;display:flex;flex-direction:column;align-items:center;padding:32px 16px 48px;gap:28px}
-.page{width:794px;min-height:auto;padding:56px 60px 60px;background:#fff;box-shadow:0 4px 24px rgba(0,0,0,0.16);position:relative}
-.page-footer{display:flex;justify-content:space-between;margin-top:24px;padding-top:10px;border-top:1px solid #f3f0ff;font-size:10px;color:#9ca3af}
-.hd{border-bottom:2.5px solid #4f0074;padding-bottom:14px;margin-bottom:18px}
-.ht{display:flex;align-items:center;gap:10px;margin-bottom:5px}
-.cb{background:#4f0074;color:#fff;font-size:10px;font-weight:700;padding:2px 9px;border-radius:4px;font-family:monospace}
-.dt{font-size:18px;font-weight:700}
-.ds{font-size:11px;color:#7e22ce;margin-top:3px}
-.mg{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:22px}
-.mc{background:#f5f0ff;border:1px solid #e2d2ea;border-radius:7px;padding:8px 10px}
-.ml{font-size:9px;color:#7e22ce;font-weight:700;display:block;margin-bottom:2px;text-transform:uppercase;letter-spacing:.04em}
-.mv{font-size:12px;font-weight:700}
-.bc h1{font-size:17px;font-weight:700;margin:14px 0 7px}
-.bc h2{font-size:14px;font-weight:700;margin:12px 0 5px;color:#3b0764;border-left:3px solid #7c3aed;padding-left:8px}
-.bc h3{font-size:13px;font-weight:700;margin:10px 0 4px;color:#4f0074}
-.bc p{margin:5px 0 8px}
-.bc ul,.bc ol{margin-left:22px;margin-bottom:8px}
-.bc li{margin-bottom:3px}
-.bc table{width:100%;border-collapse:collapse;margin:12px 0;font-size:12px}
-.bc th{background:#ede9fe;border:1px solid #c4b5fd;padding:6px 8px;text-align:left;font-weight:700}
-.bc td{border:1px solid #ddd6fe;padding:5px 8px;vertical-align:top}
-.bc tr:nth-child(even) td{background:#faf5ff}
-.bc img{max-width:100%;height:auto}
-.top-bar{width:794px;background:#3b0764;color:#fff;padding:10px 16px;border-radius:10px 10px 0 0;display:flex;align-items:center;justify-content:space-between;font-size:11px;font-weight:600}
-.top-bar span.badge{background:#7e22ce;color:#fff;padding:2px 8px;border-radius:6px;font-size:10px}
-@media(max-width:840px){.page,.top-bar{width:100%!important}.mg{grid-template-columns:repeat(2,1fr)!important}}
-</style>
-</head>
-<body>
-<div class="top-bar">
-  <span>📄 ${plan.title || 'เอกสารแผนแคมเปญ'}</span>
-  <span class="badge">NITAN Marketing Platform</span>
-</div>
-<div class="page">
-  <div class="hd">
-    <div class="ht">
-      <span class="cb">${plan.code || 'DOC'}</span>
-      <span class="dt">${plan.title || 'เอกสาร'}</span>
-    </div>
-    <div class="ds">เอกสารแผนแคมเปญโปรโมท (Campaign Doc Brief)</div>
-  </div>
-  <div class="mg">${metaHTML}</div>
-  <div class="bc">${docBody}</div>
-  <div class="page-footer">
-    <span>NITAN Marketing Platform</span>
-    <span>สร้างเมื่อ ${new Date().toLocaleDateString('th-TH')}</span>
-  </div>
-</div>
-</body>
-</html>`;
+      const planId = plan.id;
+      if (!planId) {
+        throw new Error('กรุณาบันทึกเอกสารแผนก่อนแชร์ลิงก์');
+      }
+      const origin = window.location.origin;
+      const path = window.location.pathname;
+      const url = `${origin}${path}?docPreview=${planId}`;
+      setShareUrl(url);
 
-      const fileName = `share_${plan.id || Date.now()}_${Date.now()}.html`;
-      const blob = new Blob([html], { type: 'text/html; charset=utf-8' });
-
-      // Upload to Supabase Storage — bucket: doc-shares (must be public)
-      const { data: uploadData, error: uploadError } = await supabase.storage
-        .from('doc-shares')
-        .upload(fileName, blob, {
-          contentType: 'text/html; charset=utf-8',
-          upsert: true,
-          cacheControl: '3600',
-        });
-
-      if (uploadError) throw uploadError;
-
-      // Get public URL
-      const { data: urlData } = supabase.storage
-        .from('doc-shares')
-        .getPublicUrl(fileName);
-
-      setShareUrl(urlData.publicUrl);
+      if (navigator.clipboard) {
+        await navigator.clipboard.writeText(url);
+        setShareCopied(true);
+        setTimeout(() => setShareCopied(false), 3000);
+      }
     } catch (err) {
       console.error('Share link error:', err);
-      alert(`เกิดข้อผิดพลาด: ${err.message}\n\nกรุณาตรวจสอบว่า Supabase Storage bucket "doc-shares" ถูกสร้างและตั้งเป็น Public แล้ว`);
+      alert(`เกิดข้อผิดพลาด: ${err.message}`);
     } finally {
       setIsSharing(false);
     }
-  }, [plan, metaRows]);
+  }, [plan]);
 
   // ── Copy URL to clipboard ───────────────────────────────────
   const handleCopyShareUrl = useCallback(() => {
@@ -2040,14 +1966,16 @@ body{font-family:'Sarabun','Noto Sans Thai','TH Sarabun New',Arial,sans-serif;fo
   // ─────────────────────────────────────────────────────────
 
   return (
-    <div className="fixed inset-0 z-[60] flex flex-col bg-black/75 backdrop-blur-sm animate-in fade-in duration-200">
+    <div className={isPublicStandalone ? "min-h-screen w-full flex flex-col bg-slate-900 animate-in fade-in duration-200" : "fixed inset-0 z-[60] flex flex-col bg-black/75 backdrop-blur-sm animate-in fade-in duration-200"}>
 
       {/* ── Top bar ── */}
       <div className="flex items-center justify-between px-5 py-3 bg-purple-950 shadow-xl shrink-0 gap-3 flex-wrap">
         <div className="flex items-center gap-3 min-w-0">
           <Eye className="w-5 h-5 text-pink-300 shrink-0" />
           <div className="min-w-0">
-            <p className="text-white font-bold text-sm leading-tight truncate">Preview ก่อน Export</p>
+            <p className="text-white font-bold text-sm leading-tight truncate">
+              {isPublicStandalone ? "NITAN Marketing Platform • Campaign Brief (Read-Only Preview)" : "Preview ก่อน Export"}
+            </p>
             <p className="text-purple-300 text-xs truncate">{plan.title}</p>
           </div>
         </div>
@@ -2162,23 +2090,34 @@ body{font-family:'Sarabun','Noto Sans Thai','TH Sarabun New',Arial,sans-serif;fo
             <span>Export PDF</span>
           </button>
 
-          {/* Share Link */}
-          <button
-            onClick={handleCreateShareLink}
-            disabled={isSharing || isExporting}
-            className="flex items-center gap-1.5 px-3 py-1.5 bg-sky-600 hover:bg-sky-500 text-white text-xs font-bold rounded-lg transition cursor-pointer disabled:opacity-50"
-          >
-            {isSharing
-              ? <Loader2 className="w-3.5 h-3.5 animate-spin"/>
-              : <Link className="w-3.5 h-3.5"/>}
-            <span>สร้างลิงก์</span>
-          </button>
+          {/* Share Link (Only in modal mode) */}
+          {!isPublicStandalone && (
+            <button
+              onClick={handleCreateShareLink}
+              disabled={isSharing || isExporting}
+              className="flex items-center gap-1.5 px-3 py-1.5 bg-sky-600 hover:bg-sky-500 text-white text-xs font-bold rounded-lg transition cursor-pointer disabled:opacity-50"
+            >
+              {isSharing
+                ? <Loader2 className="w-3.5 h-3.5 animate-spin"/>
+                : <Link className="w-3.5 h-3.5"/>}
+              <span>สร้างลิงก์</span>
+            </button>
+          )}
 
-          {/* Close */}
-          <button onClick={onClose}
-            className="flex items-center gap-1 px-3 py-1.5 bg-white/10 hover:bg-white/20 text-white text-xs font-bold rounded-lg transition cursor-pointer">
-            <X className="w-3.5 h-3.5"/><span>ปิด</span>
-          </button>
+          {/* Close or Home Button */}
+          {isPublicStandalone ? (
+            <a
+              href={window.location.pathname}
+              className="flex items-center gap-1 px-3 py-1.5 bg-purple-800 hover:bg-purple-700 text-white text-xs font-bold rounded-lg transition cursor-pointer"
+            >
+              <span>🏠 เข้าสู่ระบบ</span>
+            </a>
+          ) : (
+            <button onClick={onClose}
+              className="flex items-center gap-1 px-3 py-1.5 bg-white/10 hover:bg-white/20 text-white text-xs font-bold rounded-lg transition cursor-pointer">
+              <X className="w-3.5 h-3.5"/><span>ปิด</span>
+            </button>
+          )}
         </div>
       </div>
 

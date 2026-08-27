@@ -1,16 +1,17 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import confetti from 'canvas-confetti';
-import { CheckCircle2 } from 'lucide-react';
+import { CheckCircle2, Loader2, AlertCircle } from 'lucide-react';
 import NavigationHeader from './components/NavigationHeader';
 import DashboardOverview from './components/DashboardOverview';
 import ContentPlanModule from './components/ContentPlanModule';
 import MarketingPlanModule from './components/MarketingPlanModule';
 import ProductPlanModule from './components/ProductPlanModule';
-import PromotionPlanModule from './components/PromotionPlanModule';
+import PromotionPlanModule, { DocExportPreviewModal } from './components/PromotionPlanModule';
 import TodoListModule from './components/TodoListModule';
 import KpiAnalyticsModule from './components/KpiAnalyticsModule';
 import NotificationEngineModule from './components/NotificationEngineModule';
 import SchemaViewerModal from './components/SchemaViewerModal';
+import { supabase } from './lib/supabaseClient';
 import {
   fetchContentItemsFromSupabase,
   fetchCampaignsFromSupabase,
@@ -52,6 +53,53 @@ import {
 } from './data/initialData';
 
 export default function App() {
+  // Public Doc Preview Route Check (for shared read-only links)
+  const docPreviewId = typeof window !== 'undefined'
+    ? new URLSearchParams(window.location.search).get('docPreview')
+    : null;
+
+  const [publicDocPlan, setPublicDocPlan] = useState(null);
+  const [isLoadingPublicDoc, setIsLoadingPublicDoc] = useState(!!docPreviewId);
+  const [publicDocError, setPublicDocError] = useState(null);
+
+  useEffect(() => {
+    if (!docPreviewId) return;
+    async function loadPublicDoc() {
+      setIsLoadingPublicDoc(true);
+      try {
+        const { data, error } = await supabase
+          .from('promotion_plans')
+          .select('*')
+          .eq('id', docPreviewId)
+          .single();
+
+        if (error || !data) {
+          setPublicDocError('ไม่พบเอกสารแผนแคมเปญนี้ หรือเอกสารอาจถูกลบไปแล้ว');
+        } else {
+          setPublicDocPlan({
+            id: data.id,
+            code: data.code,
+            title: data.title,
+            category: data.category,
+            targetProductName: data.target_product_name,
+            budget: data.budget,
+            projectedSales: data.projected_sales,
+            startDate: data.start_date,
+            endDate: data.end_date,
+            targetBranch: data.target_branch,
+            docContent: data.doc_content
+          });
+        }
+      } catch (err) {
+        console.error('Failed to load public doc:', err);
+        setPublicDocError('เกิดข้อผิดพลาดในการโหลดเอกสาร');
+      } finally {
+        setIsLoadingPublicDoc(false);
+      }
+    }
+    loadPublicDoc();
+  }, [docPreviewId]);
+
   // Global State
   const [teams, setTeams] = useState(INITIAL_TEAMS);
   const [activeTeamId, setActiveTeamId] = useState('team-1');
@@ -416,6 +464,42 @@ export default function App() {
     });
     showSaveToast('ส่ง Daily Digest ไปยัง LINE Group เรียบร้อยแล้ว!');
   };
+
+  // Standalone Public View for docPreview share link
+  if (docPreviewId) {
+    if (isLoadingPublicDoc) {
+      return (
+        <div className="min-h-screen bg-slate-900 flex flex-col items-center justify-center gap-4 text-white">
+          <Loader2 className="w-10 h-10 animate-spin text-purple-400" />
+          <p className="text-sm text-purple-200 font-bold">กำลังโหลดเอกสารแผนแคมเปญ...</p>
+        </div>
+      );
+    }
+    if (publicDocError || !publicDocPlan) {
+      return (
+        <div className="min-h-screen bg-slate-900 flex flex-col items-center justify-center gap-4 text-white p-6 text-center">
+          <div className="w-16 h-16 rounded-2xl bg-rose-500/20 border border-rose-500/40 flex items-center justify-center text-rose-400 mb-2">
+            <AlertCircle className="w-8 h-8" />
+          </div>
+          <h2 className="text-xl font-bold text-white">ไม่พบเอกสาร</h2>
+          <p className="text-sm text-slate-400 max-w-md">{publicDocError || 'ไม่พบเอกสารที่ระบุ หรือเอกสารอาจถูกลบไปแล้ว'}</p>
+          <a
+            href={window.location.pathname}
+            className="mt-4 px-5 py-2.5 bg-purple-700 hover:bg-purple-600 text-white font-bold text-sm rounded-xl transition cursor-pointer"
+          >
+            🏠 เข้าสู่ระบบหน้าหลัก
+          </a>
+        </div>
+      );
+    }
+    return (
+      <DocExportPreviewModal
+        plan={publicDocPlan}
+        isPublicStandalone={true}
+        onClose={() => { window.location.href = window.location.pathname; }}
+      />
+    );
+  }
 
   return (
     <div className="min-h-screen bg-[#FCFAF7] text-purple-950 font-sans selection:bg-purple-200 selection:text-purple-950 flex flex-col justify-between">
