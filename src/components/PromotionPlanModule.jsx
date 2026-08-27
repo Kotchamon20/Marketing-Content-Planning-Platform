@@ -1722,6 +1722,8 @@ export function DocExportPreviewModal({ plan, onClose, isPublicStandalone = fals
       color: '#1a0030',
       lineHeight: 1.6,
       width: '100%',
+      wordBreak: 'break-word',
+      overflowWrap: 'break-word',
     },
     header: { borderBottom: '2px solid #4f0074', paddingBottom: 12, marginBottom: 14 },
     headerTop: { display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 },
@@ -1837,6 +1839,8 @@ body{font-family:'Sarabun','Noto Sans Thai',sans-serif;font-size:12.5px;color:#1
   const handleExportPDF = useCallback(async () => {
     setIsExporting(true); setExportType('pdf');
     try {
+      const { jsPDF } = await import('jspdf');
+      const html2canvas = (await import('html2canvas')).default;
       const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
       const pdfW = pdf.internal.pageSize.getWidth();
       const pdfH = pdf.internal.pageSize.getHeight();
@@ -1865,6 +1869,7 @@ body{font-family:'Sarabun','Noto Sans Thai',sans-serif;font-size:12.5px;color:#1
   const handleExportImage = useCallback(async (pagesToExport) => {
     setIsExporting(true); setExportType('image'); setShowPngPicker(false);
     try {
+      const html2canvas = (await import('html2canvas')).default;
       const targetIndices = (!pagesToExport || pagesToExport.length === 0)
         ? docPages.map((_, i) => i)
         : pagesToExport;
@@ -1954,48 +1959,47 @@ body{font-family:'Sarabun','Noto Sans Thai',sans-serif;font-size:12.5px;color:#1
 
   return (
     <div className={isPublicStandalone ? "min-h-screen w-full flex flex-col bg-slate-900 animate-in fade-in duration-200" : "fixed inset-0 z-[60] flex flex-col bg-black/75 backdrop-blur-sm animate-in fade-in duration-200"}>
-
-      {/* ── Top Bar ── */}
-      <div className="flex items-center justify-between px-5 py-3 bg-purple-950 shadow-xl shrink-0 gap-3 flex-wrap">
-        <div className="flex items-center gap-3 min-w-0">
-          <Eye className="w-5 h-5 text-pink-300 shrink-0" />
+      <div className="flex items-center justify-between px-3 sm:px-5 py-2.5 sm:py-3 bg-purple-950 shadow-xl shrink-0 gap-2 sm:gap-3 flex-wrap">
+        <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1 sm:flex-initial">
+          <Eye className="w-4 h-4 sm:w-5 h-5 text-pink-300 shrink-0" />
           <div className="min-w-0">
-            <p className="text-white font-bold text-sm leading-tight truncate">
-              {isPublicStandalone ? "NITAN Marketing Platform • Campaign Brief (Read-Only Preview)" : "Preview ก่อน Export"}
+            <p className="text-white font-bold text-xs sm:text-sm leading-tight truncate">
+              {isPublicStandalone ? "NITAN Campaign Brief (Preview)" : "Preview ก่อน Export"}
             </p>
-            <p className="text-purple-300 text-xs truncate">{plan.title}</p>
+            <p className="text-purple-300 text-[10px] sm:text-xs truncate">{plan.title}</p>
           </div>
         </div>
-        <div className="flex items-center gap-2 shrink-0 flex-wrap">
-          <span className="px-2.5 py-1 bg-purple-800 border border-purple-700 text-purple-200 text-[10px] font-bold rounded-lg">
+        <div className="flex items-center gap-1.5 sm:gap-2 shrink-0 flex-wrap">
+          <span className="px-2 sm:px-2.5 py-1 bg-purple-800 border border-purple-700 text-purple-200 text-[9px] sm:text-[10px] font-bold rounded-lg">
             {numPages} หน้า
           </span>
 
           <button onClick={handlePrint} disabled={isExporting}
-            className="flex items-center gap-1.5 px-3 py-1.5 bg-purple-700 hover:bg-purple-600 border border-purple-600 text-white text-xs font-bold rounded-lg transition cursor-pointer disabled:opacity-50">
-            <Printer className="w-3.5 h-3.5" /><span>พิมพ์</span>
+            className="flex items-center gap-1 sm:gap-1.5 px-2.5 sm:px-3 py-1.5 bg-purple-700 hover:bg-purple-600 border border-purple-600 text-white text-[11px] sm:text-xs font-bold rounded-lg transition cursor-pointer disabled:opacity-50">
+            <Printer className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
+            <span className="hidden xs:inline sm:inline">พิมพ์</span>
           </button>
 
           <div className="relative" ref={pickerRef}>
             <button
               onClick={openPngPicker}
               disabled={isExporting}
-              className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold rounded-lg transition cursor-pointer disabled:opacity-50"
+              className="flex items-center gap-1 sm:gap-1.5 px-2.5 sm:px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white text-[11px] sm:text-xs font-bold rounded-lg transition cursor-pointer disabled:opacity-50"
             >
               {isExporting && exportType==='image'
-                ? <Loader2 className="w-3.5 h-3.5 animate-spin"/>
-                : <ImageIcon className="w-3.5 h-3.5"/>}
-              <span>Export PNG</span>
-              <span className="ml-0.5 text-emerald-200 text-[10px]">▾</span>
+                ? <Loader2 className="w-3 h-3 sm:w-3.5 sm:h-3.5 animate-spin"/>
+                : <ImageIcon className="w-3 h-3 sm:w-3.5 sm:h-3.5"/>}
+              <span>PNG</span>
+              <span className="ml-0.5 text-emerald-200 text-[9px]">▾</span>
             </button>
 
             {showPngPicker && (
-              <div className="absolute right-0 top-full mt-2 z-50 bg-white border border-purple-200 rounded-xl shadow-2xl p-4 min-w-[220px] animate-in fade-in slide-in-from-top-1 duration-150">
-                <p className="text-[11px] font-bold text-purple-900 mb-3 flex items-center gap-1.5">
+              <div className="absolute right-0 top-full mt-2 z-50 bg-white border border-purple-200 rounded-xl shadow-2xl p-3 sm:p-4 min-w-[200px] sm:min-w-[220px] animate-in fade-in slide-in-from-top-1 duration-150">
+                <p className="text-[11px] font-bold text-purple-900 mb-2.5 flex items-center gap-1.5">
                   <ImageIcon className="w-3.5 h-3.5 text-purple-600"/>
                   เลือกหน้าที่ต้องการ Export
                 </p>
-                <div className="flex gap-2 mb-3">
+                <div className="flex gap-2 mb-2.5">
                   <button
                     onClick={() => setSelectedPages(Array.from({ length: numPages }, (_, i) => i))}
                     className="flex-1 text-[10px] font-bold px-2 py-1 bg-purple-100 hover:bg-purple-200 text-purple-800 rounded-lg transition cursor-pointer"
@@ -2009,11 +2013,11 @@ body{font-family:'Sarabun','Noto Sans Thai',sans-serif;font-size:12.5px;color:#1
                     ยกเลิกทั้งหมด
                   </button>
                 </div>
-                <div className="flex flex-col gap-1.5 max-h-52 overflow-y-auto pr-1">
+                <div className="flex flex-col gap-1.5 max-h-48 overflow-y-auto pr-1">
                   {Array.from({ length: numPages }, (_, i) => (
                     <label
                       key={i}
-                      className={`flex items-center gap-2.5 px-3 py-2 rounded-lg cursor-pointer transition ${
+                      className={`flex items-center gap-2 px-2.5 py-1.5 rounded-lg cursor-pointer transition ${
                         selectedPages.includes(i)
                           ? 'bg-emerald-50 border border-emerald-300'
                           : 'bg-gray-50 border border-gray-200 hover:bg-gray-100'
@@ -2027,7 +2031,7 @@ body{font-family:'Sarabun','Noto Sans Thai',sans-serif;font-size:12.5px;color:#1
                       />
                       <span className="text-xs font-semibold text-gray-800">หน้า {i + 1}</span>
                       {i === 0 && (
-                        <span className="ml-auto text-[9px] text-purple-500 font-medium bg-purple-50 px-1.5 py-0.5 rounded-md">ปก</span>
+                        <span className="ml-auto text-[9px] text-purple-500 font-medium bg-purple-50 px-1 py-0.5 rounded-md">ปก</span>
                       )}
                     </label>
                   ))}
@@ -2038,14 +2042,14 @@ body{font-family:'Sarabun','Noto Sans Thai',sans-serif;font-size:12.5px;color:#1
                     handleExportImage(selectedPages);
                   }}
                   disabled={selectedPages.length === 0}
-                  className="mt-3 w-full flex items-center justify-center gap-1.5 px-3 py-2 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold rounded-lg transition cursor-pointer disabled:opacity-40"
+                  className="mt-2.5 w-full flex items-center justify-center gap-1.5 px-3 py-2 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold rounded-lg transition cursor-pointer disabled:opacity-40"
                 >
                   <ImageIcon className="w-3.5 h-3.5"/>
                   Export {selectedPages.length > 0 ? `${selectedPages.length} หน้า` : ''} เป็น PNG
                 </button>
                 <button
                   onClick={() => setShowPngPicker(false)}
-                  className="mt-1.5 w-full text-[10px] text-gray-400 hover:text-gray-600 py-1 cursor-pointer transition"
+                  className="mt-1 w-full text-[10px] text-gray-400 hover:text-gray-600 py-1 cursor-pointer transition"
                 >
                   ยกเลิก
                 </button>
@@ -2054,44 +2058,44 @@ body{font-family:'Sarabun','Noto Sans Thai',sans-serif;font-size:12.5px;color:#1
           </div>
 
           <button onClick={handleExportPDF} disabled={isExporting}
-            className="flex items-center gap-1.5 px-3 py-1.5 bg-rose-600 hover:bg-rose-500 text-white text-xs font-bold rounded-lg transition cursor-pointer disabled:opacity-50">
-            {isExporting && exportType==='pdf' ? <Loader2 className="w-3.5 h-3.5 animate-spin"/> : <FileDown className="w-3.5 h-3.5"/>}
-            <span>Export PDF</span>
+            className="flex items-center gap-1 sm:gap-1.5 px-2.5 sm:px-3 py-1.5 bg-rose-600 hover:bg-rose-500 text-white text-[11px] sm:text-xs font-bold rounded-lg transition cursor-pointer disabled:opacity-50">
+            {isExporting && exportType==='pdf' ? <Loader2 className="w-3 h-3 sm:w-3.5 sm:h-3.5 animate-spin"/> : <FileDown className="w-3 h-3 sm:w-3.5 sm:h-3.5"/>}
+            <span>PDF</span>
           </button>
 
           {!isPublicStandalone && (
             <button
               onClick={handleCreateShareLink}
               disabled={isSharing || isExporting}
-              className="flex items-center gap-1.5 px-3 py-1.5 bg-sky-600 hover:bg-sky-500 text-white text-xs font-bold rounded-lg transition cursor-pointer disabled:opacity-50"
+              className="flex items-center gap-1 sm:gap-1.5 px-2.5 sm:px-3 py-1.5 bg-sky-600 hover:bg-sky-500 text-white text-[11px] sm:text-xs font-bold rounded-lg transition cursor-pointer disabled:opacity-50"
             >
-              {isSharing ? <Loader2 className="w-3.5 h-3.5 animate-spin"/> : <Link className="w-3.5 h-3.5"/>}
-              <span>สร้างลิงก์</span>
+              {isSharing ? <Loader2 className="w-3 h-3 sm:w-3.5 sm:h-3.5 animate-spin"/> : <Link className="w-3 h-3 sm:w-3.5 sm:h-3.5"/>}
+              <span className="hidden xs:inline sm:inline">แชร์</span>
             </button>
           )}
 
           {!isPublicStandalone && (
             <button onClick={onClose}
-              className="flex items-center gap-1 px-3 py-1.5 bg-white/10 hover:bg-white/20 text-white text-xs font-bold rounded-lg transition cursor-pointer">
-              <X className="w-3.5 h-3.5"/><span>ปิด</span>
+              className="flex items-center gap-1 px-2.5 sm:px-3 py-1.5 bg-white/10 hover:bg-white/20 text-white text-[11px] sm:text-xs font-bold rounded-lg transition cursor-pointer">
+              <X className="w-3 h-3 sm:w-3.5 sm:h-3.5"/><span>ปิด</span>
             </button>
           )}
         </div>
       </div>
 
       {shareUrl && (
-        <div className="shrink-0 bg-sky-950 border-b border-sky-800 px-5 py-2.5 flex items-center gap-3 flex-wrap">
-          <Link className="w-4 h-4 text-sky-300 shrink-0"/>
-          <span className="text-sky-200 text-xs font-bold shrink-0">ลิงก์สาธารณะ:</span>
+        <div className="shrink-0 bg-sky-950 border-b border-sky-800 px-3 sm:px-5 py-2 sm:py-2.5 flex items-center gap-2 sm:gap-3 flex-wrap">
+          <Link className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-sky-300 shrink-0"/>
+          <span className="text-sky-200 text-[11px] sm:text-xs font-bold shrink-0">ลิงก์สาธารณะ:</span>
           <input
             readOnly
             value={shareUrl}
-            className="flex-1 min-w-0 bg-sky-900 border border-sky-700 text-sky-100 text-xs rounded-lg px-3 py-1.5 font-mono truncate outline-none"
+            className="flex-1 min-w-0 bg-sky-900 border border-sky-700 text-sky-100 text-[11px] sm:text-xs rounded-lg px-2.5 py-1.5 font-mono truncate outline-none"
             onClick={e => e.target.select()}
           />
           <button
             onClick={handleCopyShareUrl}
-            className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold rounded-lg transition cursor-pointer shrink-0 ${
+            className={`flex items-center gap-1 px-2.5 sm:px-3 py-1.5 text-[11px] sm:text-xs font-bold rounded-lg transition cursor-pointer shrink-0 ${
               shareCopied ? 'bg-emerald-500 text-white' : 'bg-sky-600 hover:bg-sky-500 text-white'
             }`}
           >
@@ -2101,7 +2105,7 @@ body{font-family:'Sarabun','Noto Sans Thai',sans-serif;font-size:12.5px;color:#1
             href={shareUrl}
             target="_blank"
             rel="noopener noreferrer"
-            className="flex items-center gap-1 px-2.5 py-1.5 bg-sky-700 hover:bg-sky-600 text-sky-100 text-xs font-bold rounded-lg transition shrink-0"
+            className="flex items-center gap-1 px-2.5 py-1.5 bg-sky-700 hover:bg-sky-600 text-sky-100 text-[11px] sm:text-xs font-bold rounded-lg transition shrink-0"
           >
             <ExternalLink className="w-3.5 h-3.5"/>
             <span>เปิด</span>
@@ -2109,40 +2113,20 @@ body{font-family:'Sarabun','Noto Sans Thai',sans-serif;font-size:12.5px;color:#1
         </div>
       )}
 
-      <div className="flex-1 overflow-y-auto bg-gray-300 py-8 flex flex-col items-center gap-6 px-4">
+      <div className="flex-1 overflow-y-auto bg-slate-200 py-4 sm:py-8 flex flex-col items-center gap-6 sm:gap-8 px-2 sm:px-4">
         {docPages.map((pageBlocks, pageIdx) => (
-          <div key={pageIdx} style={{ position: 'relative', flexShrink: 0, marginTop: pageIdx === 0 ? 0 : 8 }}>
+          <div key={pageIdx} className="w-full max-w-[794px] relative shrink-0" style={{ marginTop: pageIdx === 0 ? 0 : 12 }}>
             {/* Page number badge */}
-            <div style={{
-              position: 'absolute', top: -30, left: 0, right: 0,
-              display: 'flex', justifyContent: 'center', alignItems: 'center',
-            }}>
-              <span style={{
-                background: '#7e22ce', color: '#fff',
-                fontSize: 10, fontWeight: 700, padding: '3px 12px', borderRadius: 20,
-                letterSpacing: '0.05em',
-                boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
-              }}>
+            <div className="absolute -top-7 left-0 right-0 flex justify-center items-center pointer-events-none">
+              <span className="bg-purple-700 text-white text-[10px] font-bold px-3 py-0.5 rounded-full tracking-wider shadow-md">
                 หน้า {pageIdx + 1} / {docPages.length}
               </span>
             </div>
 
-            {/* A4 White Page Card */}
+            {/* Responsive White Page Card */}
             <div
               ref={(el) => (pageRefs.current[pageIdx] = el)}
-              style={{
-                width: A4_W,
-                height: A4_H,
-                background: '#ffffff',
-                boxShadow: '0 4px 28px rgba(0,0,0,0.18)',
-                padding: `${PAD_H}px ${PAD_LR}px`,
-                boxSizing: 'border-box',
-                display: 'flex',
-                flexDirection: 'column',
-                justifyContent: 'space-between',
-                position: 'relative',
-                borderRadius: 4,
-              }}
+              className="w-full bg-white rounded-xl shadow-xl border border-purple-100/80 p-4 sm:p-10 md:p-12 flex flex-col justify-between transition-all md:min-h-[1123px] box-border"
             >
               <div style={{ width: '100%', paddingTop: 4 }}>
                 {pageIdx === 0 ? (
