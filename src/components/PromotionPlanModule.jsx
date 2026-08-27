@@ -1454,7 +1454,6 @@ export default function PromotionPlanModule({
               </button>
             </div>
 
-            {/* Doc Metadata Badge Row */}
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs">
               <div className="p-2.5 bg-purple-50 rounded-xl border border-purple-100">
                 <span className="text-purple-800 text-[10px] block">ประเภทแผน:</span>
@@ -1474,7 +1473,6 @@ export default function PromotionPlanModule({
               </div>
             </div>
 
-            {/* Doc Document Body Container */}
             <div className="p-6 mt-4 mb-4 rounded-2xl bg-[#FCFAF7] border border-purple-200/90 shadow-inner flex-1 min-h-[50vh] max-h-[75vh] overflow-y-auto">
               <div
                 className="font-sans text-sm md:text-base text-purple-950 prose prose-purple max-w-none 
@@ -1489,7 +1487,6 @@ export default function PromotionPlanModule({
               />
             </div>
 
-            {/* Doc Footer Action Controls */}
             <div className="pt-3 border-t border-purple-100 flex items-center justify-between gap-2 text-xs shrink-0 flex-wrap">
               <button
                 onClick={() => {
@@ -1503,7 +1500,6 @@ export default function PromotionPlanModule({
               </button>
 
               <div className="flex items-center gap-2 flex-wrap">
-                {/* Export Preview Button */}
                 <button
                   onClick={() => setExportPreviewPlan(viewDocPlan)}
                   className="px-4 py-2 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white font-bold rounded-xl transition flex items-center gap-1.5 cursor-pointer shadow-sm"
@@ -1652,30 +1648,63 @@ export default function PromotionPlanModule({
 }
 
 /* ─────────────────────────────────────────────────────────────
-   DocExportPreviewModal — Multi-page A4 Preview + Export
-   Preview shows continuous A4 sheets
-   Export: html2canvas → slice into A4 pages for PDF/PNG
+   Helper: Split HTML string into atomic semantic DOM blocks
+───────────────────────────────────────────────────────────── */
+function splitHtmlIntoBlocks(html) {
+  if (!html) return [];
+  try {
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(`<div>${html}</div>`, 'text/html');
+    const container = doc.body.firstElementChild;
+    if (!container) return [];
+
+    const blocks = [];
+    Array.from(container.childNodes).forEach((node) => {
+      if (node.nodeType === Node.TEXT_NODE) {
+        const text = node.textContent?.trim();
+        if (text) blocks.push(`<p>${text}</p>`);
+      } else if (node.nodeType === Node.ELEMENT_NODE) {
+        if ((node.tagName === 'UL' || node.tagName === 'OL') && node.children.length > 2) {
+          // Break large lists into individual LIs so long list items paginate smoothly
+          Array.from(node.children).forEach((li) => {
+            const tag = node.tagName.toLowerCase();
+            blocks.push(`<${tag} class="list-item-block">${li.outerHTML}</${tag}>`);
+          });
+        } else {
+          blocks.push(node.outerHTML);
+        }
+      }
+    });
+    return blocks.length > 0 ? blocks : [html];
+  } catch (e) {
+    return [html];
+  }
+}
+
+/* ─────────────────────────────────────────────────────────────
+   DocExportPreviewModal — Smart Content-Aware Multi-Page A4 Preview
+   Automatically paginates at block boundaries so text lines are never cut
 ───────────────────────────────────────────────────────────── */
 export function DocExportPreviewModal({ plan, onClose, isPublicStandalone = false }) {
-  const measureRef    = useRef(null);
-  const captureRef    = useRef(null);
-  const pickerRef     = useRef(null);
-  const [numPages,    setNumPages]    = useState(1);
+  const [docPages, setDocPages] = useState([]);
   const [isExporting, setIsExporting] = useState(false);
-  const [exportType,  setExportType]  = useState(null);
-  // PNG page picker
+  const [exportType, setExportType] = useState(null);
   const [showPngPicker, setShowPngPicker] = useState(false);
   const [selectedPages, setSelectedPages] = useState([]);
-  // Share link
-  const [shareUrl,   setShareUrl]   = useState('');
-  const [isSharing,  setIsSharing]  = useState(false);
+  const [shareUrl, setShareUrl] = useState('');
+  const [isSharing, setIsSharing] = useState(false);
   const [shareCopied, setShareCopied] = useState(false);
 
-  // A4 at 96 dpi
-  const A4_W     = 794;
-  const A4_H     = 1123;
-  const PAD_H    = 48;   // top/bottom padding inside each page
-  const PAD_LR   = 56;   // left/right padding
+  const measureHeaderRef = useRef(null);
+  const measureBlocksRef = useRef([]);
+  const pageRefs = useRef([]);
+  const pickerRef = useRef(null);
+
+  // A4 standard at 96 dpi
+  const A4_W = 794;
+  const A4_H = 1123;
+  const PAD_H = 54;
+  const PAD_LR = 54;
 
   const metaRows = React.useMemo(() => [
     { label: 'ประเภทแผน',      value: plan.category || '-' },
@@ -1686,7 +1715,6 @@ export function DocExportPreviewModal({ plan, onClose, isPublicStandalone = fals
     { label: 'สาขา',           value: plan.targetBranch || '-' },
   ], [plan]);
 
-  // ── Shared inline styles ──────────────────────────────────
   const S = {
     docBody: {
       fontFamily: "'Sarabun','Noto Sans Thai',sans-serif",
@@ -1695,67 +1723,68 @@ export function DocExportPreviewModal({ plan, onClose, isPublicStandalone = fals
       lineHeight: 1.6,
       width: '100%',
     },
-    header: { borderBottom: '2px solid #4f0074', paddingBottom: 10, marginBottom: 12 },
+    header: { borderBottom: '2px solid #4f0074', paddingBottom: 12, marginBottom: 14 },
     headerTop: { display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 },
     badge: { background: '#4f0074', color: '#fff', fontSize: 10, fontWeight: 700, padding: '2px 8px', borderRadius: 4, fontFamily: 'monospace' },
     title: { fontSize: 16, fontWeight: 700, color: '#1a0030', margin: 0 },
     subtitle: { fontSize: 10.5, color: '#7e22ce', marginTop: 2 },
-    metaGrid: { display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 6, marginBottom: 14 },
+    metaGrid: { display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 6, marginBottom: 16 },
     metaCell: { background: '#f5f0ff', border: '1px solid #e2d2ea', borderRadius: 6, padding: '6px 8px' },
     metaLabel: { fontSize: 8.5, color: '#7e22ce', fontWeight: 700, display: 'block', marginBottom: 1, textTransform: 'uppercase', letterSpacing: '0.04em' },
     metaValue: { fontSize: 11.5, fontWeight: 700, color: '#1a0030' },
   };
 
-  // ── Full content (rendered once, measured / captured) ──────
-  const DocContent = () => (
-    <div style={S.docBody}>
-      {/* Header */}
-      <div style={S.header}>
-        <div style={S.headerTop}>
-          <span style={S.badge}>{plan.code || 'DOC'}</span>
-          <h1 style={S.title}>{plan.title || 'เอกสารแผนแคมเปญ'}</h1>
-        </div>
-        <div style={S.subtitle}>เอกสารแผนแคมเปญโปรโมท (Campaign Doc Brief)</div>
-      </div>
+  // Split HTML into blocks
+  const blocks = React.useMemo(() => {
+    return splitHtmlIntoBlocks(plan.docContent || '<p style="color:#9333ea;font-style:italic">ไม่มีเนื้อหาเอกสาร Doc</p>');
+  }, [plan.docContent]);
 
-      {/* Meta grid */}
-      <div style={S.metaGrid}>
-        {metaRows.map((r, i) => (
-          <div key={i} style={S.metaCell}>
-            <span style={S.metaLabel}>{r.label}</span>
-            <span style={S.metaValue}>{r.value}</span>
-          </div>
-        ))}
-      </div>
-
-      {/* Rich-text body */}
-      <div
-        className="[&_h1]:text-[15px] [&_h1]:font-bold [&_h1]:mt-3 [&_h1]:mb-1.5 [&_h1]:text-[#1a0030]
-          [&_h2]:text-[13px] [&_h2]:font-bold [&_h2]:mt-2.5 [&_h2]:mb-1 [&_h2]:text-[#3b0764] [&_h2]:border-l-[3px] [&_h2]:border-violet-600 [&_h2]:pl-2
-          [&_h3]:text-xs [&_h3]:font-bold [&_h3]:mt-2 [&_h3]:mb-1 [&_h3]:text-[#4f0074]
-          [&_p]:mb-1.5 [&_ul]:list-disc [&_ul]:ml-4 [&_ol]:list-decimal [&_ol]:ml-4 [&_li]:mb-0.5
-          [&_table]:w-full [&_table]:border-collapse [&_table]:text-[11.5px] [&_table]:my-2
-          [&_th]:bg-purple-100 [&_th]:border [&_th]:border-purple-300 [&_th]:p-1.5 [&_th]:font-bold [&_th]:text-left
-          [&_td]:border [&_td]:border-purple-200 [&_td]:p-1.5 [&_td]:align-top
-          [&_strong]:font-bold [&_em]:italic [&_img]:max-w-full [&_img]:h-auto"
-        dangerouslySetInnerHTML={{
-          __html: plan.docContent || '<p style="color:#9333ea;font-style:italic">ไม่มีเนื้อหาเอกสาร Doc</p>'
-        }}
-      />
-    </div>
-  );
-
-  // ── Measure content height after mount → set numPages ──────
+  // ── Auto-Pagination Engine ────────────────────────────────
   useEffect(() => {
-    const el = measureRef.current;
-    if (!el) return;
-    const id = requestAnimationFrame(() => {
-      const h = el.scrollHeight;
-      const usableH = A4_H - PAD_H * 2;
-      setNumPages(Math.max(1, Math.ceil(h / usableH)));
-    });
-    return () => cancelAnimationFrame(id);
-  }, [plan.docContent, plan.title]);
+    const timer = setTimeout(() => {
+      const headerH = measureHeaderRef.current ? measureHeaderRef.current.offsetHeight : 190;
+      const footerH = 36;
+      const page1Budget = A4_H - (PAD_H * 2) - headerH - footerH - 14;
+      const pageNBudget = A4_H - (PAD_H * 2) - 46 - footerH - 14;
+
+      if (!blocks || blocks.length === 0) {
+        setDocPages([[]]);
+        return;
+      }
+
+      const pages = [];
+      let currentPage = [];
+      let currentH = 0;
+      let isPage1 = true;
+      let maxH = page1Budget;
+
+      blocks.forEach((blockHtml, idx) => {
+        const blockEl = measureBlocksRef.current[idx];
+        const blockH = blockEl ? blockEl.offsetHeight + 6 : 40;
+
+        if (currentPage.length === 0 || (currentH + blockH <= maxH)) {
+          currentPage.push(blockHtml);
+          currentH += blockH;
+        } else {
+          pages.push(currentPage);
+          currentPage = [blockHtml];
+          isPage1 = false;
+          maxH = pageNBudget;
+          currentH = blockH;
+        }
+      });
+
+      if (currentPage.length > 0) {
+        pages.push(currentPage);
+      }
+
+      setDocPages(pages);
+    }, 60);
+
+    return () => clearTimeout(timer);
+  }, [blocks, plan.title, plan.code, plan.category, plan.budget, plan.projectedSales, plan.startDate, plan.endDate, plan.targetBranch]);
+
+  const numPages = docPages.length || 1;
 
   // ── Print ─────────────────────────────────────────────────
   const handlePrint = useCallback(() => {
@@ -1769,30 +1798,30 @@ export function DocExportPreviewModal({ plan, onClose, isPublicStandalone = fals
 <title>${plan.title || 'เอกสาร'}</title>
 <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;600;700&display=swap" rel="stylesheet">
 <style>
-@page{size:A4 portrait;margin:14mm 16mm}
+@page{size:A4 portrait;margin:12mm 14mm}
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
-body{font-family:'Sarabun','Noto Sans Thai',sans-serif;font-size:13px;color:#1a0030;line-height:1.75;background:#fff}
-.hd{border-bottom:2.5px solid #4f0074;padding-bottom:14px;margin-bottom:18px;break-inside:avoid}
-.ht{display:flex;align-items:center;gap:10px;margin-bottom:5px}
-.cb{background:#4f0074;color:#fff;font-size:10px;font-weight:700;padding:2px 9px;border-radius:4px;font-family:monospace}
-.dt{font-size:18px;font-weight:700}
-.ds{font-size:11px;color:#7e22ce;margin-top:3px}
-.mg{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:22px;break-inside:avoid;page-break-inside:avoid}
-.mc{background:#f5f0ff;border:1px solid #e2d2ea;border-radius:7px;padding:8px 10px}
-.ml{font-size:9px;color:#7e22ce;font-weight:700;display:block;margin-bottom:2px;text-transform:uppercase}
-.mv{font-size:12px;font-weight:700}
-.bc h1{font-size:17px;font-weight:700;margin:14px 0 7px;break-after:avoid;page-break-after:avoid}
-.bc h2{font-size:14px;font-weight:700;margin:12px 0 5px;color:#3b0764;border-left:3px solid #7c3aed;padding-left:8px;break-after:avoid;page-break-after:avoid}
-.bc h3{font-size:13px;font-weight:700;margin:10px 0 4px;color:#4f0074;break-after:avoid;page-break-after:avoid}
-.bc p{margin:5px 0 8px}
-.bc ul,.bc ol{margin-left:22px;margin-bottom:8px}
-.bc li{margin-bottom:3px;break-inside:avoid;page-break-inside:avoid}
-.bc table{width:100%;border-collapse:collapse;margin:12px 0;font-size:12px;break-inside:avoid;page-break-inside:avoid}
-.bc th{background:#ede9fe;border:1px solid #c4b5fd;padding:6px 8px;text-align:left;font-weight:700}
-.bc td{border:1px solid #ddd6fe;padding:5px 8px;vertical-align:top}
+body{font-family:'Sarabun','Noto Sans Thai',sans-serif;font-size:12.5px;color:#1a0030;line-height:1.6;background:#fff}
+.hd{border-bottom:2px solid #4f0074;padding-bottom:10px;margin-bottom:12px;break-inside:avoid}
+.ht{display:flex;align-items:center;gap:8px;margin-bottom:4px}
+.cb{background:#4f0074;color:#fff;font-size:10px;font-weight:700;padding:2px 8px;border-radius:4px;font-family:monospace}
+.dt{font-size:16px;font-weight:700}
+.ds{font-size:10.5px;color:#7e22ce;margin-top:2px}
+.mg{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-bottom:14px;break-inside:avoid;page-break-inside:avoid}
+.mc{background:#f5f0ff;border:1px solid #e2d2ea;border-radius:6px;padding:6px 8px}
+.ml{font-size:8.5px;color:#7e22ce;font-weight:700;display:block;margin-bottom:1px;text-transform:uppercase}
+.mv{font-size:11.5px;font-weight:700}
+.bc h1{font-size:15px;font-weight:700;margin:12px 0 6px;break-after:avoid;page-break-after:avoid}
+.bc h2{font-size:13px;font-weight:700;margin:10px 0 4px;color:#3b0764;border-left:3px solid #7c3aed;padding-left:6px;break-after:avoid;page-break-after:avoid}
+.bc h3{font-size:12px;font-weight:700;margin:8px 0 3px;color:#4f0074;break-after:avoid;page-break-after:avoid}
+.bc p{margin:4px 0 6px}
+.bc ul,.bc ol{margin-left:18px;margin-bottom:6px}
+.bc li{margin-bottom:2px;break-inside:avoid;page-break-inside:avoid}
+.bc table{width:100%;border-collapse:collapse;margin:10px 0;font-size:11.5px;break-inside:avoid;page-break-inside:avoid}
+.bc th{background:#ede9fe;border:1px solid #c4b5fd;padding:5px 7px;text-align:left;font-weight:700}
+.bc td{border:1px solid #ddd6fe;padding:4px 7px;vertical-align:top}
 .bc tr:nth-child(even) td{background:#faf5ff}
 .bc img{max-width:100%;height:auto}
-.ft{margin-top:24px;padding-top:10px;border-top:1px solid #e5e7eb;font-size:10px;color:#9ca3af;display:flex;justify-content:space-between}
+.ft{margin-top:20px;padding-top:8px;border-top:1px solid #e5e7eb;font-size:9.5px;color:#9ca3af;display:flex;justify-content:space-between}
 </style></head><body>
 <div class="hd"><div class="ht"><span class="cb">${plan.code||'DOC'}</span><span class="dt">${plan.title||'เอกสาร'}</span></div><div class="ds">เอกสารแผนแคมเปญโปรโมท (Campaign Doc Brief)</div></div>
 <div class="mg">${metaHTML}</div>
@@ -1804,100 +1833,99 @@ body{font-family:'Sarabun','Noto Sans Thai',sans-serif;font-size:13px;color:#1a0
     setTimeout(() => win.print(), 700);
   }, [plan, metaRows]);
 
-  // ── Capture hidden full-content div ───────────────────────
-  const runCapture = useCallback(async () => {
-    const el = captureRef.current;
-    if (!el) throw new Error('capture element not ready');
-    return html2canvas(el, {
-      scale: 2, useCORS: true, backgroundColor: '#ffffff',
-      logging: false, width: A4_W, windowWidth: A4_W,
-    });
-  }, []);
+  // ── Export PDF ────────────────────────────────────────────
+  const handleExportPDF = useCallback(async () => {
+    setIsExporting(true); setExportType('pdf');
+    try {
+      const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+      const pdfW = pdf.internal.pageSize.getWidth();
+      const pdfH = pdf.internal.pageSize.getHeight();
 
-  // ── Export PNG (only selected pages) ─────────────────────
+      for (let i = 0; i < docPages.length; i++) {
+        const pageEl = pageRefs.current[i];
+        if (!pageEl) continue;
+        const canvas = await html2canvas(pageEl, {
+          scale: 2,
+          useCORS: true,
+          backgroundColor: '#ffffff',
+          logging: false,
+          width: A4_W,
+          height: A4_H,
+        });
+        if (i > 0) pdf.addPage();
+        pdf.addImage(canvas.toDataURL('image/png'), 'PNG', 0, 0, pdfW, pdfH);
+      }
+      pdf.save(`${(plan.title||'doc').replace(/\s+/g,'_')}.pdf`);
+    } catch (err) {
+      console.error(err); alert('เกิดข้อผิดพลาดในการ Export PDF');
+    } finally { setIsExporting(false); setExportType(null); }
+  }, [docPages, plan]);
+
+  // ── Export PNG ────────────────────────────────────────────
   const handleExportImage = useCallback(async (pagesToExport) => {
     setIsExporting(true); setExportType('image'); setShowPngPicker(false);
     try {
-      const canvas = await runCapture();
-      const pageHpx = Math.floor((canvas.width * A4_H) / A4_W);
+      const targetIndices = (!pagesToExport || pagesToExport.length === 0)
+        ? docPages.map((_, i) => i)
+        : pagesToExport;
 
-      if (!pagesToExport || pagesToExport.length === 0 || pagesToExport.length === numPages) {
+      const canvases = [];
+      for (const idx of targetIndices) {
+        const pageEl = pageRefs.current[idx];
+        if (!pageEl) continue;
+        const canvas = await html2canvas(pageEl, {
+          scale: 2,
+          useCORS: true,
+          backgroundColor: '#ffffff',
+          logging: false,
+          width: A4_W,
+          height: A4_H,
+        });
+        canvases.push(canvas);
+      }
+
+      if (canvases.length === 1) {
         const link = document.createElement('a');
-        link.download = `${(plan.title||'doc').replace(/\s+/g,'_')}.png`;
-        link.href = canvas.toDataURL('image/png');
+        link.download = `${(plan.title||'doc').replace(/\s+/g,'_')}_p${targetIndices[0]+1}.png`;
+        link.href = canvases[0].toDataURL('image/png');
         link.click();
-      } else {
-        const totalH = pageHpx * pagesToExport.length;
+      } else if (canvases.length > 1) {
         const merged = document.createElement('canvas');
-        merged.width  = canvas.width;
-        merged.height = totalH;
+        merged.width = canvases[0].width;
+        merged.height = canvases.reduce((sum, c) => sum + c.height, 0);
         const ctx = merged.getContext('2d');
-        pagesToExport.forEach((pageIdx, i) => {
-          const sy = pageIdx * pageHpx;
-          const sh = Math.min(pageHpx, canvas.height - sy);
-          ctx.drawImage(
-            canvas,
-            0, sy, canvas.width, sh,
-            0, i * pageHpx, canvas.width, sh
-          );
+        let currentY = 0;
+        canvases.forEach((c) => {
+          ctx.drawImage(c, 0, currentY);
+          currentY += c.height;
         });
         const link = document.createElement('a');
-        link.download = `${(plan.title||'doc').replace(/\s+/g,'_')}_p${pagesToExport.map(p=>p+1).join('-')}.png`;
+        link.download = `${(plan.title||'doc').replace(/\s+/g,'_')}_p${targetIndices.map(p=>p+1).join('-')}.png`;
         link.href = merged.toDataURL('image/png');
         link.click();
       }
     } catch (err) {
       console.error(err); alert('เกิดข้อผิดพลาดในการ Export รูป');
     } finally { setIsExporting(false); setExportType(null); }
-  }, [runCapture, plan, numPages]);
+  }, [docPages, plan]);
 
-  // ── Toggle page selection ─────────────────────────────────
   const togglePage = useCallback((idx) => {
     setSelectedPages(prev =>
       prev.includes(idx) ? prev.filter(p => p !== idx) : [...prev, idx].sort((a,b)=>a-b)
     );
   }, []);
 
-  // ── Open PNG picker: pre-select all pages ─────────────────
   const openPngPicker = useCallback(() => {
     setSelectedPages(Array.from({ length: numPages }, (_, i) => i));
     setShowPngPicker(v => !v);
   }, [numPages]);
 
-  // ── Export PDF (canvas sliced into A4 pages) ──────────────
-  const handleExportPDF = useCallback(async () => {
-    setIsExporting(true); setExportType('pdf');
-    try {
-      const canvas = await runCapture();
-      const pdf    = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
-      const pdfW   = pdf.internal.pageSize.getWidth();
-      const pdfH   = pdf.internal.pageSize.getHeight();
-      const pageHpx = Math.floor((canvas.width * pdfH) / pdfW);
-      let yPx = 0, pageIdx = 0;
-      while (yPx < canvas.height) {
-        const sliceH  = Math.min(pageHpx, canvas.height - yPx);
-        const slice   = document.createElement('canvas');
-        slice.width   = canvas.width;
-        slice.height  = sliceH;
-        slice.getContext('2d').drawImage(canvas, 0, -yPx);
-        if (pageIdx > 0) pdf.addPage();
-        pdf.addImage(slice.toDataURL('image/png'), 'PNG', 0, 0, pdfW, (sliceH / canvas.width) * pdfW);
-        yPx += sliceH; pageIdx++;
-      }
-      pdf.save(`${(plan.title||'doc').replace(/\s+/g,'_')}.pdf`);
-    } catch (err) {
-      console.error(err); alert('เกิดข้อผิดพลาดในการ Export PDF');
-    } finally { setIsExporting(false); setExportType(null); }
-  }, [runCapture, plan]);
-
-  // ── Create shareable direct web link ──────────────────────
+  // ── Share Link ───────────────────────────────────────────
   const handleCreateShareLink = useCallback(async () => {
     setIsSharing(true);
     try {
       const planId = plan.id;
-      if (!planId) {
-        throw new Error('กรุณาบันทึกเอกสารแผนก่อนแชร์ลิงก์');
-      }
+      if (!planId) throw new Error('กรุณาบันทึกเอกสารแผนก่อนแชร์ลิงก์');
       const origin = window.location.origin;
       const path = window.location.pathname;
       const url = `${origin}${path}?docPreview=${planId}`;
@@ -1916,7 +1944,6 @@ body{font-family:'Sarabun','Noto Sans Thai',sans-serif;font-size:13px;color:#1a0
     }
   }, [plan]);
 
-  // ── Copy URL to clipboard ───────────────────────────────────
   const handleCopyShareUrl = useCallback(() => {
     if (!shareUrl) return;
     navigator.clipboard.writeText(shareUrl).then(() => {
@@ -1925,12 +1952,10 @@ body{font-family:'Sarabun','Noto Sans Thai',sans-serif;font-size:13px;color:#1a0
     });
   }, [shareUrl]);
 
-  // ─────────────────────────────────────────────────────────
-
   return (
     <div className={isPublicStandalone ? "min-h-screen w-full flex flex-col bg-slate-900 animate-in fade-in duration-200" : "fixed inset-0 z-[60] flex flex-col bg-black/75 backdrop-blur-sm animate-in fade-in duration-200"}>
 
-      {/* ── Top bar ── */}
+      {/* ── Top Bar ── */}
       <div className="flex items-center justify-between px-5 py-3 bg-purple-950 shadow-xl shrink-0 gap-3 flex-wrap">
         <div className="flex items-center gap-3 min-w-0">
           <Eye className="w-5 h-5 text-pink-300 shrink-0" />
@@ -1942,18 +1967,15 @@ body{font-family:'Sarabun','Noto Sans Thai',sans-serif;font-size:13px;color:#1a0
           </div>
         </div>
         <div className="flex items-center gap-2 shrink-0 flex-wrap">
-          {/* Page count badge */}
           <span className="px-2.5 py-1 bg-purple-800 border border-purple-700 text-purple-200 text-[10px] font-bold rounded-lg">
             {numPages} หน้า
           </span>
 
-          {/* Print */}
           <button onClick={handlePrint} disabled={isExporting}
             className="flex items-center gap-1.5 px-3 py-1.5 bg-purple-700 hover:bg-purple-600 border border-purple-600 text-white text-xs font-bold rounded-lg transition cursor-pointer disabled:opacity-50">
             <Printer className="w-3.5 h-3.5" /><span>พิมพ์</span>
           </button>
 
-          {/* Export PNG — with page picker dropdown */}
           <div className="relative" ref={pickerRef}>
             <button
               onClick={openPngPicker}
@@ -1967,15 +1989,12 @@ body{font-family:'Sarabun','Noto Sans Thai',sans-serif;font-size:13px;color:#1a0
               <span className="ml-0.5 text-emerald-200 text-[10px]">▾</span>
             </button>
 
-            {/* ── Page picker dropdown ── */}
             {showPngPicker && (
               <div className="absolute right-0 top-full mt-2 z-50 bg-white border border-purple-200 rounded-xl shadow-2xl p-4 min-w-[220px] animate-in fade-in slide-in-from-top-1 duration-150">
                 <p className="text-[11px] font-bold text-purple-900 mb-3 flex items-center gap-1.5">
                   <ImageIcon className="w-3.5 h-3.5 text-purple-600"/>
                   เลือกหน้าที่ต้องการ Export
                 </p>
-
-                {/* Select all / clear */}
                 <div className="flex gap-2 mb-3">
                   <button
                     onClick={() => setSelectedPages(Array.from({ length: numPages }, (_, i) => i))}
@@ -1990,8 +2009,6 @@ body{font-family:'Sarabun','Noto Sans Thai',sans-serif;font-size:13px;color:#1a0
                     ยกเลิกทั้งหมด
                   </button>
                 </div>
-
-                {/* Page checkboxes */}
                 <div className="flex flex-col gap-1.5 max-h-52 overflow-y-auto pr-1">
                   {Array.from({ length: numPages }, (_, i) => (
                     <label
@@ -2008,23 +2025,16 @@ body{font-family:'Sarabun','Noto Sans Thai',sans-serif;font-size:13px;color:#1a0
                         onChange={() => togglePage(i)}
                         className="w-3.5 h-3.5 accent-emerald-600 cursor-pointer"
                       />
-                      <span className="text-xs font-semibold text-gray-800">
-                        หน้า {i + 1}
-                      </span>
+                      <span className="text-xs font-semibold text-gray-800">หน้า {i + 1}</span>
                       {i === 0 && (
                         <span className="ml-auto text-[9px] text-purple-500 font-medium bg-purple-50 px-1.5 py-0.5 rounded-md">ปก</span>
                       )}
                     </label>
                   ))}
                 </div>
-
-                {/* Confirm export */}
                 <button
                   onClick={() => {
-                    if (selectedPages.length === 0) {
-                      alert('กรุณาเลือกอย่างน้อย 1 หน้า');
-                      return;
-                    }
+                    if (selectedPages.length === 0) { alert('กรุณาเลือกอย่างน้อย 1 หน้า'); return; }
                     handleExportImage(selectedPages);
                   }}
                   disabled={selectedPages.length === 0}
@@ -2033,8 +2043,6 @@ body{font-family:'Sarabun','Noto Sans Thai',sans-serif;font-size:13px;color:#1a0
                   <ImageIcon className="w-3.5 h-3.5"/>
                   Export {selectedPages.length > 0 ? `${selectedPages.length} หน้า` : ''} เป็น PNG
                 </button>
-
-                {/* Close picker */}
                 <button
                   onClick={() => setShowPngPicker(false)}
                   className="mt-1.5 w-full text-[10px] text-gray-400 hover:text-gray-600 py-1 cursor-pointer transition"
@@ -2045,28 +2053,23 @@ body{font-family:'Sarabun','Noto Sans Thai',sans-serif;font-size:13px;color:#1a0
             )}
           </div>
 
-          {/* Export PDF */}
           <button onClick={handleExportPDF} disabled={isExporting}
             className="flex items-center gap-1.5 px-3 py-1.5 bg-rose-600 hover:bg-rose-500 text-white text-xs font-bold rounded-lg transition cursor-pointer disabled:opacity-50">
             {isExporting && exportType==='pdf' ? <Loader2 className="w-3.5 h-3.5 animate-spin"/> : <FileDown className="w-3.5 h-3.5"/>}
             <span>Export PDF</span>
           </button>
 
-          {/* Share Link (Only in modal mode) */}
           {!isPublicStandalone && (
             <button
               onClick={handleCreateShareLink}
               disabled={isSharing || isExporting}
               className="flex items-center gap-1.5 px-3 py-1.5 bg-sky-600 hover:bg-sky-500 text-white text-xs font-bold rounded-lg transition cursor-pointer disabled:opacity-50"
             >
-              {isSharing
-                ? <Loader2 className="w-3.5 h-3.5 animate-spin"/>
-                : <Link className="w-3.5 h-3.5"/>}
+              {isSharing ? <Loader2 className="w-3.5 h-3.5 animate-spin"/> : <Link className="w-3.5 h-3.5"/>}
               <span>สร้างลิงก์</span>
             </button>
           )}
 
-          {/* Close Button (Only in modal mode) */}
           {!isPublicStandalone && (
             <button onClick={onClose}
               className="flex items-center gap-1 px-3 py-1.5 bg-white/10 hover:bg-white/20 text-white text-xs font-bold rounded-lg transition cursor-pointer">
@@ -2076,7 +2079,6 @@ body{font-family:'Sarabun','Noto Sans Thai',sans-serif;font-size:13px;color:#1a0
         </div>
       </div>
 
-      {/* ── Share URL bar (shows after link is created) ── */}
       {shareUrl && (
         <div className="shrink-0 bg-sky-950 border-b border-sky-800 px-5 py-2.5 flex items-center gap-3 flex-wrap">
           <Link className="w-4 h-4 text-sky-300 shrink-0"/>
@@ -2090,14 +2092,10 @@ body{font-family:'Sarabun','Noto Sans Thai',sans-serif;font-size:13px;color:#1a0
           <button
             onClick={handleCopyShareUrl}
             className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold rounded-lg transition cursor-pointer shrink-0 ${
-              shareCopied
-                ? 'bg-emerald-500 text-white'
-                : 'bg-sky-600 hover:bg-sky-500 text-white'
+              shareCopied ? 'bg-emerald-500 text-white' : 'bg-sky-600 hover:bg-sky-500 text-white'
             }`}
           >
-            {shareCopied
-              ? <><CheckCircle className="w-3.5 h-3.5"/><span>คัดลอกแล้ว!</span></>
-              : <><Copy className="w-3.5 h-3.5"/><span>คัดลอก</span></>}
+            {shareCopied ? <><CheckCircle className="w-3.5 h-3.5"/><span>คัดลอกแล้ว!</span></> : <><Copy className="w-3.5 h-3.5"/><span>คัดลอก</span></>}
           </button>
           <a
             href={shareUrl}
@@ -2111,94 +2109,156 @@ body{font-family:'Sarabun','Noto Sans Thai',sans-serif;font-size:13px;color:#1a0
         </div>
       )}
 
-      {/* ── Scrollable preview: Separate A4 sheets (หน้า 1, หน้า 2, ...) ── */}
       <div className="flex-1 overflow-y-auto bg-gray-300 py-8 flex flex-col items-center gap-6 px-4">
-        {Array.from({ length: numPages }, (_, pageIdx) => {
-          const usablePageH = A4_H - PAD_H * 2;
-          const offsetY = pageIdx * usablePageH;
-          return (
-            <div key={pageIdx} style={{ position: 'relative', flexShrink: 0 }}>
-              {/* Page number badge */}
-              <div style={{
-                position: 'absolute', top: -22, left: 0, right: 0,
-                display: 'flex', justifyContent: 'center', alignItems: 'center',
+        {docPages.map((pageBlocks, pageIdx) => (
+          <div key={pageIdx} style={{ position: 'relative', flexShrink: 0, marginTop: pageIdx === 0 ? 0 : 8 }}>
+            {/* Page number badge */}
+            <div style={{
+              position: 'absolute', top: -30, left: 0, right: 0,
+              display: 'flex', justifyContent: 'center', alignItems: 'center',
+            }}>
+              <span style={{
+                background: '#7e22ce', color: '#fff',
+                fontSize: 10, fontWeight: 700, padding: '3px 12px', borderRadius: 20,
+                letterSpacing: '0.05em',
+                boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
               }}>
-                <span style={{
-                  background: '#7e22ce', color: '#fff',
-                  fontSize: 10, fontWeight: 700, padding: '2px 10px', borderRadius: 20,
-                  letterSpacing: '0.05em',
-                }}>
-                  หน้า {pageIdx + 1}
-                </span>
-              </div>
+                หน้า {pageIdx + 1} / {docPages.length}
+              </span>
+            </div>
 
-              {/* A4 white card */}
-              <div style={{
+            {/* A4 White Page Card */}
+            <div
+              ref={(el) => (pageRefs.current[pageIdx] = el)}
+              style={{
                 width: A4_W,
                 height: A4_H,
-                overflow: 'hidden',
-                background: '#fff',
+                background: '#ffffff',
                 boxShadow: '0 4px 28px rgba(0,0,0,0.18)',
+                padding: `${PAD_H}px ${PAD_LR}px`,
+                boxSizing: 'border-box',
+                display: 'flex',
+                flexDirection: 'column',
+                justifyContent: 'space-between',
                 position: 'relative',
-                flexShrink: 0,
-              }}>
-                {/* Content shifted for each page */}
-                <div style={{
-                  position: 'absolute',
-                  top: -offsetY + (pageIdx === 0 ? 0 : PAD_H),
-                  left: PAD_LR,
-                  right: PAD_LR,
-                  paddingTop: PAD_H,
-                }}>
-                  <DocContent />
-                </div>
+                borderRadius: 4,
+              }}
+            >
+              <div style={{ width: '100%', paddingTop: 4 }}>
+                {pageIdx === 0 ? (
+                  <>
+                    {/* Header */}
+                    <div style={S.header}>
+                      <div style={S.headerTop}>
+                        <span style={S.badge}>{plan.code || 'DOC'}</span>
+                        <h1 style={S.title}>{plan.title || 'เอกสารแผนแคมเปญ'}</h1>
+                      </div>
+                      <div style={S.subtitle}>เอกสารแผนแคมเปญโปรโมท (Campaign Doc Brief)</div>
+                    </div>
 
-                {/* Page number footer */}
-                <div style={{
-                  position: 'absolute',
-                  bottom: 14,
-                  left: PAD_LR,
-                  right: PAD_LR,
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  fontSize: 10,
-                  color: '#9ca3af',
-                  borderTop: '1px solid #f3f0ff',
-                  paddingTop: 8,
-                  background: '#fff',
-                }}>
-                  <span>NITAN Marketing Platform</span>
-                  <span>หน้า {pageIdx + 1} / {numPages}</span>
-                </div>
+                    {/* Meta grid */}
+                    <div style={S.metaGrid}>
+                      {metaRows.map((r, i) => (
+                        <div key={i} style={S.metaCell}>
+                          <span style={S.metaLabel}>{r.label}</span>
+                          <span style={S.metaValue}>{r.value}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </>
+                ) : (
+                  /* Page 2+ Mini Continuation Header */
+                  <div style={{
+                    display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                    borderBottom: '2px solid #e9d5ff', paddingBottom: 10, marginBottom: 20,
+                  }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                      <span style={S.badge}>{plan.code || 'DOC'}</span>
+                      <span style={{ fontSize: 13, fontWeight: 700, color: '#1a0030' }}>{plan.title} (ต่อ)</span>
+                    </div>
+                    <span style={{ fontSize: 10.5, color: '#7e22ce', fontWeight: 600 }}>หน้า {pageIdx + 1}</span>
+                  </div>
+                )}
+
+                <div
+                  className="[&_h1]:text-[15px] [&_h1]:font-bold [&_h1]:mt-3 [&_h1]:mb-1.5 [&_h1]:text-[#1a0030]
+                    [&_h2]:text-[13px] [&_h2]:font-bold [&_h2]:mt-2.5 [&_h2]:mb-1 [&_h2]:text-[#3b0764] [&_h2]:border-l-[3px] [&_h2]:border-violet-600 [&_h2]:pl-2
+                    [&_h3]:text-xs [&_h3]:font-bold [&_h3]:mt-2 [&_h3]:mb-1 [&_h3]:text-[#4f0074]
+                    [&_p]:mb-1.5 [&_ul]:list-disc [&_ul]:ml-4 [&_ol]:list-decimal [&_ol]:ml-4 [&_li]:mb-0.5
+                    [&_table]:w-full [&_table]:border-collapse [&_table]:text-[11.5px] [&_table]:my-2
+                    [&_th]:bg-purple-100 [&_th]:border [&_th]:border-purple-300 [&_th]:p-1.5 [&_th]:font-bold [&_th]:text-left
+                    [&_td]:border [&_td]:border-purple-200 [&_td]:p-1.5 [&_td]:align-top
+                    [&_strong]:font-bold [&_em]:italic [&_img]:max-w-full [&_img]:h-auto"
+                  style={S.docBody}
+                  dangerouslySetInnerHTML={{
+                    __html: pageBlocks.join('') || '<p style="color:#9333ea;font-style:italic">ไม่มีเนื้อหาเอกสาร Doc</p>'
+                  }}
+                />
+              </div>
+
+              <div style={{
+                borderTop: '1px solid #f3e8ff',
+                paddingTop: 8,
+                display: 'flex',
+                justifyContent: 'space-between',
+                fontSize: 10,
+                color: '#9ca3af',
+                fontWeight: 500,
+              }}>
+                <span>NITAN Marketing Platform</span>
+                <span>หน้า {pageIdx + 1} / {docPages.length}</span>
               </div>
             </div>
-          );
-        })}
+          </div>
+        ))}
       </div>
 
-      {/* ── Hidden measurement div ── */}
       <div style={{
         position: 'fixed', top: 0, left: '-9999px',
         width: A4_W - PAD_LR * 2,
         pointerEvents: 'none', visibility: 'hidden', zIndex: -1,
       }}>
-        <div ref={measureRef}><DocContent /></div>
-      </div>
+        <div ref={measureHeaderRef} style={S.docBody}>
+          <div style={S.header}>
+            <div style={S.headerTop}>
+              <span style={S.badge}>{plan.code || 'DOC'}</span>
+              <h1 style={S.title}>{plan.title || 'เอกสารแผนแคมเปญ'}</h1>
+            </div>
+            <div style={S.subtitle}>เอกสารแผนแคมเปญโปรโมท (Campaign Doc Brief)</div>
+          </div>
+          <div style={S.metaGrid}>
+            {metaRows.map((r, i) => (
+              <div key={i} style={S.metaCell}>
+                <span style={S.metaLabel}>{r.label}</span>
+                <span style={S.metaValue}>{r.value}</span>
+              </div>
+            ))}
+          </div>
+        </div>
 
-      {/* ── Hidden capture div ── */}
-      <div style={{
-        position: 'fixed', top: 0, left: '-9999px',
-        width: A4_W,
-        pointerEvents: 'none', zIndex: -1,
-      }}>
-        <div ref={captureRef} style={{ width: A4_W, padding: `${PAD_H}px ${PAD_LR}px`, background: '#fff', boxSizing: 'border-box' }}>
-          <DocContent />
+        <div
+          style={S.docBody}
+          className="[&_h1]:text-[15px] [&_h1]:font-bold [&_h1]:mt-3 [&_h1]:mb-1.5 [&_h1]:text-[#1a0030]
+            [&_h2]:text-[13px] [&_h2]:font-bold [&_h2]:mt-2.5 [&_h2]:mb-1 [&_h2]:text-[#3b0764] [&_h2]:border-l-[3px] [&_h2]:border-violet-600 [&_h2]:pl-2
+            [&_h3]:text-xs [&_h3]:font-bold [&_h3]:mt-2 [&_h3]:mb-1 [&_h3]:text-[#4f0074]
+            [&_p]:mb-1.5 [&_ul]:list-disc [&_ul]:ml-4 [&_ol]:list-decimal [&_ol]:ml-4 [&_li]:mb-0.5
+            [&_table]:w-full [&_table]:border-collapse [&_table]:text-[11.5px] [&_table]:my-2
+            [&_th]:bg-purple-100 [&_th]:border [&_th]:border-purple-300 [&_th]:p-1.5 [&_th]:font-bold [&_th]:text-left
+            [&_td]:border [&_td]:border-purple-200 [&_td]:p-1.5 [&_td]:align-top
+            [&_strong]:font-bold [&_em]:italic [&_img]:max-w-full [&_img]:h-auto"
+        >
+          {blocks.map((bHtml, bIdx) => (
+            <div
+              key={bIdx}
+              ref={(el) => (measureBlocksRef.current[bIdx] = el)}
+              dangerouslySetInnerHTML={{ __html: bHtml }}
+            />
+          ))}
         </div>
       </div>
 
-      {/* ── Bottom hint ── */}
       <div className="shrink-0 bg-purple-900/95 px-6 py-2 flex items-center justify-center text-[11px] text-purple-300">
-        <span>📄 แต่ละกล่องขาว = 1 หน้า A4 &nbsp;·&nbsp; <strong className="text-white">Export PDF</strong> จะแบ่งเป็น {numPages} หน้าอัตโนมัติ</span>
+        <span>📄 ระบบคำนวณและตัดแบ่งหน้าตามย่อหน้าอัตโนมัติ &nbsp;·&nbsp; รวม {numPages} หน้า &nbsp;·&nbsp; ข้อความจะไม่ถูกตัดขาดหรือทับซ้อน</span>
       </div>
     </div>
   );
