@@ -33,7 +33,32 @@ import {
   Save
 } from 'lucide-react';
 import { parseFullSheetWithGroqAi } from '../services/groqAiService';
-import { upsertBranchBudgetToSupabase, fetchBranchBudgetsFromSupabase } from '../services/dataService';
+import { 
+  upsertBranchBudgetToSupabase, 
+  fetchBranchBudgetsFromSupabase,
+  deleteBranchBudgetFromSupabase 
+} from '../services/dataService';
+
+// Helper to remove any duplicate branches for the same month
+const sanitizeBudgetDataMap = (dataMap) => {
+  if (!dataMap || typeof dataMap !== 'object') return {};
+  const cleaned = {};
+  Object.keys(dataMap).forEach(monthKey => {
+    const list = dataMap[monthKey];
+    if (Array.isArray(list)) {
+      const seen = new Set();
+      cleaned[monthKey] = list.filter(b => {
+        if (!b || !b.name) return false;
+        const normName = b.name.trim().toLowerCase();
+        if (seen.has(normName) || (b.id && seen.has(b.id))) return false;
+        seen.add(normName);
+        if (b.id) seen.add(b.id);
+        return true;
+      });
+    }
+  });
+  return cleaned;
+};
 
 export default function BranchBudgetAllocation() {
   const [mktPercentRate, setMktPercentRate] = useState(2.0); // Default MKT 2%
@@ -110,7 +135,14 @@ export default function BranchBudgetAllocation() {
   // Monthly Budgets Data Map with localStorage & Supabase Persistence
   const [monthlyBudgetsData, setMonthlyBudgetsData] = useState(() => {
     const saved = localStorage.getItem('nitan_monthly_budgets_data');
-    return saved ? JSON.parse(saved) : {};
+    if (saved) {
+      try {
+        return sanitizeBudgetDataMap(JSON.parse(saved));
+      } catch (e) {
+        console.error('Error reading localStorage monthly budgets:', e);
+      }
+    }
+    return {};
   });
 
   const currentMonthKey = `${selectedYear}-${selectedMonth}`;
@@ -223,19 +255,33 @@ export default function BranchBudgetAllocation() {
       if (data && data.length > 0) {
         const grouped = {};
         data.forEach(item => {
+           if (!item.month_year || !item.branch_name) return;
            if (!grouped[item.month_year]) grouped[item.month_year] = [];
-           const defaultBranch = DEFAULT_NITAN_BRANCHES.find(d => d.name === item.branch_name) || {
+           
+           const normName = item.branch_name.trim().toLowerCase();
+           if (grouped[item.month_year].some(b => b.name?.trim().toLowerCase() === normName)) {
+             return; // Skip duplicate
+           }
+
+           const defaultBranch = DEFAULT_NITAN_BRANCHES.find(d => 
+             d.name.trim().toLowerCase() === normName ||
+             (d.id === 'hq' && (normName.includes('สำนักงานใหญ่') || normName.includes('หลัก'))) ||
+             (d.id === 'pratamnak' && normName.includes('พระตำหนัก')) ||
+             (d.id === 'naklua' && normName.includes('นาเกลือ'))
+           ) || {
               id: `b_${Date.now()}_${Math.random()}`,
-              colorHeader: 'bg-gray-100 text-gray-900 border-gray-200'
+              colorHeader: 'bg-[#F5EEF8] text-purple-950 border-[#E2D2EA]'
            };
+
            grouped[item.month_year].push({
              id: defaultBranch.id,
              name: item.branch_name,
              colorHeader: defaultBranch.colorHeader,
-             previousSales: item.previous_sales,
-             manualFullBudget: item.full_budget,
+             previousSales: Number(item.previous_sales) || 0,
+             manualFullBudget: Number(item.full_budget) || 0,
              promotions: item.offline_promotions || [],
-             channelAllocations: item.channel_allocations || []
+             channelAllocations: item.channel_allocations || [],
+             note: item.note || ''
            });
         });
         
@@ -244,7 +290,7 @@ export default function BranchBudgetAllocation() {
           Object.keys(grouped).forEach(k => {
             merged[k] = grouped[k];
           });
-          return merged;
+          return sanitizeBudgetDataMap(merged);
         });
       }
     };
@@ -399,6 +445,10 @@ export default function BranchBudgetAllocation() {
   // Confirm Delete Branch Handler
   const handleConfirmDeleteBranch = () => {
     if (deleteBranchId) {
+      const branchToDelete = (monthlyBudgetsData[currentMonthKey] || []).find(b => b.id === deleteBranchId);
+      if (branchToDelete?.name) {
+        deleteBranchBudgetFromSupabase(branchToDelete.name, currentMonthKey);
+      }
       updateCurrentBranches(prev => prev.filter(b => b.id !== deleteBranchId));
       setDeleteBranchId(null);
     }

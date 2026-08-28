@@ -1583,10 +1583,11 @@ export default function ContentPlanModule({
     .filter(item => {
       let matchesPlatform = selectedPlatform === 'all';
       if (!matchesPlatform) {
+        const platQuery = selectedPlatform.toLowerCase();
         if (Array.isArray(item.platform)) {
-          matchesPlatform = item.platform.includes(selectedPlatform);
+          matchesPlatform = item.platform.some(p => String(p).toLowerCase().includes(platQuery));
         } else if (typeof item.platform === 'string') {
-          matchesPlatform = item.platform.toLowerCase().includes(selectedPlatform);
+          matchesPlatform = item.platform.toLowerCase().includes(platQuery);
         }
       }
 

@@ -4,7 +4,6 @@ import JoditEditor from 'jodit-react';
 import html2canvas from 'html2canvas';
 import jsPDF from 'jspdf';
 import {
-  fetchBranchBudgetsFromSupabase,
   fetchPromotionPlansFromSupabase,
   upsertPromotionPlanToSupabase,
   deletePromotionPlanFromSupabase
@@ -181,6 +180,7 @@ export default function PromotionPlanModule({
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [selectedProduct, setSelectedProduct] = useState('all');
   const [selectedBranch, setSelectedBranch] = useState('all');
+  const [selectedChannel, setSelectedChannel] = useState('all');
   const [selectedStatus, setSelectedStatus] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
 
@@ -448,19 +448,60 @@ export default function PromotionPlanModule({
     }));
   };
 
+  // Available Channels for Filter
+  const availableChannels = useMemo(() => {
+    const channelSet = new Set([
+      'Facebook',
+      'TikTok',
+      'Instagram',
+      'Line OA',
+      'Shopee',
+      'Lazada',
+      'Grab',
+      'Google',
+      'Influencer',
+      'Offline / POSM / หน้าร้าน',
+      'Event / Workshop'
+    ]);
+
+    promotionPlans.forEach(p => {
+      if (Array.isArray(p.channels)) {
+        p.channels.forEach(ch => {
+          if (ch && typeof ch === 'string' && ch.trim()) {
+            channelSet.add(ch.trim());
+          }
+        });
+      }
+    });
+
+    return Array.from(channelSet);
+  }, [promotionPlans]);
+
   // Filtered Logic with Auto-sorting by upcoming date
   const filteredPlans = promotionPlans
     .filter(plan => {
       const matchCategory = selectedCategory === 'all' || plan.category === selectedCategory;
-      const matchProduct = selectedProduct === 'all' || plan.targetProductName.toLowerCase().includes(selectedProduct.toLowerCase());
+      const matchProduct = selectedProduct === 'all' || (plan.targetProductName && plan.targetProductName.toLowerCase().includes(selectedProduct.toLowerCase()));
       const matchBranch = selectedBranch === 'all' || plan.targetBranch === selectedBranch || plan.targetBranch === 'ทุกสาขา';
       const matchStatus = selectedStatus === 'all' || plan.status === selectedStatus;
-      const matchSearch = !searchQuery ||
-        plan.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        plan.code.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        plan.targetProductName.toLowerCase().includes(searchQuery.toLowerCase());
+      
+      const matchChannel = selectedChannel === 'all' || (() => {
+        const query = selectedChannel.toLowerCase();
+        if (Array.isArray(plan.channels)) {
+          if (plan.channels.some(c => typeof c === 'string' && c.toLowerCase().includes(query))) return true;
+        }
+        if (typeof plan.channelsStr === 'string' && plan.channelsStr.toLowerCase().includes(query)) return true;
+        if (typeof plan.description === 'string' && plan.description.toLowerCase().includes(query)) return true;
+        return false;
+      })();
 
-      return matchCategory && matchProduct && matchBranch && matchStatus && matchSearch;
+      const matchSearch = !searchQuery ||
+        (plan.title && plan.title.toLowerCase().includes(searchQuery.toLowerCase())) ||
+        (plan.code && plan.code.toLowerCase().includes(searchQuery.toLowerCase())) ||
+        (plan.targetProductName && plan.targetProductName.toLowerCase().includes(searchQuery.toLowerCase())) ||
+        (Array.isArray(plan.channels) && plan.channels.some(c => typeof c === 'string' && c.toLowerCase().includes(searchQuery.toLowerCase())));
+
+      return matchCategory && matchProduct && matchBranch && matchStatus && matchChannel && matchSearch;
     })
     .sort((a, b) => {
       const dateA = a.startDate || a.start_date || '9999-99-99';
@@ -753,6 +794,22 @@ export default function PromotionPlanModule({
             </button>
           </div>
 
+          {/* Channel Filter */}
+          <div className="flex items-center gap-1.5 bg-white px-2.5 py-1 rounded-xl border border-[#E2D2EA]">
+            <Share2 className="w-3.5 h-3.5 text-purple-600" />
+            <span className="font-bold text-purple-900">ช่องทางสื่อสาร:</span>
+            <select
+              value={selectedChannel}
+              onChange={(e) => setSelectedChannel(e.target.value)}
+              className="bg-transparent font-bold text-purple-950 focus:outline-none text-xs"
+            >
+              <option value="all">ทุกช่องทาง (All Channels)</option>
+              {availableChannels.map(ch => (
+                <option key={ch} value={ch}>{ch}</option>
+              ))}
+            </select>
+          </div>
+
           {/* Status Filter */}
           <div className="flex items-center gap-1.5 bg-white px-2.5 py-1 rounded-xl border border-[#E2D2EA]">
             <Clock className="w-3.5 h-3.5 text-purple-600" />
@@ -768,6 +825,23 @@ export default function PromotionPlanModule({
               <option value="completed">เสร็จสิ้น (Completed)</option>
             </select>
           </div>
+
+          {(selectedCategory !== 'all' || selectedProduct !== 'all' || selectedBranch !== 'all' || selectedChannel !== 'all' || selectedStatus !== 'all' || searchQuery) && (
+            <button
+              onClick={() => {
+                setSelectedCategory('all');
+                setSelectedProduct('all');
+                setSelectedBranch('all');
+                setSelectedChannel('all');
+                setSelectedStatus('all');
+                setSearchQuery('');
+              }}
+              className="px-2.5 py-1 rounded-xl bg-purple-100 hover:bg-purple-200 text-purple-900 font-bold transition flex items-center gap-1 text-[11px] cursor-pointer"
+            >
+              <X className="w-3 h-3" />
+              <span>ล้างตัวกรอง</span>
+            </button>
+          )}
 
           <span className="ml-auto text-purple-700 font-bold text-[11px]">
             พบ {filteredPlans.length} แผนการโปรโมท

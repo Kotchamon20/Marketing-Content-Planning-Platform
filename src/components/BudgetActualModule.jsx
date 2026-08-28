@@ -37,8 +37,30 @@ import { analyzeBudgetActualWithGroqAi } from '../services/groqAiService';
 import {
   fetchActualExpensesFromSupabase,
   upsertActualExpenseToSupabase,
-  deleteActualExpenseFromSupabase
+  deleteActualExpenseFromSupabase,
+  fetchBranchBudgetsFromSupabase
 } from '../services/dataService';
+
+// Helper to remove duplicate branches
+const sanitizeBudgetDataMap = (dataMap) => {
+  if (!dataMap || typeof dataMap !== 'object') return {};
+  const cleaned = {};
+  Object.keys(dataMap).forEach(monthKey => {
+    const list = dataMap[monthKey];
+    if (Array.isArray(list)) {
+      const seen = new Set();
+      cleaned[monthKey] = list.filter(b => {
+        if (!b || !b.name) return false;
+        const normName = b.name.trim().toLowerCase();
+        if (seen.has(normName) || (b.id && seen.has(b.id))) return false;
+        seen.add(normName);
+        if (b.id) seen.add(b.id);
+        return true;
+      });
+    }
+  });
+  return cleaned;
+};
 
 export default function BudgetActualModule({ onShowSaveToast }) {
   // Month & Year Filter States
@@ -291,19 +313,58 @@ export default function BudgetActualModule({ onShowSaveToast }) {
     loadData();
   }, []);
 
-  // Read Branch Budgets Allocation from Module 3 data if available
+  // Supabase branch budgets cache
+  const [dbBranchBudgets, setDbBranchBudgets] = useState({});
+
+  useEffect(() => {
+    async function loadBudgets() {
+      const data = await fetchBranchBudgetsFromSupabase();
+      if (data && data.length > 0) {
+        const grouped = {};
+        data.forEach(item => {
+          if (!item.month_year || !item.branch_name) return;
+          if (!grouped[item.month_year]) grouped[item.month_year] = [];
+          const normName = item.branch_name.trim().toLowerCase();
+          if (grouped[item.month_year].some(b => b.name?.trim().toLowerCase() === normName)) return;
+
+          grouped[item.month_year].push({
+            name: item.branch_name,
+            previousSales: Number(item.previous_sales) || 0,
+            manualFullBudget: Number(item.full_budget) || 0,
+            note: item.note || ''
+          });
+        });
+        setDbBranchBudgets(grouped);
+      }
+    }
+    loadBudgets();
+  }, []);
+
+  // Read Branch Budgets Allocation from Module 3 data (localStorage & Supabase)
   const monthlyBudgetData = useMemo(() => {
+    let localList = [];
     const saved = localStorage.getItem('nitan_monthly_budgets_data');
     if (saved) {
       try {
-        const parsed = JSON.parse(saved);
-        return parsed[currentMonthKey] || [];
+        const parsed = sanitizeBudgetDataMap(JSON.parse(saved));
+        localList = parsed[currentMonthKey] || [];
       } catch (e) {
         console.error('Error reading monthly budgets:', e);
       }
     }
-    return [];
-  }, [currentMonthKey]);
+
+    const dbList = dbBranchBudgets[currentMonthKey] || [];
+    const combined = localList.length > 0 ? localList : dbList;
+
+    const seen = new Set();
+    return combined.filter(b => {
+      if (!b || !b.name) return false;
+      const normName = b.name.trim().toLowerCase();
+      if (seen.has(normName)) return false;
+      seen.add(normName);
+      return true;
+    });
+  }, [currentMonthKey, dbBranchBudgets]);
 
   // Filtered Expenses by Month, Branch, Channel, and Search
   const monthExpenses = useMemo(() => {
@@ -326,39 +387,67 @@ export default function BudgetActualModule({ onShowSaveToast }) {
     });
   }, [monthExpenses, selectedBranch, selectedChannel, searchQuery]);
 
-  // Aggregated Metrics Calculations
-  // Total Allocated: Sum of allocated from Branch Allocation Module or sum of item budgets
-  const branchModuleAllocatedSum = monthlyBudgetData.reduce((sum, b) => {
-    const full = b.manualFullBudget || (b.previousSales * 0.02) || 0;
-    return sum + full;
-  }, 0);
-
-  const fallbackAllocatedSum = monthExpenses.reduce((sum, e) => sum + (e.allocatedBudget || 0), 0);
-  const totalAllocatedBudget = branchModuleAllocatedSum > 0 ? branchModuleAllocatedSum : (fallbackAllocatedSum > 0 ? fallbackAllocatedSum : 120000);
-
-  const totalActualSpend = monthExpenses.reduce((sum, e) => sum + (e.actualAmount || 0), 0);
-  const totalVariance = totalAllocatedBudget - totalActualSpend; // Positive = Underbudget (Good), Negative = Overbudget
-  const utilizationPercent = totalAllocatedBudget > 0 ? Math.round((totalActualSpend / totalAllocatedBudget) * 100) : 0;
-  const isOverBudget = totalActualSpend > totalAllocatedBudget;
-
   // Branch Breakdown
   const branchBreakdowns = useMemo(() => {
-    return standardBranches.map(branch => {
-      const branchExps = monthExpenses.filter(e => e.branchId === branch.id);
+    // Dynamic branch list: combine standard branches with any extra branches from monthlyBudgetData
+    const branchMap = new Map();
+    standardBranches.forEach(b => {
+      branchMap.set(b.id, { ...b });
+    });
+
+    monthlyBudgetData.forEach(mb => {
+      const matchKey = Array.from(branchMap.keys()).find(k => {
+        const b = branchMap.get(k);
+        const normB = b.name.trim().toLowerCase();
+        const normMb = mb.name.trim().toLowerCase();
+        return normB === normMb ||
+          (b.id === 'hq' && (normMb.includes('สำนักงานใหญ่') || normMb.includes('หลัก'))) ||
+          (b.id === 'pratamnak' && normMb.includes('พระตำหนัก')) ||
+          (b.id === 'naklua' && normMb.includes('นาเกลือ'));
+      });
+
+      if (!matchKey && mb.name) {
+        const customId = mb.id || `custom-${mb.name}`;
+        branchMap.set(customId, {
+          id: customId,
+          name: mb.name,
+          short: mb.name,
+          color: 'bg-[#F5EEF8] text-purple-950 border-[#E2D2EA]'
+        });
+      }
+    });
+
+    return Array.from(branchMap.values()).map(branch => {
+      const branchExps = monthExpenses.filter(e => {
+        if (e.branchId === branch.id) return true;
+        if (e.branchName && branch.name && e.branchName.trim().toLowerCase() === branch.name.trim().toLowerCase()) return true;
+        return false;
+      });
       const actualSpend = branchExps.reduce((sum, e) => sum + (e.actualAmount || 0), 0);
       
-      const moduleBranch = monthlyBudgetData.find(b => b.id === branch.id);
+      const moduleBranch = monthlyBudgetData.find(b => {
+        const normB = branch.name.trim().toLowerCase();
+        const normMb = (b.name || '').trim().toLowerCase();
+        return b.id === branch.id ||
+          normB === normMb ||
+          (branch.id === 'hq' && (normMb.includes('สำนักงานใหญ่') || normMb.includes('หลัก'))) ||
+          (branch.id === 'pratamnak' && normMb.includes('พระตำหนัก')) ||
+          (branch.id === 'naklua' && normMb.includes('นาเกลือ'));
+      });
+
       let allocated = 0;
       if (moduleBranch) {
-        allocated = moduleBranch.manualFullBudget || (moduleBranch.previousSales * 0.02) || 0;
+        allocated = moduleBranch.manualFullBudget > 0
+          ? moduleBranch.manualFullBudget
+          : (moduleBranch.previousSales > 0 ? moduleBranch.previousSales * 0.02 : 0);
       }
       if (allocated === 0) {
         const itemAllocated = branchExps.reduce((sum, e) => sum + (e.allocatedBudget || 0), 0);
-        allocated = itemAllocated > 0 ? itemAllocated : (branch.id === 'hq' ? 60000 : branch.id === 'pratamnak' ? 35000 : 25000);
+        allocated = itemAllocated;
       }
 
       const variance = allocated - actualSpend;
-      const pct = allocated > 0 ? Math.round((actualSpend / allocated) * 100) : 0;
+      const pct = allocated > 0 ? Math.round((actualSpend / allocated) * 100) : (actualSpend > 0 ? 100 : 0);
 
       return {
         ...branch,
@@ -372,6 +461,16 @@ export default function BudgetActualModule({ onShowSaveToast }) {
       };
     });
   }, [standardBranches, monthExpenses, monthlyBudgetData]);
+
+  // Aggregated Metrics Calculations
+  const totalAllocatedBudget = useMemo(() => {
+    return branchBreakdowns.reduce((sum, b) => sum + (b.allocated || 0), 0);
+  }, [branchBreakdowns]);
+
+  const totalActualSpend = monthExpenses.reduce((sum, e) => sum + (e.actualAmount || 0), 0);
+  const totalVariance = totalAllocatedBudget - totalActualSpend; // Positive = Underbudget (Good), Negative = Overbudget
+  const utilizationPercent = totalAllocatedBudget > 0 ? Math.round((totalActualSpend / totalAllocatedBudget) * 100) : 0;
+  const isOverBudget = totalActualSpend > totalAllocatedBudget;
 
   // Channel Breakdown
   const channelBreakdowns = useMemo(() => {
@@ -391,7 +490,12 @@ export default function BudgetActualModule({ onShowSaveToast }) {
     });
 
     return Object.values(channelMap)
-      .filter(item => item.actualSpend > 0 || item.allocated > 0)
+      .filter(item => {
+        if (selectedChannel !== 'all' && item.channel.toLowerCase() !== selectedChannel.toLowerCase()) {
+          return false;
+        }
+        return item.actualSpend > 0 || item.allocated > 0;
+      })
       .map(item => {
         const variance = item.allocated - item.actualSpend;
         const pct = item.allocated > 0 ? Math.round((item.actualSpend / item.allocated) * 100) : (item.actualSpend > 0 ? 100 : 0);
@@ -403,7 +507,7 @@ export default function BudgetActualModule({ onShowSaveToast }) {
         };
       })
       .sort((a, b) => b.actualSpend - a.actualSpend);
-  }, [monthExpenses, channelsList]);
+  }, [monthExpenses, channelsList, selectedChannel]);
 
   // Open Add Modal
   const handleOpenAddModal = () => {

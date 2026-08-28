@@ -438,7 +438,21 @@ export async function fetchBranchBudgetsFromSupabase() {
       console.warn('Supabase fetchBranchBudgets warning:', error.message);
       return null;
     }
-    return data;
+
+    if (!data || data.length === 0) return [];
+
+    // Deduplicate so only the most recent row per (branch_name, month_year) is returned
+    const seen = new Set();
+    const uniqueList = [];
+    for (const item of data) {
+      const key = `${item.branch_name || ''}_${item.month_year || ''}`.trim();
+      if (!seen.has(key)) {
+        seen.add(key);
+        uniqueList.push(item);
+      }
+    }
+
+    return uniqueList;
   } catch (err) {
     console.error('Supabase fetchBranchBudgets error:', err);
     return null;
@@ -447,6 +461,8 @@ export async function fetchBranchBudgetsFromSupabase() {
 
 export async function upsertBranchBudgetToSupabase(branch, monthYear = '2026-08') {
   try {
+    if (!branch || !branch.name) return null;
+
     const payload = {
       branch_name: branch.name,
       month_year: monthYear,
@@ -459,19 +475,68 @@ export async function upsertBranchBudgetToSupabase(branch, monthYear = '2026-08'
       updated_at: new Date().toISOString()
     };
 
-    const { data, error } = await supabase
+    // Check if an existing row exists for this branch and month
+    const { data: existingRows } = await supabase
       .from('branch_budgets')
-      .upsert([payload])
-      .select();
+      .select('id')
+      .eq('branch_name', branch.name)
+      .eq('month_year', monthYear)
+      .order('updated_at', { ascending: false });
 
-    if (error) {
-      console.warn('Supabase upsertBranchBudget error:', error.message);
-      return null;
+    if (existingRows && existingRows.length > 0) {
+      const primaryId = existingRows[0].id;
+      const { data, error } = await supabase
+        .from('branch_budgets')
+        .update(payload)
+        .eq('id', primaryId)
+        .select();
+
+      // Clean up any other duplicate rows in the background
+      if (existingRows.length > 1) {
+        const extraIds = existingRows.slice(1).map(r => r.id);
+        await supabase.from('branch_budgets').delete().in('id', extraIds);
+      }
+
+      if (error) {
+        console.warn('Supabase updateBranchBudget error:', error.message);
+        return null;
+      }
+      return data;
+    } else {
+      const { data, error } = await supabase
+        .from('branch_budgets')
+        .insert([payload])
+        .select();
+
+      if (error) {
+        console.warn('Supabase insertBranchBudget error:', error.message);
+        return null;
+      }
+      return data;
     }
-    return data;
   } catch (err) {
     console.error('Supabase upsertBranchBudget catch:', err);
     return null;
+  }
+}
+
+export async function deleteBranchBudgetFromSupabase(branchName, monthYear = '2026-08') {
+  try {
+    if (!branchName) return false;
+    const { error } = await supabase
+      .from('branch_budgets')
+      .delete()
+      .eq('branch_name', branchName)
+      .eq('month_year', monthYear);
+
+    if (error) {
+      console.warn('Supabase deleteBranchBudget error:', error.message);
+      return false;
+    }
+    return true;
+  } catch (err) {
+    console.error('Supabase deleteBranchBudget catch:', err);
+    return false;
   }
 }
 
