@@ -200,6 +200,38 @@ ${itemsStr}
 }
 
 /**
+ * AI Budget Variance & Cost Control Advisor (Module 7)
+ * Analyzes Actual Spend vs Allocated Budget and recommends optimization & cost controls
+ */
+export async function analyzeBudgetActualWithGroqAi(summaryData, expensesList = []) {
+  const expenseSample = expensesList.slice(0, 15).map(e => 
+    `- [${e.date}] ${e.branchName || 'สาขา'}: ${e.title} (${e.channel}) -> จ่ายจริง ฿${(e.actualAmount || 0).toLocaleString()} (งบตั้งไว้ ฿${(e.allocatedBudget || 0).toLocaleString()})`
+  ).join('\n');
+
+  const prompt = `วิเคราะห์ผลการใช้งบประมาณจริงเทียบกับงบจัดสรร (Budget vs Actual) ของแบรนด์ Nitan:
+- เดือน/ปี: ${summaryData.monthYear || 'ปัจจุบัน'}
+- งบประมาณที่จัดสรรรวม (Allocated Budget): ฿${(summaryData.totalAllocated || 0).toLocaleString()}
+- งบประมาณที่ใช้จริงรวม (Actual Spent): ฿${(summaryData.totalActual || 0).toLocaleString()}
+- ส่วนต่าง (Variance / Remaining): ฿${(summaryData.totalVariance || 0).toLocaleString()} (${summaryData.totalVariance >= 0 ? 'เหลืองบ' : 'เกินงบ'})
+- สัดส่วนการใช้งบ (Burn Rate): ${summaryData.utilizationPercent || 0}%
+
+ตัวอย่างรายการใช้จ่ายจริง:
+${expenseSample || '- ยังไม่มีรายการย่อย'}
+
+กรุณาวิเคราะห์เชิงลึกและตอบเป็น Markdown ภาษาไทย:
+1. 📊 **สรุปสถานะการใช้งบประมาณภาพรวม (Budget Health & Burn Rate Assessment)**
+2. ⚠️ **สาขาหรือช่องทางที่ใช้งบเสี่ยงเกินเป้า (High Spend / Overbudget Channels Alert)**
+3. 💡 **กลยุทธ์การปรับเกลี่ยและควบคุมงบประมาณ (Cost Control & Re-allocation Tactics)**
+4. 🎯 **ข้อเสนอแนะในการวางงบประมาณเดือนถัดไป (Next Month Budgeting Recommendations)**`;
+
+  return await callGroqAi([
+    { role: 'system', content: 'คุณเป็น Chief Financial Officer & Senior Marketing Media Planner ผู้เชี่ยวชาญการคุมงบโฆษณาและการเงินธุรกิจรีเทลและบริการ' },
+    { role: 'user', content: prompt }
+  ]);
+}
+
+
+/**
  * Smart AI Content Table Parser: Analyzes raw spreadsheet text or Excel rows using Groq AI
  * Converts any messy/non-standard Excel format into clean Content Plan objects!
  */

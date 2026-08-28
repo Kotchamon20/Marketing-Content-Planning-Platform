@@ -20,10 +20,12 @@ import {
   Video,
   Facebook,
   Camera,
-  MessageSquare
+  MessageSquare,
+  Calculator
 } from 'lucide-react';
 
 import BranchBudgetAllocation from './BranchBudgetAllocation';
+import BudgetActualModule from './BudgetActualModule';
 
 export default function MarketingPlanModule({
   marketingPlans,
@@ -31,9 +33,10 @@ export default function MarketingPlanModule({
   campaigns,
   onUpdateStrategyCanvas,
   onUpvoteIdea,
-  onAddCampaignIdea
+  onAddCampaignIdea,
+  onShowSaveToast
 }) {
-  const [activeSubTab, setActiveSubTab] = useState('budget'); // 'budget' | 'canvas' | 'brainstorm'
+  const [activeSubTab, setActiveSubTab] = useState('budget'); // 'budget' | 'budget-actual' | 'canvas' | 'brainstorm'
   const currentPlan = marketingPlans[0] || {};
 
   // Editable Strategy Canvas State
@@ -97,7 +100,7 @@ export default function MarketingPlanModule({
               <Compass className="w-5 h-5" />
             </span>
             <div>
-              <h2 className="text-xl font-black text-rose-950">Module 2: Marketing Plan & Brainstorming</h2>
+              <h2 className="text-xl font-black text-rose-950">Marketing Plan & Brainstorming</h2>
               <p className="text-xs text-rose-800 font-bold">กรอกแผนการตลาด STP/SWOT/Customer Journey, ระดมไอเดียโหวตแคมเปญ และจัดสรรงบช่องทาง</p>
             </div>
           </div>
@@ -128,6 +131,14 @@ export default function MarketingPlanModule({
           >
             <PieChart className="w-3.5 h-3.5" />
             <span>จัดสรรงบประมาณ (FR-2.3)</span>
+          </button>
+          <button
+            onClick={() => setActiveSubTab('budget-actual')}
+            className={`px-3.5 py-2 rounded-xl text-xs font-extrabold transition-all flex items-center gap-2 cursor-pointer ${activeSubTab === 'budget-actual' ? 'bg-gradient-to-r from-[#F0E6F5] via-[#FFEBF3] to-[#E6F2FF] text-purple-950 border border-[#E2D2EA] shadow-xs scale-[1.02]' : 'text-purple-900/80 hover:text-purple-950 hover:bg-pink-100/50'
+              }`}
+          >
+            <Calculator className="w-3.5 h-3.5" />
+            <span>งบใช้จริง vs งบจัดสรร (Budget vs Actual)</span>
           </button>
         </div>
       </div>
@@ -338,6 +349,11 @@ export default function MarketingPlanModule({
       {/* SUB-TAB 3: BRANCH BUDGET ALLOCATION (MKT 2%) (FR-2.3) */}
       {activeSubTab === 'budget' && (
         <BranchBudgetAllocation />
+      )}
+
+      {/* SUB-TAB 4: BUDGET ACTUAL SPEND VS ALLOCATED TRACKING */}
+      {activeSubTab === 'budget-actual' && (
+        <BudgetActualModule onShowSaveToast={onShowSaveToast} />
       )}
 
       {/* MODAL: CREATE IDEA */}

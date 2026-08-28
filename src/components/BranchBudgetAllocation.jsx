@@ -341,6 +341,11 @@ export default function BranchBudgetAllocation() {
     }));
   };
 
+  const handleUpdateBranchNote = (branchId, noteText) => {
+    isUserEditingRef.current = true;
+    updateCurrentBranches(prev => prev.map(b => b.id === branchId ? { ...b, note: noteText } : b));
+  };
+
   const handleUpdateGoogleSubPercent = (key, percentVal, googleDailyBudget) => {
     const pct = Number(percentVal) || 0;
     const calcAmt = Number(((googleDailyBudget * pct) / 100).toFixed(2));
@@ -486,7 +491,7 @@ export default function BranchBudgetAllocation() {
           <div>
             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#FFEBF3] border border-[#E2D2EA] text-xs font-bold text-purple-950 mb-2">
               <Calculator className="w-3.5 h-3.5 text-purple-700" />
-              <span>การจัดสรรงบประมาณ Marketing (Module 2: Nitan Branch Cards System)</span>
+              <span>การจัดสรรงบประมาณ Marketing (Nitan Branch Cards System)</span>
             </div>
             <div className="flex items-center gap-3 flex-wrap mt-1">
               <h2 className="text-xl font-bold text-purple-950 tracking-tight">
@@ -989,6 +994,24 @@ export default function BranchBudgetAllocation() {
                         </div>
                       );
                     })}
+                  </div>
+
+                  {/* Branch Specific Note Field */}
+                  <div className="p-3 bg-purple-50/50 rounded-xl border border-purple-100 space-y-1.5">
+                    <label className="text-[11px] font-bold text-purple-900 flex items-center justify-between">
+                      <span className="flex items-center gap-1.5">
+                        <span className="text-purple-600">📝</span>
+                        <span>บันทึกหมายเหตุสาขา (Note):</span>
+                      </span>
+                      {branch.note && <span className="text-[10px] text-emerald-600 font-bold">บันทึกแล้ว ✓</span>}
+                    </label>
+                    <textarea
+                      rows={2}
+                      placeholder="ระบุหมายเหตุสำหรับสาขานี้ เช่น ดึงงบเพิ่ม, เน้นโปรโมทช่วงเทศกาล, จัดโปรหน้าร้าน..."
+                      value={branch.note || ''}
+                      onChange={(e) => handleUpdateBranchNote(branch.id, e.target.value)}
+                      className="w-full px-2.5 py-1.5 bg-white border border-[#E2D2EA] rounded-lg text-purple-950 text-xs font-medium focus:outline-none focus:ring-1 focus:ring-purple-300 resize-none transition"
+                    />
                   </div>
 
                 </div>

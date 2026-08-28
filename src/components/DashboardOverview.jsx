@@ -213,7 +213,7 @@ export default function DashboardOverview({
             onClick={() => onNavigateTab('content-plan')}
             className="w-full py-2 bg-purple-50 hover:bg-purple-100 text-purple-950 font-bold rounded-xl text-xs border border-[#E2D2EA] transition flex items-center justify-center gap-1 cursor-pointer"
           >
-            <span>ไปที่ Module 1: Content Plan</span>
+            <span>ไปที่ Content Plan</span>
             <ArrowRight className="w-3.5 h-3.5 text-purple-700" />
           </button>
         </div>
@@ -242,7 +242,7 @@ export default function DashboardOverview({
                 <div className="p-6 bg-purple-50/50 rounded-2xl border border-purple-100 text-center space-y-2">
                   <Package className="w-6 h-6 text-purple-400 mx-auto" />
                   <p className="text-xs text-purple-950 font-bold">ยังไม่มีแผน Product Plan ในระบบ</p>
-                  <p className="text-[11px] text-purple-800">สร้างแผนแคมเปญสินค้าเตรียมความพร้อมได้ที่ Module 2</p>
+                  <p className="text-[11px] text-purple-800">สร้างแผนแคมเปญสินค้าเตรียมความพร้อมได้ที่ Product Plan</p>
                 </div>
               ) : (
                 campaigns.slice(0, 3).map(camp => (
@@ -269,7 +269,7 @@ export default function DashboardOverview({
             onClick={() => onNavigateTab('product-plan')}
             className="w-full py-2 bg-purple-50 hover:bg-purple-100 text-purple-950 font-bold rounded-xl text-xs border border-[#E2D2EA] transition flex items-center justify-center gap-1 cursor-pointer"
           >
-            <span>ไปที่ Module 2: Product Plan & Readiness</span>
+            <span>ไปที่ Product Plan & Readiness</span>
             <ArrowRight className="w-3.5 h-3.5 text-purple-700" />
           </button>
         </div>
@@ -326,7 +326,7 @@ export default function DashboardOverview({
             onClick={() => onNavigateTab('todo-list')}
             className="w-full py-2.5 bg-gradient-to-r from-purple-950 via-pink-900 to-purple-900 text-white font-bold rounded-xl text-xs shadow-md hover:opacity-95 transition flex items-center justify-center gap-1 cursor-pointer"
           >
-            <span>ไปที่ Module 5: To-Do List & ติดตามไฟล์งาน</span>
+            <span>ไปที่ To-Do List & ติดตามไฟล์งาน</span>
             <ArrowRight className="w-3.5 h-3.5 text-pink-300" />
           </button>
         </div>

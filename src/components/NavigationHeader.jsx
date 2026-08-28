@@ -17,7 +17,8 @@ import {
   MessageSquare,
   BarChart3,
   Megaphone,
-  CheckSquare
+  CheckSquare,
+  Calculator
 } from 'lucide-react';
 
 import LineGroupSettingsModal from './LineGroupSettingsModal';
@@ -45,12 +46,12 @@ export default function NavigationHeader({
 
   const tabs = [
     { id: 'dashboard', label: 'ภาพรวม Dashboard', icon: Sparkles },
-    { id: 'content-plan', label: 'Module 1: Content Plan', icon: Calendar },
-    { id: 'product-plan', label: 'Module 2: Product Plan & Campaign Readiness', icon: Package },
-    { id: 'marketing-plan', label: 'Module 3: Marketing Plan & Brainstorming', icon: Compass },
-    { id: 'promotion-plan', label: 'Module 4: แผนการโปรโมท (Promotion Plan)', icon: Megaphone },
-    { id: 'todo-list', label: 'Module 5: To-Do List & ติดตามไฟล์งาน', icon: CheckSquare },
-    { id: 'kpi-analytics', label: 'Module 6: KPI Analytics', icon: BarChart3 },
+    { id: 'content-plan', label: 'Content Plan', icon: Calendar },
+    { id: 'product-plan', label: 'Product Plan & Campaign Readiness', icon: Package },
+    { id: 'promotion-plan', label: 'แผนการโปรโมท (Promotion Plan)', icon: Megaphone },
+    { id: 'todo-list', label: 'To-Do List & ติดตามไฟล์งาน', icon: CheckSquare },
+    { id: 'marketing-plan', label: 'Marketing Plan & Brainstorming', icon: Compass },
+    { id: 'kpi-analytics', label: 'KPI Analytics', icon: BarChart3 },
   ];
 
   return (

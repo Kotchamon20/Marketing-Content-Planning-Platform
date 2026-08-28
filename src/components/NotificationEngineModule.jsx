@@ -99,7 +99,7 @@ export default function NotificationEngineModule({
               <MessageSquare className="w-5 h-5" />
             </span>
             <div>
-              <h2 className="text-xl font-black text-rose-950">Module 4: LINE Notification Engine</h2>
+              <h2 className="text-xl font-black text-rose-950">LINE Notification Engine</h2>
               <p className="text-xs text-rose-700/80 font-medium">ผูกบัญชี LINE (FR-4.1), ตั้งกฎแจ้งเตือน (FR-4.2), Flex Message (FR-4.3), Escalation (FR-4.4) และ Digest (FR-4.5)</p>
             </div>
           </div>

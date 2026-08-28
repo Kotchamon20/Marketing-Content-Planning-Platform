@@ -206,6 +206,7 @@ CREATE TABLE IF NOT EXISTS branch_budgets (
     offline_promotions JSONB DEFAULT '[]',
     channel_allocations JSONB DEFAULT '[]',
     google_search_breakdown JSONB DEFAULT '{}',
+    note TEXT,
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
@@ -239,6 +240,8 @@ CREATE TABLE IF NOT EXISTS kpi_items (
     sub_group VARCHAR(100) DEFAULT 'Shopee Official Store',
     target_revenue DECIMAL(12, 2) DEFAULT 0.00,
     actual_revenue DECIMAL(12, 2) DEFAULT 0.00,
+    campaign_sales DECIMAL(12, 2) DEFAULT 0.00,
+    note TEXT,
     orders_count INTEGER DEFAULT 0,
     roas DECIMAL(6, 2) DEFAULT 0.00,
     cpa DECIMAL(10, 2) DEFAULT 0.00,
@@ -263,6 +266,23 @@ CREATE TABLE IF NOT EXISTS promotion_plans (
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
+-- 17. BUDGET ACTUAL EXPENSES (Budget vs Actual Tracking & Expense Ledger)
+CREATE TABLE IF NOT EXISTS budget_actual_expenses (
+    id VARCHAR(100) PRIMARY KEY,
+    month_year VARCHAR(20) NOT NULL,
+    date VARCHAR(20) NOT NULL,
+    title VARCHAR(255) NOT NULL,
+    branch_id VARCHAR(50),
+    branch_name VARCHAR(255),
+    channel VARCHAR(100),
+    actual_amount DECIMAL(12, 2) DEFAULT 0.00,
+    allocated_budget DECIMAL(12, 2) DEFAULT 0.00,
+    payer VARCHAR(100),
+    receipt_ref VARCHAR(100),
+    note TEXT,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
 -- DISABLE RLS TO ALLOW FULL DIRECT ANONYMOUS READ/WRITE ACCESS FROM LOCAL AND PRODUCTION
 ALTER TABLE teams DISABLE ROW LEVEL SECURITY;
 ALTER TABLE users DISABLE ROW LEVEL SECURITY;
@@ -280,6 +300,7 @@ ALTER TABLE todo_tasks DISABLE ROW LEVEL SECURITY;
 ALTER TABLE todo_followups DISABLE ROW LEVEL SECURITY;
 ALTER TABLE kpi_items DISABLE ROW LEVEL SECURITY;
 ALTER TABLE promotion_plans DISABLE ROW LEVEL SECURITY;
+ALTER TABLE budget_actual_expenses DISABLE ROW LEVEL SECURITY;
 
 -- SAFE PUBLIC ALL ACCESS POLICIES
 DROP POLICY IF EXISTS "Allow public all access on line_groups" ON line_groups;

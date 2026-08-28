@@ -553,7 +553,7 @@ export default function PromotionPlanModule({
           <div>
             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#FFEBF3] border border-[#E2D2EA] text-xs font-bold text-purple-950 mb-2">
               <Megaphone className="w-3.5 h-3.5 text-purple-700" />
-              <span>ระบบบริหารแผนการโปรโมท (Module: Promotion Plan & Doc Brief System)</span>
+              <span>ระบบบริหารแผนการโปรโมท (Promotion Plan & Doc Brief System)</span>
             </div>
             <h2 className="text-xl font-bold text-purple-950 tracking-tight flex items-center gap-2">
               <span>แผนการโปรโมทสินค้า การตลาด และแคมเปญส่งเสริมการขาย</span>

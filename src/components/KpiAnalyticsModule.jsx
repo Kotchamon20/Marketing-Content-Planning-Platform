@@ -29,6 +29,7 @@ import {
   Check
 } from 'lucide-react';
 import { analyzeKpiWithGroqAi } from '../services/groqAiService';
+import { upsertKpiItemToSupabase } from '../services/dataService';
 
 export default function KpiAnalyticsModule({ campaigns = [], products = [], onShowSaveToast }) {
   // Groq AI KPI Analytics Modal States
@@ -70,12 +71,14 @@ export default function KpiAnalyticsModule({ campaigns = [], products = [], onSh
     localStorage.setItem('nitan_kpi_items', JSON.stringify(kpiItems));
   }, [kpiItems]);
 
-  // New KPI Item Form State (With Paid Ads Spend Tracking)
+  // New KPI Item Form State (With Paid Ads Spend Tracking & Campaign Sales & Note)
   const [newKpiTitle, setNewKpiTitle] = useState('');
   const [newKpiCategory, setNewKpiCategory] = useState(categories[0]?.id || 'shopee');
   const [newKpiSubGroup, setNewKpiSubGroup] = useState('Shopee Official Store');
   const [newKpiTargetRevenue, setNewKpiTargetRevenue] = useState(100000);
   const [newKpiActualRevenue, setNewKpiActualRevenue] = useState(0);
+  const [newKpiCampaignSales, setNewKpiCampaignSales] = useState(0);
+  const [newKpiNote, setNewKpiNote] = useState('');
   const [newKpiReach, setNewKpiReach] = useState(50000);
   const [newKpiER, setNewKpiER] = useState(5.0);
 
@@ -121,32 +124,71 @@ export default function KpiAnalyticsModule({ campaigns = [], products = [], onSh
     }
   };
 
-  const handleCreateKpiItem = (e) => {
+  const handleOpenAddModal = () => {
+    setEditingKpiItem(null);
+    setNewKpiTitle('');
+    setNewKpiCategory(categories[0]?.id || 'shopee');
+    setNewKpiSubGroup('Shopee Official Store');
+    setNewKpiTargetRevenue(100000);
+    setNewKpiActualRevenue(0);
+    setNewKpiCampaignSales(0);
+    setNewKpiNote('');
+    setNewKpiReach(50000);
+    setNewKpiER(5.0);
+    setNewKpiIsAds(true);
+    setNewKpiAdsBudget(30000);
+    setNewKpiAdsSpend(25000);
+    setNewKpiAdsChannel('Google Search Ads & Facebook Feed');
+    setShowAddKpiModal(true);
+  };
+
+  const handleStartEditKpiItem = (item) => {
+    setEditingKpiItem(item);
+    setNewKpiTitle(item.title || '');
+    setNewKpiCategory(item.category || categories[0]?.id || 'shopee');
+    setNewKpiSubGroup(item.subGroup || '');
+    setNewKpiTargetRevenue(item.targetRevenue || 0);
+    setNewKpiActualRevenue(item.actualRevenue || 0);
+    setNewKpiCampaignSales(item.campaignSales ?? item.actualRevenue ?? 0);
+    setNewKpiNote(item.note || '');
+    setNewKpiReach(item.reach || 50000);
+    setNewKpiER(item.engagementRate || 5.0);
+    setNewKpiIsAds(Boolean(item.isAdsRunning));
+    setNewKpiAdsBudget(item.adsBudget || 0);
+    setNewKpiAdsSpend(item.actualAdsSpend || 0);
+    setNewKpiAdsChannel(item.adsChannel || '');
+    setShowAddKpiModal(true);
+  };
+
+  const handleSaveKpiItem = (e) => {
     e.preventDefault();
     if (!newKpiTitle.trim()) return;
 
     const actualRevNum = Number(newKpiActualRevenue) || 0;
+    const campaignSalesNum = Number(newKpiCampaignSales) || actualRevNum;
     const adsSpendNum = Number(newKpiAdsSpend) || 0;
     const calcOrders = Math.round(actualRevNum / 650) || 0;
-    const calcRoas = adsSpendNum > 0 ? Number((actualRevNum / adsSpendNum).toFixed(2)) : 0;
-    const calcCpa = calcOrders > 0 && adsSpendNum > 0 ? Math.round(adsSpendNum / calcOrders) : 180;
+    const calcRoas = adsSpendNum > 0 ? Number((actualRevNum / adsSpendNum).toFixed(2)) : (editingKpiItem?.roas || 0);
+    const calcCpa = calcOrders > 0 && adsSpendNum > 0 ? Math.round(adsSpendNum / calcOrders) : (editingKpiItem?.cpa || 180);
 
-    const newItem = {
-      id: `kpi-${Date.now()}`,
+    const itemData = {
+      id: editingKpiItem ? editingKpiItem.id : `kpi-${Date.now()}`,
       title: newKpiTitle.trim(),
       category: newKpiCategory || categories[0]?.id || 'shopee',
       subGroup: newKpiSubGroup || 'Shopee Official Store',
-      targetRevenue: Number(newKpiTargetRevenue) || 100000,
+      targetRevenue: Number(newKpiTargetRevenue) || 0,
       actualRevenue: actualRevNum,
+      campaignSales: campaignSalesNum,
+      note: newKpiNote.trim(),
       ordersCount: calcOrders,
-      conversionRate: 4.8,
-      roas: calcRoas || 5.2,
+      conversionRate: editingKpiItem?.conversionRate || 4.8,
+      roas: calcRoas || (editingKpiItem?.roas || 5.2),
       cpa: calcCpa,
-      aov: 650,
+      aov: editingKpiItem?.aov || 650,
       reach: Number(newKpiReach) || 50000,
       engagementRate: Number(newKpiER) || 5.0,
-      vtr: 35.0,
-      ctr: 3.0,
+      vtr: editingKpiItem?.vtr || 35.0,
+      ctr: editingKpiItem?.ctr || 3.0,
       isAdsRunning: newKpiIsAds,
       adsBudget: Number(newKpiAdsBudget) || 0,
       actualAdsSpend: adsSpendNum,
@@ -154,14 +196,21 @@ export default function KpiAnalyticsModule({ campaigns = [], products = [], onSh
       adsRoas: calcRoas,
       adsCpa: calcCpa,
       status: actualRevNum >= (Number(newKpiTargetRevenue) || 100000) ? 'exceeded' : 'on_track',
-      startDate: new Date().toISOString().split('T')[0],
-      endDate: new Date(Date.now() + 86400000 * 30).toISOString().split('T')[0]
+      startDate: editingKpiItem?.startDate || new Date().toISOString().split('T')[0],
+      endDate: editingKpiItem?.endDate || new Date(Date.now() + 86400000 * 30).toISOString().split('T')[0]
     };
 
-    setKpiItems(prev => [newItem, ...prev]);
+    if (editingKpiItem) {
+      setKpiItems(prev => prev.map(item => item.id === editingKpiItem.id ? itemData : item));
+      onShowSaveToast?.(`บันทึกการแก้ไข KPI "${itemData.title}" เรียบร้อยแล้ว!`);
+    } else {
+      setKpiItems(prev => [itemData, ...prev]);
+      onShowSaveToast?.('บันทึกเป้าหมาย KPI & ผลการยิง Ads ลง DB เรียบร้อยแล้ว!');
+    }
+
+    upsertKpiItemToSupabase(itemData);
     setShowAddKpiModal(false);
-    setNewKpiTitle('');
-    onShowSaveToast?.('บันทึกเป้าหมาย KPI & ผลการยิง Ads ลง DB เรียบร้อยแล้ว!');
+    setEditingKpiItem(null);
   };
 
   // Filter Items
@@ -204,7 +253,7 @@ export default function KpiAnalyticsModule({ campaigns = [], products = [], onSh
           <div>
             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#FFEBF3] border border-[#E2D2EA] text-xs font-bold text-purple-950 mb-2">
               <BarChart3 className="w-3.5 h-3.5 text-purple-700" />
-              <span>Module 6: KPI & Performance Analytics</span>
+              <span>KPI & Performance Analytics</span>
             </div>
             <h2 className="text-xl font-bold text-purple-950 tracking-tight">
               การวัดผล KPI & วิเคราะห์ประสิทธิภาพการยิง Ads โฆษณาออนไลน์
@@ -272,7 +321,7 @@ export default function KpiAnalyticsModule({ campaigns = [], products = [], onSh
             </button>
 
             <button
-              onClick={() => setShowAddKpiModal(true)}
+              onClick={handleOpenAddModal}
               className="px-4 py-2.5 bg-gradient-to-r from-[#F0E6F5] via-[#FFEBF3] to-[#E6F2FF] hover:opacity-90 text-purple-950 font-bold rounded-xl text-xs transition shadow-xs border border-[#E2D2EA] flex items-center gap-2 cursor-pointer"
             >
               <Plus className="w-4 h-4 text-purple-700" />
@@ -586,6 +635,7 @@ export default function KpiAnalyticsModule({ campaigns = [], products = [], onSh
                   <>
                     <th className="py-3 px-4 text-right">เป้ายอดขาย (Target)</th>
                     <th className="py-3 px-4 text-right">ยอดขายจริง (Actual)</th>
+                    <th className="py-3 px-4 text-right bg-pink-50/50 text-pink-950 font-black">ยอดขายจากแคมเปญ</th>
                     <th className="py-3 px-4 text-center">บรรลุเป้า %</th>
                     <th className="py-3 px-4 text-right">ออเดอร์</th>
                     <th className="py-3 px-4 text-right">ROAS</th>
@@ -601,6 +651,7 @@ export default function KpiAnalyticsModule({ campaigns = [], products = [], onSh
                     <th className="py-3 px-4 text-right">Video VTR%</th>
                     <th className="py-3 px-4 text-right">Click CTR%</th>
                     <th className="py-3 px-4 text-right">ออเดอร์สะสม</th>
+                    <th className="py-3 px-4 text-right bg-pink-50/50 text-pink-950 font-black">ยอดขายจากแคมเปญ</th>
                   </>
                 )}
 
@@ -610,12 +661,14 @@ export default function KpiAnalyticsModule({ campaigns = [], products = [], onSh
                     <th className="py-3 px-4 text-right">งบ Ads ตั้งไว้</th>
                     <th className="py-3 px-4 text-right">งบ Ads จ่ายจริง</th>
                     <th className="py-3 px-4 text-right">ยอดขายได้จริง</th>
+                    <th className="py-3 px-4 text-right bg-pink-50/50 text-pink-950 font-black">ยอดขายจากแคมเปญ</th>
                     <th className="py-3 px-4 text-right">ROAS (เท่า)</th>
                     <th className="py-3 px-4 text-right">CPA (บาท/ออเดอร์)</th>
                     <th className="py-3 px-4 text-left">ช่องทางยิง Ads</th>
                   </>
                 )}
 
+                <th className="py-3 px-4 text-left">หมายเหตุ (Note)</th>
                 <th className="py-3 px-4 text-center">สถานะ</th>
                 <th className="py-3 px-4 text-center">การจัดการ</th>
               </tr>
@@ -635,7 +688,12 @@ export default function KpiAnalyticsModule({ campaigns = [], products = [], onSh
                   return (
                     <tr key={item.id} className="hover:bg-purple-50/40 transition">
                       <td className="py-3.5 px-4 font-bold text-purple-950">
-                        {item.title}
+                        <div>{item.title}</div>
+                        {item.note && (
+                          <div className="text-[10px] text-purple-700/80 font-normal italic mt-0.5 line-clamp-1">
+                            📝 {item.note}
+                          </div>
+                        )}
                       </td>
 
                       <td className="py-3.5 px-4">
@@ -652,6 +710,10 @@ export default function KpiAnalyticsModule({ campaigns = [], products = [], onSh
 
                           <td className="py-3.5 px-4 text-right font-bold font-mono text-purple-950">
                             ฿{item.actualRevenue?.toLocaleString()}
+                          </td>
+
+                          <td className="py-3.5 px-4 text-right font-black font-mono text-pink-900 bg-pink-50/40">
+                            ฿{(item.campaignSales ?? item.actualRevenue)?.toLocaleString()}
                           </td>
 
                           <td className="py-3.5 px-4 text-center">
@@ -699,6 +761,10 @@ export default function KpiAnalyticsModule({ campaigns = [], products = [], onSh
                           <td className="py-3.5 px-4 text-right font-mono font-bold text-purple-950">
                             {item.ordersCount}
                           </td>
+
+                          <td className="py-3.5 px-4 text-right font-black font-mono text-pink-900 bg-pink-50/40">
+                            ฿{(item.campaignSales ?? item.actualRevenue)?.toLocaleString()}
+                          </td>
                         </>
                       )}
 
@@ -728,6 +794,10 @@ export default function KpiAnalyticsModule({ campaigns = [], products = [], onSh
                             ฿{item.actualRevenue?.toLocaleString()}
                           </td>
 
+                          <td className="py-3.5 px-4 text-right font-black font-mono text-pink-900 bg-pink-50/40">
+                            ฿{(item.campaignSales ?? item.actualRevenue)?.toLocaleString()}
+                          </td>
+
                           <td className="py-3.5 px-4 text-right font-bold text-purple-900">
                             {item.adsRoas || item.roas}x
                           </td>
@@ -741,6 +811,17 @@ export default function KpiAnalyticsModule({ campaigns = [], products = [], onSh
                           </td>
                         </>
                       )}
+
+                      {/* Note Column */}
+                      <td className="py-3.5 px-4 text-left">
+                        {item.note ? (
+                          <span className="text-[11px] text-purple-950 font-normal bg-purple-50/70 px-2 py-0.5 rounded-lg border border-purple-100 block max-w-xs truncate" title={item.note}>
+                            {item.note}
+                          </span>
+                        ) : (
+                          <span className="text-[11px] text-gray-400 italic">-</span>
+                        )}
+                      </td>
 
                       <td className="py-3.5 px-4 text-center">
                         {isExceeded ? (
@@ -757,13 +838,22 @@ export default function KpiAnalyticsModule({ campaigns = [], products = [], onSh
                       </td>
 
                       <td className="py-3.5 px-4 text-center">
-                        <button
-                          onClick={() => setDeleteKpiId(item.id)}
-                          className="p-1 text-rose-500 hover:bg-rose-100 rounded-md transition cursor-pointer"
-                          title="ลบรายการ KPI"
-                        >
-                          <Trash2 className="w-3.5 h-3.5" />
-                        </button>
+                        <div className="flex items-center justify-center gap-1">
+                          <button
+                            onClick={() => handleStartEditKpiItem(item)}
+                            className="p-1 text-purple-600 hover:bg-purple-100 rounded-md transition cursor-pointer"
+                            title="แก้ไขข้อมูล KPI"
+                          >
+                            <Edit3 className="w-3.5 h-3.5" />
+                          </button>
+                          <button
+                            onClick={() => setDeleteKpiId(item.id)}
+                            className="p-1 text-rose-500 hover:bg-rose-100 rounded-md transition cursor-pointer"
+                            title="ลบรายการ KPI"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   );
@@ -860,21 +950,30 @@ export default function KpiAnalyticsModule({ campaigns = [], products = [], onSh
         </div>
       )}
 
-      {/* MODAL 2: Add New KPI Target (Includes Paid Ads Tracking) */}
+      {/* MODAL 2: Add / Edit KPI Target (Includes Paid Ads Tracking & Campaign Sales & Note) */}
       {showAddKpiModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#12072B]/60 backdrop-blur-md p-4 animate-in fade-in duration-150 overflow-y-auto">
           <div className="glass-panel max-w-md w-full p-6 space-y-4 border border-[#E2D2EA] my-8 shadow-2xl bg-white/98 rounded-3xl">
             <div className="flex items-center justify-between border-b border-purple-100 pb-3">
               <h3 className="text-base font-bold text-purple-950 flex items-center gap-2">
                 <Target className="w-4 h-4 text-purple-600" />
-                <span>กำหนดเป้าหมาย KPI ใหม่ & ผลการยิง Ads</span>
+                <span>{editingKpiItem ? 'แก้ไขเป้าหมาย KPI & ผลการยิง Ads' : 'กำหนดเป้าหมาย KPI ใหม่ & ผลการยิง Ads'}</span>
               </h3>
-              <button onClick={() => setShowAddKpiModal(false)} className="text-purple-400 hover:text-purple-700 font-bold">✕</button>
+              <button
+                type="button"
+                onClick={() => {
+                  setShowAddKpiModal(false);
+                  setEditingKpiItem(null);
+                }}
+                className="text-purple-400 hover:text-purple-700 font-bold cursor-pointer"
+              >
+                ✕
+              </button>
             </div>
 
-            <form onSubmit={handleCreateKpiItem} className="space-y-3 text-xs">
+            <form onSubmit={handleSaveKpiItem} className="space-y-3 text-xs">
               <div>
-                <label className="block text-purple-950 font-bold mb-1">ชื่อแคมเปญ / โพสต์คอนเทนต์</label>
+                <label className="block text-purple-950 font-bold mb-1">ชื่อแคมเปญ / โพสต์คอนเทนต์ *</label>
                 <input
                   type="text"
                   required
@@ -936,6 +1035,21 @@ export default function KpiAnalyticsModule({ campaigns = [], products = [], onSh
                 </div>
               </div>
 
+              {/* Campaign Sales Input */}
+              <div>
+                <label className="block text-purple-950 font-bold mb-1">
+                  ยอดขายที่ขายได้จากแคมเปญ (บาท) - Campaign Sales
+                </label>
+                <input
+                  type="number"
+                  min={0}
+                  placeholder="ระบุยอดขายที่เกิดขึ้นเฉพาะจากแคมเปญนี้"
+                  value={newKpiCampaignSales}
+                  onChange={(e) => setNewKpiCampaignSales(e.target.value)}
+                  className="w-full px-3 py-2 bg-pink-50/50 border border-pink-200 rounded-xl text-purple-950 font-bold font-mono focus:outline-none"
+                />
+              </div>
+
               {/* Paid Ads Toggle & Budget Section */}
               <div className="p-3 bg-purple-50/70 rounded-xl border border-purple-200 space-y-2">
                 <div className="flex items-center justify-between">
@@ -994,9 +1108,35 @@ export default function KpiAnalyticsModule({ campaigns = [], products = [], onSh
                 )}
               </div>
 
+              {/* Note / Remarks Field */}
+              <div>
+                <label className="block text-purple-950 font-bold mb-1">บันทึกหมายเหตุ / Note เพิ่มเติม</label>
+                <textarea
+                  rows={2}
+                  placeholder="ระบุข้อสังเกตหรือข้อมูลประกอบ เช่น กลุ่มเป้าหมายตอบรับดี, ปรับแอดช่วงปลายเดือน..."
+                  value={newKpiNote}
+                  onChange={(e) => setNewKpiNote(e.target.value)}
+                  className="w-full px-3 py-2 bg-white border border-[#E2D2EA] rounded-xl text-purple-950 font-medium focus:outline-none text-xs resize-none"
+                />
+              </div>
+
               <div className="pt-3 flex justify-end gap-2">
-                <button type="button" onClick={() => setShowAddKpiModal(false)} className="px-4 py-2 bg-purple-50 text-purple-900 rounded-xl font-bold hover:bg-purple-100 transition cursor-pointer">ยกเลิก</button>
-                <button type="submit" className="px-5 py-2 bg-gradient-to-r from-purple-950 via-pink-900 to-purple-900 text-white font-bold rounded-xl shadow-md transition cursor-pointer">บันทึก KPI</button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowAddKpiModal(false);
+                    setEditingKpiItem(null);
+                  }}
+                  className="px-4 py-2 bg-purple-50 text-purple-900 rounded-xl font-bold hover:bg-purple-100 transition cursor-pointer"
+                >
+                  ยกเลิก
+                </button>
+                <button
+                  type="submit"
+                  className="px-5 py-2 bg-gradient-to-r from-purple-950 via-pink-900 to-purple-900 text-white font-bold rounded-xl shadow-md transition cursor-pointer"
+                >
+                  {editingKpiItem ? 'บันทึกการแก้ไข KPI' : 'บันทึก KPI'}
+                </button>
               </div>
             </form>
           </div>

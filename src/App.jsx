@@ -608,6 +608,7 @@ export default function App() {
               onUpdateStrategyCanvas={handleUpdateStrategyCanvas}
               onUpvoteIdea={handleUpvoteIdea}
               onAddCampaignIdea={handleAddCampaignIdea}
+              onShowSaveToast={showSaveToast}
             />
           )}
 

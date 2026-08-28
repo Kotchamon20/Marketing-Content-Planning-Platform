@@ -1807,7 +1807,7 @@ export default function ContentPlanModule({
               <CalendarIcon className="w-5 h-5" />
             </span>
             <div>
-              <h2 className="text-xl font-bold text-rose-950">Module 1: Content Plan & Calendar</h2>
+              <h2 className="text-xl font-bold text-rose-950">Content Plan & Calendar</h2>
               <p className="text-xs text-rose-700/80 font-medium">นำเข้าไฟล์ Excel (.xlsx/.csv) ปฏิทินหมวดหมู่ ตารางสเปรดชีต Editable Data Grid และส่งออกข้อมูล</p>
             </div>
           </div>

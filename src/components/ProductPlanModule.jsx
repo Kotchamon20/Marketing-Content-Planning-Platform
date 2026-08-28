@@ -352,7 +352,7 @@ export default function ProductPlanModule({
               <Package className="w-5 h-5" />
             </span>
             <div>
-              <h2 className="text-xl font-black text-rose-950">Module 3: Product Plan &amp; Campaign Readiness</h2>
+              <h2 className="text-xl font-black text-rose-950">Product Plan &amp; Campaign Readiness</h2>
               <p className="text-xs text-rose-800 font-bold">ผูกแคมเปญกับสินค้า ตรวจสอบสถานะการเตรียมงาน (FR-3.2) และดูยอดขาย ROI (FR-3.4)</p>
             </div>
           </div>

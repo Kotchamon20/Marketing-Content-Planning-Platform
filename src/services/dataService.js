@@ -455,6 +455,7 @@ export async function upsertBranchBudgetToSupabase(branch, monthYear = '2026-08'
       offline_promotions: branch.promotions || [],
       channel_allocations: branch.channelAllocations || [],
       google_search_breakdown: branch.googleSearchBreakdown || {},
+      note: branch.note || '',
       updated_at: new Date().toISOString()
     };
 
@@ -515,6 +516,8 @@ export async function upsertKpiItemToSupabase(kpi) {
       sub_group: kpi.subGroup || 'Shopee Official Store',
       target_revenue: Number(kpi.targetRevenue) || 0,
       actual_revenue: Number(kpi.actualRevenue) || 0,
+      campaign_sales: Number(kpi.campaignSales) || Number(kpi.actualRevenue) || 0,
+      note: kpi.note || '',
       orders_count: Number(kpi.ordersCount) || 0,
       roas: Number(kpi.roas) || 0,
       cpa: Number(kpi.cpa) || 0,
@@ -915,3 +918,77 @@ export const deleteTodoFollowupFromSupabase = async (id) => {
     return false;
   }
 };
+
+// ------------------------------------------------------------------------------
+// 14. BUDGET ACTUAL EXPENSES (budget_actual_expenses table)
+// ------------------------------------------------------------------------------
+export async function fetchActualExpensesFromSupabase() {
+  try {
+    const { data, error } = await supabase
+      .from('budget_actual_expenses')
+      .select('*')
+      .order('date', { ascending: false });
+
+    if (error) {
+      console.warn('Supabase fetchActualExpenses warning:', error.message);
+      return null;
+    }
+    return data;
+  } catch (err) {
+    console.error('Supabase fetchActualExpenses error:', err);
+    return null;
+  }
+}
+
+export async function upsertActualExpenseToSupabase(item) {
+  try {
+    const payload = {
+      id: item.id,
+      month_year: item.monthYear || item.month_year,
+      date: item.date,
+      title: item.title,
+      branch_id: item.branchId || item.branch_id,
+      branch_name: item.branchName || item.branch_name,
+      channel: item.channel,
+      actual_amount: Number(item.actualAmount || item.actual_amount) || 0,
+      allocated_budget: Number(item.allocatedBudget || item.allocated_budget) || 0,
+      payer: item.payer || '',
+      receipt_ref: item.receiptRef || item.receipt_ref || '',
+      note: item.note || '',
+      updated_at: new Date().toISOString()
+    };
+
+    const { data, error } = await supabase
+      .from('budget_actual_expenses')
+      .upsert([payload])
+      .select();
+
+    if (error) {
+      console.warn('Supabase upsertActualExpense error:', error.message);
+      return null;
+    }
+    return data;
+  } catch (err) {
+    console.error('Supabase upsertActualExpense catch:', err);
+    return null;
+  }
+}
+
+export async function deleteActualExpenseFromSupabase(id) {
+  try {
+    const { error } = await supabase
+      .from('budget_actual_expenses')
+      .delete()
+      .eq('id', id);
+
+    if (error) {
+      console.warn('Supabase deleteActualExpense error:', error.message);
+      return false;
+    }
+    return true;
+  } catch (err) {
+    console.error('Supabase deleteActualExpense catch:', err);
+    return false;
+  }
+}
+
