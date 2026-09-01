@@ -57,7 +57,8 @@ const isUuid = (str) => typeof str === 'string' && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-
 
 // Helper to format date string cleanly for PostgreSQL TIMESTAMP / DATE
 function formatIsoDateForDb(rawVal) {
-  if (!rawVal) return '2026-08-20';
+  const defaultDateStr = new Date().toISOString().split('T')[0];
+  if (!rawVal) return defaultDateStr;
   const str = String(rawVal).trim();
   if (str.match(/^\d{4}-\d{2}-\d{2}/)) {
     return str.substring(0, 10);
@@ -75,7 +76,7 @@ function formatIsoDateForDb(rawVal) {
   if (!isNaN(parsed.getTime())) {
     return parsed.toISOString().substring(0, 10);
   }
-  return '2026-08-20';
+  return defaultDateStr;
 }
 
 export async function upsertContentItemToSupabase(contentItem) {

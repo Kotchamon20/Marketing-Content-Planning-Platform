@@ -140,7 +140,7 @@ export default function App() {
         group: item.group_name || 'Brand Vibe (Atmosphere)',
         subCategory: item.sub_category || '',
         status: item.status || 'draft',
-        publish_date: item.publish_date ? item.publish_date.split('T')[0] : '2026-08-20',
+        publish_date: item.publish_date ? item.publish_date.split('T')[0] : new Date().toISOString().split('T')[0],
         media_url: item.media_url || '',
         reference_url: item.reference_url || '',
         performance: { views: 0, likes: 0, comments: 0, shares: 0, ctr: 0 }

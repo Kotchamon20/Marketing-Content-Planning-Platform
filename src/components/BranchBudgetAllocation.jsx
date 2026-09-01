@@ -66,9 +66,29 @@ export default function BranchBudgetAllocation() {
   // Calculation Mode: 'auto' (MKT 2% Auto Calculate) | 'manual' (User Custom Full Budget Input)
   const [budgetCalcMode, setBudgetCalcMode] = useState('manual');
 
-  // Month & Year Filter States
-  const [selectedMonth, setSelectedMonth] = useState('08');
-  const [selectedYear, setSelectedYear] = useState('2026');
+  // Month & Year Filter States (Defaults to latest available budget month or current month)
+  const getInitialBranchMonthYear = () => {
+    const today = new Date();
+    const currentM = String(today.getMonth() + 1).padStart(2, '0');
+    const currentY = String(today.getFullYear());
+    const saved = localStorage.getItem('nitan_monthly_budgets_data');
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        const keys = Object.keys(parsed).filter(k => Array.isArray(parsed[k]) && parsed[k].length > 0);
+        if (keys.length > 0) {
+          keys.sort().reverse();
+          const [y, m] = keys[0].split('-');
+          return { month: m, year: y };
+        }
+      } catch (e) {}
+    }
+    return { month: currentM, year: currentY };
+  };
+
+  const initialBranchDate = getInitialBranchMonthYear();
+  const [selectedMonth, setSelectedMonth] = useState(initialBranchDate.month);
+  const [selectedYear, setSelectedYear] = useState(initialBranchDate.year);
 
   // Save Status UX State
   const [saveStatus, setSaveStatus] = useState('saved'); // 'saved' | 'saving'
@@ -102,16 +122,24 @@ export default function BranchBudgetAllocation() {
     { value: '12', label: 'ธันวาคม', short: 'ธ.ค.' }
   ];
 
-  const quickMonthTabs = [
-    { month: '05', year: '2026', label: 'พ.ค. 69' },
-    { month: '06', year: '2026', label: 'มิ.ย. 69' },
-    { month: '07', year: '2026', label: 'ก.ค. 69' },
-    { month: '08', year: '2026', label: 'ส.ค. 69 (ปัจจุบัน)' },
-    { month: '09', year: '2026', label: 'ก.ย. 69' },
-    { month: '10', year: '2026', label: 'ต.ค. 69' },
-    { month: '11', year: '2026', label: 'พ.ย. 69' },
-    { month: '12', year: '2026', label: 'ธ.ค. 69' }
-  ];
+  // Dynamic Quick Month Switcher Tabs
+  const quickMonthTabs = React.useMemo(() => {
+    const today = new Date();
+    const currentM = String(today.getMonth() + 1).padStart(2, '0');
+    const currentY = String(today.getFullYear());
+    const baseYear = Number(selectedYear) || today.getFullYear();
+    const months = ['01', '02', '03', '04', '05', '06', '07', '08', '09', '10', '11', '12'];
+    const shortNames = ['ม.ค.', 'ก.พ.', 'มี.ค.', 'เม.ย.', 'พ.ค.', 'มิ.ย.', 'ก.ค.', 'ส.ค.', 'ก.ย.', 'ต.ค.', 'พ.ย.', 'ธ.ค.'];
+    return months.map((m, idx) => {
+      const isCurrent = m === currentM && String(baseYear) === currentY;
+      const thYear = String(baseYear + 543).slice(-2);
+      return {
+        month: m,
+        year: String(baseYear),
+        label: `${shortNames[idx]} ${thYear}${isCurrent ? ' (ปัจจุบัน)' : ''}`
+      };
+    });
+  }, [selectedYear]);
 
   // Custom Modal States
   const [showAddBranchModal, setShowAddBranchModal] = useState(false);
@@ -292,6 +320,14 @@ export default function BranchBudgetAllocation() {
           });
           return sanitizeBudgetDataMap(merged);
         });
+
+        const keys = Object.keys(grouped).filter(k => Array.isArray(grouped[k]) && grouped[k].length > 0);
+        if (keys.length > 0) {
+          keys.sort().reverse();
+          const [latestY, latestM] = keys[0].split('-');
+          setSelectedMonth(latestM);
+          setSelectedYear(latestY);
+        }
       }
     };
     loadFromSupabase();
@@ -314,7 +350,10 @@ export default function BranchBudgetAllocation() {
     setMonthlyBudgetsData(prev => {
       const activeList = (prev[currentMonthKey] && prev[currentMonthKey].length > 0) ? prev[currentMonthKey] : DEFAULT_NITAN_BRANCHES;
       const updated = typeof newBranchesOrFn === 'function' ? newBranchesOrFn(activeList) : newBranchesOrFn;
-      return { ...prev, [currentMonthKey]: updated };
+      return sanitizeBudgetDataMap({
+        ...prev,
+        [currentMonthKey]: updated
+      });
     });
   };
 
@@ -530,7 +569,7 @@ export default function BranchBudgetAllocation() {
                                      Number(googleSearchBreakdown.leadsSearch?.amount || 0) + 
                                      Number(googleSearchBreakdown.naJomtienSearch?.amount || 0);
 
-  const currentMonthObj = monthsList.find(m => m.value === selectedMonth) || monthsList[7];
+  const currentMonthObj = monthsList.find(m => m.value === selectedMonth) || monthsList[new Date().getMonth()] || monthsList[0];
 
   return (
     <div className="space-y-6 animate-in fade-in duration-300">

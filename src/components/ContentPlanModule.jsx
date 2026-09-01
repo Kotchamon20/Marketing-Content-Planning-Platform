@@ -303,9 +303,50 @@ export default function ContentPlanModule({
   const [selectedStatus, setSelectedStatus] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
 
-  // Calendar Month State (August 2026)
-  const [currentMonth, setCurrentMonth] = useState(7); // 0-indexed: 7 = August
-  const [currentYear, setCurrentYear] = useState(2026);
+  // Calendar Month State (Defaults to latest content month or current month)
+  const getInitialMonthYear = () => {
+    const today = new Date();
+    if (contentItems && contentItems.length > 0) {
+      const dates = contentItems
+        .map(item => item.publish_date)
+        .filter(Boolean)
+        .map(d => new Date(d))
+        .filter(d => !isNaN(d.getTime()));
+      if (dates.length > 0) {
+        dates.sort((a, b) => b.getTime() - a.getTime());
+        return {
+          month: dates[0].getMonth(),
+          year: dates[0].getFullYear()
+        };
+      }
+    }
+    return {
+      month: today.getMonth(),
+      year: today.getFullYear()
+    };
+  };
+
+  const initialDateObj = getInitialMonthYear();
+  const [currentMonth, setCurrentMonth] = useState(initialDateObj.month);
+  const [currentYear, setCurrentYear] = useState(initialDateObj.year);
+
+  // Auto-sync calendar to latest content item month once items are loaded
+  const hasAutoNavigatedRef = useRef(false);
+  useEffect(() => {
+    if (!hasAutoNavigatedRef.current && contentItems && contentItems.length > 0) {
+      const dates = contentItems
+        .map(item => item.publish_date)
+        .filter(Boolean)
+        .map(d => new Date(d))
+        .filter(d => !isNaN(d.getTime()));
+      if (dates.length > 0) {
+        dates.sort((a, b) => b.getTime() - a.getTime());
+        setCurrentMonth(dates[0].getMonth());
+        setCurrentYear(dates[0].getFullYear());
+      }
+      hasAutoNavigatedRef.current = true;
+    }
+  }, [contentItems]);
 
   // File Upload Ref for Excel Import (.xlsx / .csv)
   const fileInputRef = useRef(null);
@@ -490,7 +531,13 @@ export default function ContentPlanModule({
   const [newPlatforms, setNewPlatforms] = useState(['facebook', 'instagram', 'tiktok']);
   const [newGroup, setNewGroup] = useState(effectiveContentGroups[0]?.name || 'Product Plan & Campaign');
   const [newSubCategory, setNewSubCategory] = useState('');
-  const [newPublishDate, setNewPublishDate] = useState('2026-08-20');
+  const [newPublishDate, setNewPublishDate] = useState(() => {
+    const d = new Date();
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${y}-${m}-${day}T10:00`;
+  });
   const [newMediaUrl, setNewMediaUrl] = useState('');
   const [newReferenceUrl, setNewReferenceUrl] = useState('');
   const [newCampaignId, setNewCampaignId] = useState(campaigns[0]?.id || '');
@@ -640,7 +687,9 @@ export default function ContentPlanModule({
 
   // Helper to parse Thai, Excel Serial, and Standard Date strings into YYYY-MM-DD format (Date Only, No Time)
   const parseThaiDateTime = (rawVal) => {
-    if (rawVal === null || rawVal === undefined || rawVal === '') return '2026-08-20';
+    const today = new Date();
+    const defaultDateStr = today.toISOString().split('T')[0];
+    if (rawVal === null || rawVal === undefined || rawVal === '') return defaultDateStr;
 
     // Handle Date object
     if (rawVal instanceof Date) {
@@ -664,7 +713,7 @@ export default function ContentPlanModule({
     }
 
     const str = String(rawVal).trim();
-    if (!str) return '2026-08-20';
+    if (!str) return defaultDateStr;
 
     // If already in ISO YYYY-MM-DD
     if (str.match(/^\d{4}-\d{2}-\d{2}/)) {
@@ -679,9 +728,9 @@ export default function ContentPlanModule({
 
     // Match ISO YYYY-MM-DD
     const isoMatch = cleaned.match(/(\d{4})[\/\-](\d{1,2})[\/\-](\d{1,2})/);
-    let year = 2026;
-    let month = '08';
-    let day = '20';
+    let year = today.getFullYear();
+    let month = String(today.getMonth() + 1).padStart(2, '0');
+    let day = String(today.getDate()).padStart(2, '0');
 
     if (isoMatch) {
       year = parseInt(isoMatch[1], 10);
@@ -723,15 +772,16 @@ export default function ContentPlanModule({
 
   // Helper to format date value for <input type="date"> (e.g. "2026-08-31")
   const formatIsoDateInput = (rawVal) => {
-    if (!rawVal) return '2026-08-20';
+    const defaultDateStr = new Date().toISOString().split('T')[0];
+    if (!rawVal) return defaultDateStr;
     try {
       const parsedIso = parseThaiDateTime(rawVal);
       if (parsedIso && parsedIso.match(/^\d{4}-\d{2}-\d{2}$/)) {
         return parsedIso;
       }
-      return '2026-08-20';
+      return defaultDateStr;
     } catch (e) {
-      return '2026-08-20';
+      return defaultDateStr;
     }
   };
 
@@ -1353,6 +1403,7 @@ export default function ContentPlanModule({
   // Inline Table Add New Row Handler (Creates a fresh row directly in the table view)
   const handleAddInlineTableRow = () => {
     pushGridUndoSnapshot();
+    const todayStr = new Date().toISOString().split('T')[0];
     const newItem = {
       id: `cnt-${Date.now()}`,
       team_id: 'team-1',
@@ -1363,7 +1414,7 @@ export default function ContentPlanModule({
       platform: 'tiktok',
       group: effectiveContentGroups[0]?.name || 'Product Plan & Campaign',
       status: 'draft',
-      publish_date: '2026-08-20',
+      publish_date: todayStr,
       media_url: '',
       reference_url: '',
       performance: { views: 0, likes: 0, comments: 0, shares: 0, ctr: 0 }
@@ -1465,6 +1516,20 @@ export default function ContentPlanModule({
 
     if (onUpdateContentGroups && groupsAcc !== effectiveContentGroups) {
       onUpdateContentGroups(groupsAcc);
+    }
+
+    // Auto-navigate calendar to the latest imported item's month
+    if (itemsToImport.length > 0) {
+      const dates = itemsToImport
+        .map(item => item.publish_date)
+        .filter(Boolean)
+        .map(d => new Date(d))
+        .filter(d => !isNaN(d.getTime()));
+      if (dates.length > 0) {
+        dates.sort((a, b) => b.getTime() - a.getTime());
+        setCurrentMonth(dates[0].getMonth());
+        setCurrentYear(dates[0].getFullYear());
+      }
     }
 
     setBulkRawText('');
@@ -1777,6 +1842,7 @@ export default function ContentPlanModule({
   const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
   const firstDayOfWeek = new Date(currentYear, currentMonth, 1).getDay(); // 0 = Sunday
   const monthNames = ['มกราคม', 'กุมภาพันธ์', 'มีนาคม', 'เมษายน', 'พฤษภาคม', 'มิถุนายน', 'กรกฎาคม', 'สิงหาคม', 'กันยายน', 'ตุลาคม', 'พฤศจิกายน', 'ธันวาคม'];
+  const shortMonthNames = ['ม.ค.', 'ก.พ.', 'มี.ค.', 'เม.ย.', 'พ.ค.', 'มิ.ย.', 'ก.ค.', 'ส.ค.', 'ก.ย.', 'ต.ค.', 'พ.ย.', 'ธ.ค.'];
 
   const getContentForDate = (dayNum) => {
     const formattedDay = dayNum < 10 ? `0${dayNum}` : `${dayNum}`;
@@ -2332,12 +2398,14 @@ export default function ContentPlanModule({
                       </button>
                       <button
                         onClick={() => {
-                          setCurrentMonth(7);
-                          setCurrentYear(2026);
+                          const today = new Date();
+                          setCurrentMonth(today.getMonth());
+                          setCurrentYear(today.getFullYear());
                         }}
                         className="px-3 py-1.5 bg-pink-50/60 hover:bg-pink-100/80 text-rose-800 rounded-xl border border-pink-200/80 text-xs font-semibold cursor-pointer transition"
+                        title="กลับไปเดือนปัจจุบัน"
                       >
-                        วันนี้ (ส.ค. 2026)
+                        วันนี้ ({shortMonthNames[new Date().getMonth()]} {new Date().getFullYear()})
                       </button>
                       <button
                         onClick={() => {
@@ -2383,7 +2451,8 @@ export default function ContentPlanModule({
                         {Array.from({ length: daysInMonth }).map((_, idx) => {
                           const dayNum = idx + 1;
                           const dateItems = getContentForDate(dayNum);
-                          const isToday = dayNum === 16 && currentMonth === 7 && currentYear === 2026;
+                          const today = new Date();
+                          const isToday = dayNum === today.getDate() && currentMonth === today.getMonth() && currentYear === today.getFullYear();
                           const isTargetHover = dragOverDay === dayNum;
 
                           return (

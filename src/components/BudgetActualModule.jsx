@@ -63,9 +63,29 @@ const sanitizeBudgetDataMap = (dataMap) => {
 };
 
 export default function BudgetActualModule({ onShowSaveToast }) {
-  // Month & Year Filter States
-  const [selectedMonth, setSelectedMonth] = useState('08');
-  const [selectedYear, setSelectedYear] = useState('2026');
+  // Month & Year Filter States (Defaults to latest available budget month or current month)
+  const getInitialBudgetMonthYear = () => {
+    const today = new Date();
+    const currentM = String(today.getMonth() + 1).padStart(2, '0');
+    const currentY = String(today.getFullYear());
+    const saved = localStorage.getItem('nitan_monthly_budgets_data');
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        const keys = Object.keys(parsed).filter(k => Array.isArray(parsed[k]) && parsed[k].length > 0);
+        if (keys.length > 0) {
+          keys.sort().reverse();
+          const [y, m] = keys[0].split('-');
+          return { month: m, year: y };
+        }
+      } catch (e) {}
+    }
+    return { month: currentM, year: currentY };
+  };
+
+  const initialBudgetDate = getInitialBudgetMonthYear();
+  const [selectedMonth, setSelectedMonth] = useState(initialBudgetDate.month);
+  const [selectedYear, setSelectedYear] = useState(initialBudgetDate.year);
   const currentMonthKey = `${selectedYear}-${selectedMonth}`;
 
   // View Mode: 'branch' | 'channel' | 'ledger'
@@ -149,17 +169,24 @@ export default function BudgetActualModule({ onShowSaveToast }) {
     return { isFullMonth: false, text: dateStr, fullText: dateStr };
   };
 
-  // Month Quick Tabs
-  const quickMonthTabs = [
-    { month: '05', year: '2026', label: 'พ.ค. 69' },
-    { month: '06', year: '2026', label: 'มิ.ย. 69' },
-    { month: '07', year: '2026', label: 'ก.ค. 69' },
-    { month: '08', year: '2026', label: 'ส.ค. 69 (ปัจจุบัน)' },
-    { month: '09', year: '2026', label: 'ก.ย. 69' },
-    { month: '10', year: '2026', label: 'ต.ค. 69' },
-    { month: '11', year: '2026', label: 'พ.ย. 69' },
-    { month: '12', year: '2026', label: 'ธ.ค. 69' }
-  ];
+  // Dynamic Month Quick Tabs
+  const quickMonthTabs = useMemo(() => {
+    const today = new Date();
+    const currentM = String(today.getMonth() + 1).padStart(2, '0');
+    const currentY = String(today.getFullYear());
+    const baseYear = Number(selectedYear) || today.getFullYear();
+    const months = ['01', '02', '03', '04', '05', '06', '07', '08', '09', '10', '11', '12'];
+    const shortNames = ['ม.ค.', 'ก.พ.', 'มี.ค.', 'เม.ย.', 'พ.ค.', 'มิ.ย.', 'ก.ค.', 'ส.ค.', 'ก.ย.', 'ต.ค.', 'พ.ย.', 'ธ.ค.'];
+    return months.map((m, idx) => {
+      const isCurrent = m === currentM && String(baseYear) === currentY;
+      const thYear = String(baseYear + 543).slice(-2);
+      return {
+        month: m,
+        year: String(baseYear),
+        label: `${shortNames[idx]} ${thYear}${isCurrent ? ' (ปัจจุบัน)' : ''}`
+      };
+    });
+  }, [selectedYear]);
 
   // Standard Branches
   const standardBranches = useMemo(() => [
