@@ -303,50 +303,9 @@ export default function ContentPlanModule({
   const [selectedStatus, setSelectedStatus] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
 
-  // Calendar Month State (Defaults to latest content month or current month)
-  const getInitialMonthYear = () => {
-    const today = new Date();
-    if (contentItems && contentItems.length > 0) {
-      const dates = contentItems
-        .map(item => item.publish_date)
-        .filter(Boolean)
-        .map(d => new Date(d))
-        .filter(d => !isNaN(d.getTime()));
-      if (dates.length > 0) {
-        dates.sort((a, b) => b.getTime() - a.getTime());
-        return {
-          month: dates[0].getMonth(),
-          year: dates[0].getFullYear()
-        };
-      }
-    }
-    return {
-      month: today.getMonth(),
-      year: today.getFullYear()
-    };
-  };
-
-  const initialDateObj = getInitialMonthYear();
-  const [currentMonth, setCurrentMonth] = useState(initialDateObj.month);
-  const [currentYear, setCurrentYear] = useState(initialDateObj.year);
-
-  // Auto-sync calendar to latest content item month once items are loaded
-  const hasAutoNavigatedRef = useRef(false);
-  useEffect(() => {
-    if (!hasAutoNavigatedRef.current && contentItems && contentItems.length > 0) {
-      const dates = contentItems
-        .map(item => item.publish_date)
-        .filter(Boolean)
-        .map(d => new Date(d))
-        .filter(d => !isNaN(d.getTime()));
-      if (dates.length > 0) {
-        dates.sort((a, b) => b.getTime() - a.getTime());
-        setCurrentMonth(dates[0].getMonth());
-        setCurrentYear(dates[0].getFullYear());
-      }
-      hasAutoNavigatedRef.current = true;
-    }
-  }, [contentItems]);
+  // Calendar Month State (Always defaults to current month and current year)
+  const [currentMonth, setCurrentMonth] = useState(() => new Date().getMonth());
+  const [currentYear, setCurrentYear] = useState(() => new Date().getFullYear());
 
   // File Upload Ref for Excel Import (.xlsx / .csv)
   const fileInputRef = useRef(null);
