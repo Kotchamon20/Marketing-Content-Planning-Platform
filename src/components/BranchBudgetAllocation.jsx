@@ -145,6 +145,9 @@ export default function BranchBudgetAllocation() {
   const [showAddBranchModal, setShowAddBranchModal] = useState(false);
   const [newBranchName, setNewBranchName] = useState('');
   const [newBranchSales, setNewBranchSales] = useState(0);
+  const [newBranchBudget, setNewBranchBudget] = useState(0); // Manual budget input for new branch
+  const [addBranchMode, setAddBranchMode] = useState('existing'); // 'existing' | 'new'
+  const [selectedExistingBranchId, setSelectedExistingBranchId] = useState('');
 
   const [deleteBranchId, setDeleteBranchId] = useState(null);
 
@@ -377,11 +380,32 @@ export default function BranchBudgetAllocation() {
 
   // Handlers for updating branch sales & manual full budget
   const handleUpdateSales = (branchId, value) => {
-    updateCurrentBranches(prev => prev.map(b => b.id === branchId ? { ...b, previousSales: Number(value) || 0 } : b));
+    const sales = Number(value) || 0;
+    updateCurrentBranches(prev => prev.map(b => {
+      if (b.id !== branchId) return b;
+      // In auto mode: sales is input, budget is computed
+      const autoComputedBudget = sales * (mktPercentRate / 100);
+      return {
+        ...b,
+        previousSales: sales,
+        // If in auto mode, keep manualFullBudget in sync too for display
+        ...(budgetCalcMode === 'auto' ? { manualFullBudget: autoComputedBudget } : {})
+      };
+    }));
   };
 
   const handleUpdateManualFullBudget = (branchId, value) => {
-    updateCurrentBranches(prev => prev.map(b => b.id === branchId ? { ...b, manualFullBudget: Number(value) || 0 } : b));
+    const budget = Number(value) || 0;
+    updateCurrentBranches(prev => prev.map(b => {
+      if (b.id !== branchId) return b;
+      // Auto-calculate previousSales from budget (reverse formula)
+      const autoSales = mktPercentRate > 0 ? Math.round(budget / (mktPercentRate / 100)) : 0;
+      return {
+        ...b,
+        manualFullBudget: budget,
+        previousSales: autoSales
+      };
+    }));
   };
 
   const handleUpdatePromoAmount = (branchId, promoId, value) => {
@@ -449,36 +473,71 @@ export default function BranchBudgetAllocation() {
     }));
   };
 
+  // Available existing branches not yet in current month (for Add Branch modal)
+  const availableExistingBranches = React.useMemo(() => {
+    const currentIds = new Set((monthlyBudgetsData[currentMonthKey] || []).map(b => b.id));
+    const currentNames = new Set((monthlyBudgetsData[currentMonthKey] || []).map(b => b.name?.trim().toLowerCase()));
+    return DEFAULT_NITAN_BRANCHES.filter(b =>
+      !currentIds.has(b.id) && !currentNames.has(b.name?.trim().toLowerCase())
+    );
+  }, [DEFAULT_NITAN_BRANCHES, monthlyBudgetsData, currentMonthKey]);
+
   // Add Branch Handler (Custom Modal)
   const handleConfirmAddBranch = (e) => {
     e.preventDefault();
-    if (!newBranchName.trim()) return;
 
-    const newBranch = {
-      id: `branch-${Date.now()}`,
-      name: newBranchName.trim(),
-      colorHeader: 'bg-[#F5EEF8] text-purple-950 border-[#E2D2EA]',
-      manualFullBudget: 20000.00,
-      previousSales: Number(newBranchSales) || 1000000,
-      promotions: [
-        { id: 'p1', name: 'Influencer', amount: 0 },
-        { id: 'p2', name: 'Workshop/Event', amount: 0 },
-        { id: 'p3', name: 'Line OA', amount: 0 }
-      ],
-      channelAllocations: [
-        { id: 'c1', name: 'Google', percent: 40, amount: 8000 },
-        { id: 'c2', name: 'Facebook', percent: 40, amount: 8000 },
-        { id: 'c3', name: 'TikTok', percent: 10, amount: 2000 },
-        { id: 'c4', name: 'Instagram', percent: 0, amount: 0 },
-        { id: 'c5', name: 'Lazada', percent: 0, amount: 0 },
-        { id: 'c6', name: 'Shopee', percent: 10, amount: 2000 },
-        { id: 'c7', name: 'Grab', percent: 10, amount: 2000 }
-      ]
-    };
+    if (addBranchMode === 'existing') {
+      // Add from existing default branches
+      const existing = DEFAULT_NITAN_BRANCHES.find(b => b.id === selectedExistingBranchId);
+      if (!existing) return;
+      const budget = Number(newBranchBudget) || 0;
+      const sales = budget > 0
+        ? (mktPercentRate > 0 ? Math.round(budget / (mktPercentRate / 100)) : 0)
+        : Number(newBranchSales) || 0;
+      const branchToAdd = {
+        ...existing,
+        manualFullBudget: budget,
+        previousSales: sales,
+        promotions: existing.promotions.map(p => ({ ...p, amount: 0 })),
+        channelAllocations: existing.channelAllocations.map(c => ({ ...c, percent: 0, amount: 0 }))
+      };
+      updateCurrentBranches(prev => [...prev, branchToAdd]);
+    } else {
+      // Add brand new branch
+      if (!newBranchName.trim()) return;
+      const budget = Number(newBranchBudget) || 20000;
+      const sales = budget > 0
+        ? (mktPercentRate > 0 ? Math.round(budget / (mktPercentRate / 100)) : Number(newBranchSales) || 1000000)
+        : Number(newBranchSales) || 1000000;
+      const newBranch = {
+        id: `branch-${Date.now()}`,
+        name: newBranchName.trim(),
+        colorHeader: 'bg-[#F5EEF8] text-purple-950 border-[#E2D2EA]',
+        manualFullBudget: budget,
+        previousSales: sales,
+        promotions: [
+          { id: 'p1', name: 'Influencer', amount: 0 },
+          { id: 'p2', name: 'Workshop/Event', amount: 0 },
+          { id: 'p3', name: 'Line OA', amount: 0 }
+        ],
+        channelAllocations: [
+          { id: 'c1', name: 'Google', percent: 0, amount: 0 },
+          { id: 'c2', name: 'Facebook', percent: 0, amount: 0 },
+          { id: 'c3', name: 'TikTok', percent: 0, amount: 0 },
+          { id: 'c4', name: 'Instagram', percent: 0, amount: 0 },
+          { id: 'c5', name: 'Lazada', percent: 0, amount: 0 },
+          { id: 'c6', name: 'Shopee', percent: 0, amount: 0 },
+          { id: 'c7', name: 'Grab', percent: 0, amount: 0 }
+        ]
+      };
+      updateCurrentBranches(prev => [...prev, newBranch]);
+    }
 
-    updateCurrentBranches(prev => [...prev, newBranch]);
     setShowAddBranchModal(false);
     setNewBranchName('');
+    setNewBranchSales(0);
+    setNewBranchBudget(0);
+    setSelectedExistingBranchId('');
   };
 
   // Confirm Delete Branch Handler
@@ -845,15 +904,29 @@ export default function BranchBudgetAllocation() {
                   {/* Row 1: Sales & Daily Average */}
                   <div className="p-3 bg-purple-50/50 rounded-xl border border-purple-100 space-y-2">
                     <div className="flex items-center justify-between">
-                      <span className="font-bold text-purple-950">ยอดขายเดือนก่อนหน้า</span>
+                      <div>
+                        <span className="font-bold text-purple-950">ยอดขายเดือนก่อนหน้า</span>
+                        {budgetCalcMode === 'manual' && (
+                          <span className="ml-1.5 text-[10px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-1.5 py-0.5 rounded-full">
+                            ⚡ คำนวณอัตโนมัติจากงบ
+                          </span>
+                        )}
+                      </div>
                       <div className="flex items-center gap-1">
                         <span className="font-bold text-purple-900">฿</span>
-                        <input
-                          type="number"
-                          value={branch.previousSales}
-                          onChange={(e) => handleUpdateSales(branch.id, e.target.value)}
-                          className="w-32 px-2 py-1 bg-white border border-[#E2D2EA] rounded-lg text-right font-mono font-bold text-purple-950 focus:outline-none"
-                        />
+                        {budgetCalcMode === 'manual' ? (
+                          // In manual mode: previousSales is auto-computed from manualFullBudget (read-only display)
+                          <span className="w-32 px-2 py-1 bg-purple-50/60 border border-purple-200 rounded-lg text-right font-mono font-bold text-purple-700 text-xs inline-block">
+                            {branch.previousSales.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
+                          </span>
+                        ) : (
+                          <input
+                            type="number"
+                            value={branch.previousSales}
+                            onChange={(e) => handleUpdateSales(branch.id, e.target.value)}
+                            className="w-32 px-2 py-1 bg-white border border-[#E2D2EA] rounded-lg text-right font-mono font-bold text-purple-950 focus:outline-none"
+                          />
+                        )}
                       </div>
                     </div>
 
@@ -1320,55 +1393,191 @@ export default function BranchBudgetAllocation() {
                 <div className="w-8 h-8 rounded-xl bg-[#FFEBF3] text-purple-800 flex items-center justify-center border border-[#E2D2EA]">
                   <Building2 className="w-4 h-4" />
                 </div>
-                <h3 className="text-base font-bold text-purple-950">เพิ่มสาขาจัดสรรงบประมาณใหม่</h3>
+                <h3 className="text-base font-bold text-purple-950">เพิ่มสาขาจัดสรรงบประมาณ</h3>
               </div>
-              <button onClick={() => setShowAddBranchModal(false)} className="text-purple-400 hover:text-purple-700 font-bold">
+              <button onClick={() => {
+                setShowAddBranchModal(false);
+                setAddBranchMode('existing');
+                setNewBranchName('');
+                setNewBranchSales(0);
+                setNewBranchBudget(0);
+                setSelectedExistingBranchId('');
+              }} className="text-purple-400 hover:text-purple-700 font-bold">
                 <X className="w-4 h-4" />
               </button>
             </div>
 
-            <form onSubmit={handleConfirmAddBranch} className="space-y-3 text-xs">
-              <div>
-                <label className="block text-purple-950 font-bold mb-1">ชื่อสาขาใหม่</label>
-                <input
-                  type="text"
-                  required
-                  placeholder="เช่น สาขา สยามพารากอน / สาขา เซ็นทรัลเวิลด์"
-                  value={newBranchName}
-                  onChange={(e) => setNewBranchName(e.target.value)}
-                  className="w-full px-3 py-2 bg-white border border-[#E2D2EA] rounded-xl text-purple-950 font-medium focus:outline-none focus:border-purple-500 shadow-xs"
-                />
-              </div>
+            {/* Mode Toggle Tabs */}
+            <div className="flex items-center p-1 bg-purple-50 rounded-xl border border-[#E2D2EA] text-xs font-bold">
+              <button
+                type="button"
+                onClick={() => setAddBranchMode('existing')}
+                className={`flex-1 px-3 py-1.5 rounded-lg transition flex items-center justify-center gap-1.5 cursor-pointer ${
+                  addBranchMode === 'existing'
+                    ? 'bg-purple-950 text-white shadow-xs'
+                    : 'text-purple-900 hover:bg-purple-100'
+                }`}
+              >
+                <Building2 className="w-3.5 h-3.5" />
+                <span>เลือกจากสาขาที่มีอยู่</span>
+                {availableExistingBranches.length > 0 && (
+                  <span className="bg-pink-400 text-white text-[10px] px-1.5 py-0.5 rounded-full font-bold">{availableExistingBranches.length}</span>
+                )}
+              </button>
+              <button
+                type="button"
+                onClick={() => setAddBranchMode('new')}
+                className={`flex-1 px-3 py-1.5 rounded-lg transition flex items-center justify-center gap-1.5 cursor-pointer ${
+                  addBranchMode === 'new'
+                    ? 'bg-purple-950 text-white shadow-xs'
+                    : 'text-purple-900 hover:bg-purple-100'
+                }`}
+              >
+                <Plus className="w-3.5 h-3.5" />
+                <span>สาขาใหม่</span>
+              </button>
+            </div>
 
-              <div>
-                <label className="block text-purple-950 font-bold mb-1">ยอดขายเดือนก่อนหน้า (บาท)</label>
-                <input
-                  type="number"
-                  required
-                  min={0}
-                  placeholder="1000000"
-                  value={newBranchSales}
-                  onChange={(e) => setNewBranchSales(e.target.value)}
-                  className="w-full px-3 py-2 bg-white border border-[#E2D2EA] rounded-xl text-purple-950 font-mono font-bold focus:outline-none focus:border-purple-500 shadow-xs"
-                />
-                <span className="text-[10px] text-purple-800/70 mt-1 block">
-                  * ระบบจะคำนวณงบ MKT {mktPercentRate}% ให้อัตโนมัติจากยอดขายนี้
-                </span>
-              </div>
+            <form onSubmit={handleConfirmAddBranch} className="space-y-3 text-xs">
+
+              {addBranchMode === 'existing' ? (
+                /* --- Existing Branch Picker --- */
+                <div className="space-y-3">
+                  {availableExistingBranches.length === 0 ? (
+                    <div className="p-4 bg-emerald-50 border border-emerald-200 rounded-xl text-center">
+                      <CheckCircle2 className="w-6 h-6 text-emerald-600 mx-auto mb-1" />
+                      <p className="text-emerald-800 font-bold text-xs">สาขาหลักทุกสาขาถูกเพิ่มแล้วในเดือนนี้</p>
+                      <p className="text-emerald-700 text-[11px] mt-0.5">กรุณาสลับไปแท็บ "สาขาใหม่" เพื่อเพิ่มสาขาเพิ่มเติม</p>
+                    </div>
+                  ) : (
+                    <>
+                      <div>
+                        <label className="block text-purple-950 font-bold mb-1.5">เลือกสาขาที่ต้องการเพิ่ม</label>
+                        <div className="space-y-2">
+                          {availableExistingBranches.map(b => (
+                            <label
+                              key={b.id}
+                              className={`flex items-center gap-3 p-3 rounded-xl border cursor-pointer transition ${
+                                selectedExistingBranchId === b.id
+                                  ? 'border-purple-500 bg-purple-50 shadow-xs'
+                                  : 'border-[#E2D2EA] bg-white hover:bg-purple-50/40'
+                              }`}
+                            >
+                              <input
+                                type="radio"
+                                name="existingBranch"
+                                value={b.id}
+                                checked={selectedExistingBranchId === b.id}
+                                onChange={() => setSelectedExistingBranchId(b.id)}
+                                className="accent-purple-700"
+                              />
+                              <div className={`w-7 h-7 rounded-lg flex items-center justify-center text-purple-800 ${b.colorHeader}`}>
+                                <Building2 className="w-4 h-4" />
+                              </div>
+                              <span className="font-bold text-purple-950">{b.name}</span>
+                            </label>
+                          ))}
+                        </div>
+                      </div>
+
+                      {/* Budget input for existing branch */}
+                      <div>
+                        <label className="block text-purple-950 font-bold mb-1">งบจำนวนเต็ม (บาท)</label>
+                        <input
+                          type="number"
+                          min={0}
+                          placeholder="เช่น 107000"
+                          value={newBranchBudget || ''}
+                          onChange={(e) => {
+                            const budget = Number(e.target.value) || 0;
+                            setNewBranchBudget(budget);
+                            // Auto-compute previousSales from budget
+                            if (budget > 0 && mktPercentRate > 0) {
+                              setNewBranchSales(Math.round(budget / (mktPercentRate / 100)));
+                            }
+                          }}
+                          className="w-full px-3 py-2 bg-white border border-[#E2D2EA] rounded-xl text-purple-950 font-mono font-bold focus:outline-none focus:border-purple-500 shadow-xs"
+                        />
+                        {newBranchBudget > 0 && (
+                          <div className="mt-1.5 flex items-center gap-1.5 text-[11px] text-emerald-700 font-bold">
+                            <span>⚡ ยอดขายที่คำนวณได้:</span>
+                            <span className="font-mono">฿{(newBranchSales || 0).toLocaleString()}</span>
+                            <span className="text-purple-700 font-medium">(= งบ ÷ {mktPercentRate}%)</span>
+                          </div>
+                        )}
+                        <span className="text-[10px] text-purple-800/70 mt-0.5 block">
+                          * ยอดขายเดือนก่อนหน้าจะคำนวณอัตโนมัติจากงบ ÷ {mktPercentRate}%
+                        </span>
+                      </div>
+                    </>
+                  )}
+                </div>
+              ) : (
+                /* --- New Branch Form --- */
+                <div className="space-y-3">
+                  <div>
+                    <label className="block text-purple-950 font-bold mb-1">ชื่อสาขาใหม่</label>
+                    <input
+                      type="text"
+                      required={addBranchMode === 'new'}
+                      placeholder="เช่น สาขา สยามพารากอน / สาขา เซ็นทรัลเวิลด์"
+                      value={newBranchName}
+                      onChange={(e) => setNewBranchName(e.target.value)}
+                      className="w-full px-3 py-2 bg-white border border-[#E2D2EA] rounded-xl text-purple-950 font-medium focus:outline-none focus:border-purple-500 shadow-xs"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-purple-950 font-bold mb-1">งบจำนวนเต็ม (บาท)</label>
+                    <input
+                      type="number"
+                      min={0}
+                      placeholder="เช่น 20000"
+                      value={newBranchBudget || ''}
+                      onChange={(e) => {
+                        const budget = Number(e.target.value) || 0;
+                        setNewBranchBudget(budget);
+                        if (budget > 0 && mktPercentRate > 0) {
+                          setNewBranchSales(Math.round(budget / (mktPercentRate / 100)));
+                        }
+                      }}
+                      className="w-full px-3 py-2 bg-white border border-[#E2D2EA] rounded-xl text-purple-950 font-mono font-bold focus:outline-none focus:border-purple-500 shadow-xs"
+                    />
+                    {newBranchBudget > 0 && (
+                      <div className="mt-1.5 flex items-center gap-1.5 text-[11px] text-emerald-700 font-bold">
+                        <span>⚡ ยอดขายที่คำนวณได้:</span>
+                        <span className="font-mono">฿{(newBranchSales || 0).toLocaleString()}</span>
+                        <span className="text-purple-700 font-medium">(= งบ ÷ {mktPercentRate}%)</span>
+                      </div>
+                    )}
+                    <span className="text-[10px] text-purple-800/70 mt-0.5 block">
+                      * ยอดขายเดือนก่อนหน้าจะคำนวณอัตโนมัติจากงบ ÷ {mktPercentRate}%
+                    </span>
+                  </div>
+                </div>
+              )}
 
               <div className="pt-3 flex justify-end gap-2">
                 <button
                   type="button"
-                  onClick={() => setShowAddBranchModal(false)}
+                  onClick={() => {
+                    setShowAddBranchModal(false);
+                    setAddBranchMode('existing');
+                    setNewBranchName('');
+                    setNewBranchSales(0);
+                    setNewBranchBudget(0);
+                    setSelectedExistingBranchId('');
+                  }}
                   className="px-4 py-2 bg-purple-50 text-purple-900 rounded-xl font-bold hover:bg-purple-100 transition cursor-pointer"
                 >
                   ยกเลิก
                 </button>
                 <button
                   type="submit"
-                  className="px-5 py-2 bg-gradient-to-r from-[#F0E6F5] via-[#FFEBF3] to-[#E6F2FF] text-purple-950 font-bold rounded-xl shadow-xs border border-[#E2D2EA] hover:opacity-90 transition cursor-pointer"
+                  disabled={addBranchMode === 'existing' && (availableExistingBranches.length === 0 || !selectedExistingBranchId)}
+                  className="px-5 py-2 bg-gradient-to-r from-purple-950 via-pink-900 to-purple-900 text-white font-bold rounded-xl shadow-md border border-purple-950 hover:opacity-90 transition cursor-pointer disabled:opacity-40"
                 >
-                  + เพิ่มสาขาใหม่
+                  + เพิ่มสาขา
                 </button>
               </div>
             </form>
