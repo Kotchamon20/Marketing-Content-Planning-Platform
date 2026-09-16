@@ -477,7 +477,10 @@ export default function PromotionPlanModule({
     return Array.from(channelSet);
   }, [promotionPlans]);
 
-  // Filtered Logic with Auto-sorting by upcoming date
+  // Status priority: completed goes to bottom
+  const statusOrder = { active: 0, planned: 1, completed: 2 };
+
+  // Filtered Logic — preserves manual drag-and-drop order, only sorts completed to bottom
   const filteredPlans = promotionPlans
     .filter(plan => {
       const matchCategory = selectedCategory === 'all' || plan.category === selectedCategory;
@@ -504,15 +507,21 @@ export default function PromotionPlanModule({
       return matchCategory && matchProduct && matchBranch && matchStatus && matchChannel && matchSearch;
     })
     .sort((a, b) => {
-      const dateA = a.startDate || a.start_date || '9999-99-99';
-      const dateB = b.startDate || b.start_date || '9999-99-99';
-      return dateA.localeCompare(dateB);
+      // Always push completed to bottom; within same status, preserve original order
+      const orderA = statusOrder[a.status] ?? 1;
+      const orderB = statusOrder[b.status] ?? 1;
+      return orderA - orderB;
     });
 
-  // Sort by date (nearest upcoming first)
+  // Sort by date (nearest upcoming first), completed always last
   const handleSortByDate = () => {
     setPromotionPlans(prev => {
       const sorted = [...prev].sort((a, b) => {
+        // completed goes to bottom first
+        const orderA = statusOrder[a.status] ?? 1;
+        const orderB = statusOrder[b.status] ?? 1;
+        if (orderA !== orderB) return orderA - orderB;
+        // within same status, sort by date
         const dateA = a.startDate || a.start_date || '9999-99-99';
         const dateB = b.startDate || b.start_date || '9999-99-99';
         return dateA.localeCompare(dateB);
@@ -561,6 +570,12 @@ export default function PromotionPlanModule({
         const updated = [...prev];
         const [moved] = updated.splice(fromIndex, 1);
         updated.splice(toIndex, 0, moved);
+        // Re-apply status sort: completed always stays at bottom
+        updated.sort((a, b) => {
+          const orderA = statusOrder[a.status] ?? 1;
+          const orderB = statusOrder[b.status] ?? 1;
+          return orderA - orderB;
+        });
         return updated;
       }
       return prev;
