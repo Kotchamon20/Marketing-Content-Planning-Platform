@@ -386,3 +386,36 @@ CREATE TABLE IF NOT EXISTS content_groups (
 ALTER TABLE content_groups DISABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "Allow public all access on content_groups" ON content_groups;
 CREATE POLICY "Allow public all access on content_groups" ON content_groups FOR ALL USING (true);
+
+-- 19. TODO CHECKLIST GROUPS (Module 5 - Branch Checklist Groups)
+CREATE TABLE IF NOT EXISTS todo_checklist_groups (
+    id VARCHAR(50) PRIMARY KEY,
+    title VARCHAR(255) NOT NULL,
+    icon VARCHAR(50) DEFAULT 'Megaphone',
+    color VARCHAR(50) DEFAULT 'purple',
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- 20. TODO CHECKLIST ITEMS (Module 5 - Branch Checklist Items)
+CREATE TABLE IF NOT EXISTS todo_checklists (
+    id VARCHAR(50) PRIMARY KEY,
+    group_id VARCHAR(50) REFERENCES todo_checklist_groups(id) ON DELETE CASCADE,
+    title TEXT NOT NULL,
+    completed BOOLEAN DEFAULT FALSE,
+    branch VARCHAR(100) DEFAULT 'สาขาบางแสน',
+    assigned_to VARCHAR(100),
+    link TEXT,
+    due_date DATE,
+    notes TEXT,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+ALTER TABLE todo_checklist_groups DISABLE ROW LEVEL SECURITY;
+ALTER TABLE todo_checklists DISABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "Allow public all access on todo_checklist_groups" ON todo_checklist_groups;
+CREATE POLICY "Allow public all access on todo_checklist_groups" ON todo_checklist_groups FOR ALL USING (true);
+
+DROP POLICY IF EXISTS "Allow public all access on todo_checklists" ON todo_checklists;
+CREATE POLICY "Allow public all access on todo_checklists" ON todo_checklists FOR ALL USING (true);
+
