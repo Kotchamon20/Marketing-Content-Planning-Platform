@@ -371,7 +371,18 @@ DROP POLICY IF EXISTS "Allow public all access on custom_platforms" ON custom_pl
 CREATE POLICY "Allow public all access on custom_platforms" ON custom_platforms FOR ALL USING (true);
 
 -- REALTIME BROADCAST SYNCHRONIZATION FOR LOCAL & PRODUCTION
-ALTER PUBLICATION supabase_realtime ADD TABLE content_items;
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1 FROM pg_publication_tables 
+        WHERE pubname = 'supabase_realtime' 
+        AND schemaname = 'public' 
+        AND tablename = 'content_items'
+    ) THEN
+        ALTER PUBLICATION supabase_realtime ADD TABLE content_items;
+    END IF;
+END $$;
+
 
 -- 18. CONTENT GROUPS (Dynamic Category Setup)
 CREATE TABLE IF NOT EXISTS content_groups (
