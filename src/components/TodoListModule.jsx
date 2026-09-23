@@ -32,7 +32,9 @@ import {
   CheckCheck,
   PauseCircle,
   FolderCheck,
-  FileText
+  FileText,
+  ArrowUpDown,
+  GripVertical
 } from 'lucide-react';
 import LineFlexModal from './LineFlexModal';
 
@@ -46,6 +48,14 @@ export default function TodoListModule({
 
   // View Mode State for Tasks: 'card' (default) | 'list'
   const [viewMode, setViewMode] = useState('card');
+
+  // View Mode & Sorting State for Follow-up: 'list' (default) | 'card'
+  const [followupViewMode, setFollowupViewMode] = useState('list');
+  const [followupSortBy, setFollowupSortBy] = useState('status'); // 'status' | 'custom' | 'date_desc' | 'date_asc' | 'title'
+
+  // Drag & Drop State for Follow-Up
+  const [draggedFollowupId, setDraggedFollowupId] = useState(null);
+  const [dragOverFollowupId, setDragOverFollowupId] = useState(null);
 
   // 1. Tasks State with localStorage Persistence
   const [tasks, setTasks] = useState(() => {
@@ -242,6 +252,75 @@ export default function TodoListModule({
     onShowSaveToast?.('ลบงานติดตามเรียบร้อยแล้ว!');
   };
 
+  const handleUpdateFollowupStatus = async (itemId, newStatus) => {
+    let updatedItem = null;
+    setFollowupItems(prev => prev.map(f => {
+      if (f.id === itemId) {
+        updatedItem = { ...f, status: newStatus };
+        return updatedItem;
+      }
+      return f;
+    }));
+    if (updatedItem) {
+      await saveTodoFollowupToSupabase(updatedItem);
+      onShowSaveToast?.('อัปเดตสถานะงานติดตามเรียบร้อยแล้ว!');
+    }
+  };
+
+  // Drag & Drop handlers for Follow-Up watchlist
+  const handleFollowupDragStart = (e, id) => {
+    setDraggedFollowupId(id);
+    e.dataTransfer.setData('text/plain', id);
+    e.dataTransfer.effectAllowed = 'move';
+  };
+
+  const handleFollowupDragOver = (e, id) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+    if (dragOverFollowupId !== id) {
+      setDragOverFollowupId(id);
+    }
+  };
+
+  const handleFollowupDragLeave = (e, id) => {
+    if (dragOverFollowupId === id) {
+      setDragOverFollowupId(null);
+    }
+  };
+
+  const handleFollowupDrop = (e, targetId) => {
+    e.preventDefault();
+    if (!draggedFollowupId || draggedFollowupId === targetId) {
+      setDraggedFollowupId(null);
+      setDragOverFollowupId(null);
+      return;
+    }
+
+    setFollowupItems(prev => {
+      const fromIndex = prev.findIndex(f => f.id === draggedFollowupId);
+      const toIndex = prev.findIndex(f => f.id === targetId);
+
+      if (fromIndex !== -1 && toIndex !== -1) {
+        const updated = [...prev];
+        const [moved] = updated.splice(fromIndex, 1);
+        updated.splice(toIndex, 0, moved);
+        return updated;
+      }
+      return prev;
+    });
+
+    setFollowupSortBy('custom');
+    onShowSaveToast?.('จัดลำดับงานติดตามเรียบร้อยแล้ว!');
+
+    setDraggedFollowupId(null);
+    setDragOverFollowupId(null);
+  };
+
+  const handleFollowupDragEnd = () => {
+    setDraggedFollowupId(null);
+    setDragOverFollowupId(null);
+  };
+
   // --- Handlers for 3. File Submission Tracker ---
   const handleOpenAddFile = () => {
     setEditingFile(null);
@@ -330,15 +409,45 @@ export default function TodoListModule({
     return matchStatus && matchPriority && matchCategory && matchSearch;
   });
 
-  // Filtered Logic for 2. Follow-Up Watchlist
-  const filteredFollowupItems = followupItems.filter(f => {
-    const matchStatus = selectedFollowupStatus === 'all' || f.status === selectedFollowupStatus;
-    const matchSearch = !searchQuery ||
-      (f.title && f.title.toLowerCase().includes(searchQuery.toLowerCase())) ||
-      (f.targetPerson && f.targetPerson.toLowerCase().includes(searchQuery.toLowerCase())) ||
-      (f.notes && f.notes.toLowerCase().includes(searchQuery.toLowerCase()));
-    return matchStatus && matchSearch;
-  });
+  // Status weight for sorting: Following (1) -> Hold (2) -> Completed (3)
+  const FOLLOWUP_STATUS_ORDER = {
+    following: 1,
+    hold: 2,
+    completed: 3
+  };
+
+  // Filtered & Sorted Logic for 2. Follow-Up Watchlist
+  const filteredFollowupItems = followupItems
+    .filter(f => {
+      const matchStatus = selectedFollowupStatus === 'all' || f.status === selectedFollowupStatus;
+      const matchSearch = !searchQuery ||
+        (f.title && f.title.toLowerCase().includes(searchQuery.toLowerCase())) ||
+        (f.targetPerson && f.targetPerson.toLowerCase().includes(searchQuery.toLowerCase())) ||
+        (f.notes && f.notes.toLowerCase().includes(searchQuery.toLowerCase()));
+      return matchStatus && matchSearch;
+    })
+    .sort((a, b) => {
+      if (followupSortBy === 'status') {
+        const orderA = FOLLOWUP_STATUS_ORDER[a.status] || 99;
+        const orderB = FOLLOWUP_STATUS_ORDER[b.status] || 99;
+        if (orderA !== orderB) return orderA - orderB;
+        // Secondary sort: Newest first
+        const dateA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+        const dateB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+        return dateB - dateA;
+      } else if (followupSortBy === 'date_desc') {
+        const dateA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+        const dateB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+        return dateB - dateA;
+      } else if (followupSortBy === 'date_asc') {
+        const dateA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+        const dateB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+        return dateA - dateB;
+      } else if (followupSortBy === 'title') {
+        return (a.title || '').localeCompare(b.title || '', 'th');
+      }
+      return 0;
+    });
 
   // Filtered Logic for 3. File Submission Tracker
   const filteredFiles = fileTrackers.filter(f => {
@@ -657,11 +766,13 @@ export default function TodoListModule({
       {/* SECTION 2: FOLLOW-UP WATCHLIST (ส่วนบันทึกงานที่ต้องติดตาม) */}
       {activeSection === 'followup' && (
         <div className="space-y-4">
-          <div className="glass-panel p-4 border-[#E2D2EA] flex flex-wrap items-center justify-between gap-3 text-xs">
+          {/* Controls Bar */}
+          <div className="glass-panel p-4 border-[#E2D2EA] flex flex-col lg:flex-row lg:items-center justify-between gap-3 text-xs">
+            {/* Left: Status Filter Tabs & Search */}
             <div className="flex flex-wrap items-center gap-2">
-              <span className="font-bold text-purple-900 flex items-center gap-1.5 mr-1">
+              <span className="font-bold text-purple-900 flex items-center gap-1 mr-1">
                 <BellRing className="w-3.5 h-3.5 text-amber-600" />
-                <span>กรองสถานะ:</span>
+                <span>สถานะ:</span>
               </span>
               {[
                 { id: 'all', label: 'ทั้งหมด' },
@@ -672,31 +783,103 @@ export default function TodoListModule({
                 <button
                   key={st.id}
                   onClick={() => setSelectedFollowupStatus(st.id)}
-                  className={`px-3 py-1 rounded-xl font-bold transition cursor-pointer ${
+                  className={`px-3 py-1.5 rounded-xl font-bold transition cursor-pointer flex items-center gap-1 ${
                     selectedFollowupStatus === st.id
                       ? 'bg-purple-950 text-white shadow-xs'
                       : 'bg-white text-purple-900 border border-[#E2D2EA] hover:bg-purple-50'
                   }`}
                 >
-                  {st.label}
+                  <span>{st.label}</span>
                   {st.id !== 'all' && (
-                    <span className="ml-1 text-[10px] opacity-80">
-                      ({followupItems.filter(f => f.status === st.id).length})
+                    <span className={`px-1.5 py-0.2 rounded-full text-[10px] font-mono ${
+                      selectedFollowupStatus === st.id ? 'bg-white/20 text-white' : 'bg-purple-100 text-purple-900'
+                    }`}>
+                      {followupItems.filter(f => f.status === st.id).length}
                     </span>
                   )}
                 </button>
               ))}
+
+              {/* Search input */}
+              <div className="relative min-w-[180px] max-w-xs ml-1">
+                <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-purple-400" />
+                <input
+                  type="text"
+                  placeholder="ค้นหางานติดตาม / ชื่อคน..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="w-full pl-8 pr-7 py-1.5 bg-white border border-[#E2D2EA] rounded-xl text-xs text-purple-950 placeholder:text-purple-400 focus:outline-none focus:ring-1 focus:ring-purple-400"
+                />
+                {searchQuery && (
+                  <button
+                    onClick={() => setSearchQuery('')}
+                    className="absolute right-2.5 top-1/2 -translate-y-1/2 text-purple-400 hover:text-purple-700"
+                  >
+                    <X className="w-3 h-3" />
+                  </button>
+                )}
+              </div>
             </div>
 
-            <button
-              onClick={handleOpenAddFollowup}
-              className="px-3.5 py-2 bg-gradient-to-r from-purple-950 via-pink-900 to-purple-900 text-white font-bold rounded-xl text-xs flex items-center gap-1 cursor-pointer hover:opacity-95 shadow-xs"
-            >
-              <Plus className="w-3.5 h-3.5 text-pink-300" />
-              <span>+ บันทึกงานติดตามใหม่</span>
-            </button>
+            {/* Right: Sort By, View Mode Switcher, and Add Button */}
+            <div className="flex flex-wrap items-center gap-2">
+              {/* Sort Selector */}
+              <div className="flex items-center gap-1.5 bg-white px-2.5 py-1 rounded-xl border border-[#E2D2EA] shadow-2xs">
+                <ArrowUpDown className="w-3.5 h-3.5 text-purple-700 shrink-0" />
+                <span className="font-bold text-purple-900 text-[11px] whitespace-nowrap">เรียง:</span>
+                <select
+                  value={followupSortBy}
+                  onChange={(e) => setFollowupSortBy(e.target.value)}
+                  className="bg-transparent font-bold text-purple-950 text-xs focus:outline-none cursor-pointer pr-1"
+                >
+                  <option value="status">เรียงตามสถานะ (กำลังตาม &gt; Hold &gt; เสร็จ)</option>
+                  <option value="custom">จัดลำดับเอง (ลากวาง Drag &amp; Drop)</option>
+                  <option value="date_desc">วันที่บันทึก (ใหม่สุด)</option>
+                  <option value="date_asc">วันที่บันทึก (เก่าสุด)</option>
+                  <option value="title">ชื่อรายการ (ก-ฮ)</option>
+                </select>
+              </div>
+
+              {/* View Mode Toggle */}
+              <div className="flex items-center gap-1 bg-white p-1 rounded-xl border border-[#E2D2EA] shadow-2xs">
+                <button
+                  onClick={() => setFollowupViewMode('list')}
+                  className={`px-3 py-1 rounded-lg font-bold transition flex items-center gap-1.5 text-xs cursor-pointer ${
+                    followupViewMode === 'list'
+                      ? 'bg-purple-950 text-white shadow-xs'
+                      : 'text-purple-900 hover:bg-purple-50'
+                  }`}
+                  title="ดูแบบตารางรายการ (List View)"
+                >
+                  <List className="w-3.5 h-3.5" />
+                  <span>List View</span>
+                </button>
+                <button
+                  onClick={() => setFollowupViewMode('card')}
+                  className={`px-3 py-1 rounded-lg font-bold transition flex items-center gap-1.5 text-xs cursor-pointer ${
+                    followupViewMode === 'card'
+                      ? 'bg-purple-950 text-white shadow-xs'
+                      : 'text-purple-900 hover:bg-purple-50'
+                  }`}
+                  title="ดูแบบการ์ด (Card View)"
+                >
+                  <LayoutGrid className="w-3.5 h-3.5" />
+                  <span>Card View</span>
+                </button>
+              </div>
+
+              {/* Add Follow-Up Button */}
+              <button
+                onClick={handleOpenAddFollowup}
+                className="px-3.5 py-1.5 bg-gradient-to-r from-purple-950 via-pink-900 to-purple-900 text-white font-bold rounded-xl text-xs flex items-center gap-1 cursor-pointer hover:opacity-95 shadow-xs whitespace-nowrap"
+              >
+                <Plus className="w-3.5 h-3.5 text-pink-300" />
+                <span>+ เพิ่มงานติดตาม</span>
+              </button>
+            </div>
           </div>
 
+          {/* Follow-Up Items Container */}
           {filteredFollowupItems.length === 0 ? (
             <div className="glass-panel p-12 text-center border-[#E2D2EA] space-y-3">
               <div className="w-12 h-12 rounded-2xl bg-[#FEF9C3] text-amber-800 flex items-center justify-center border border-[#E2D2EA] mx-auto">
@@ -705,99 +888,294 @@ export default function TodoListModule({
               <h3 className="font-bold text-purple-950 text-sm">
                 {followupItems.length === 0
                   ? 'ยังไม่มีงานบันทึกติดตามในระบบ'
-                  : 'ไม่พบรายการที่ตรงกับตัวกรอง'}
+                  : 'ไม่พบรายการที่ตรงกับตัวกรองหรือคำค้นหา'}
               </h3>
               <p className="text-xs text-purple-800/80 max-w-md mx-auto">
                 กดปุ่มเพื่อบันทึกงานที่ต้องตามกับทีมงาน ฟรีแลนซ์ หรือซัพพลายเออร์
               </p>
               <button
                 onClick={handleOpenAddFollowup}
-                className="px-4 py-2 bg-purple-950 text-white font-bold rounded-xl text-xs cursor-pointer inline-flex items-center gap-1"
+                className="px-4 py-2 bg-purple-950 text-white font-bold rounded-xl text-xs cursor-pointer inline-flex items-center gap-1 shadow-xs"
               >
                 <Plus className="w-4 h-4" />
                 <span>+ บันทึกงานติดตามใหม่</span>
               </button>
             </div>
+          ) : followupViewMode === 'list' ? (
+            /* LIST VIEW MODE WITH DRAG & DROP */
+            <div className="glass-panel overflow-hidden border border-[#E2D2EA] rounded-2xl shadow-xs">
+              <div className="overflow-x-auto">
+                <table className="w-full text-left border-collapse">
+                  <thead>
+                    <tr className="bg-gradient-to-r from-purple-100/90 via-[#FFEBF3]/70 to-purple-50/90 border-b border-[#E2D2EA] text-[11px] font-extrabold text-purple-950 tracking-wider">
+                      <th className="py-3 px-3 w-[45px] text-center">
+                        <span className="sr-only">ลากจัดเรียง</span>
+                      </th>
+                      <th className="py-3 px-4 w-[165px]">สถานะการติดตาม</th>
+                      <th className="py-3 px-4 min-w-[260px]">ชื่องานที่ต้องติดตาม &amp; บันทึกความคืบหน้า</th>
+                      <th className="py-3 px-4 min-w-[150px]">ตามงานกับใคร</th>
+                      <th className="py-3 px-4 min-w-[110px]">วันที่บันทึก</th>
+                      <th className="py-3 px-4 w-[100px] text-right">การจัดการ</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-purple-100/70 text-xs">
+                    {filteredFollowupItems.map((item, idx) => {
+                      const isFollowing = item.status === 'following';
+                      const isHold = item.status === 'hold';
+                      const isCompleted = item.status === 'completed';
+                      const isDragging = draggedFollowupId === item.id;
+                      const isDragOver = dragOverFollowupId === item.id && !isDragging;
+
+                      return (
+                        <tr
+                          key={item.id}
+                          draggable="true"
+                          onDragStart={(e) => handleFollowupDragStart(e, item.id)}
+                          onDragOver={(e) => handleFollowupDragOver(e, item.id)}
+                          onDragLeave={(e) => handleFollowupDragLeave(e, item.id)}
+                          onDrop={(e) => handleFollowupDrop(e, item.id)}
+                          onDragEnd={handleFollowupDragEnd}
+                          className={`transition-all duration-150 select-none ${
+                            isDragging
+                              ? 'opacity-30 scale-[0.99] border-2 border-dashed border-purple-400 bg-purple-100/50'
+                              : isDragOver
+                              ? 'ring-2 ring-purple-500 bg-purple-100/90 scale-[1.01] shadow-md z-10'
+                              : idx % 2 === 0
+                              ? 'bg-white/70 hover:bg-purple-50/60'
+                              : 'bg-[#FAF5FC]/40 hover:bg-purple-50/60'
+                          }`}
+                        >
+                          {/* Drag Handle Column */}
+                          <td className="py-3 px-3 align-top text-center">
+                            <div
+                              className="cursor-grab active:cursor-grabbing p-1 text-purple-400 hover:text-purple-700 transition inline-flex items-center justify-center rounded-md hover:bg-purple-100"
+                              title="คลิกลากเพื่อจัดลำดับงาน (Drag & Drop)"
+                            >
+                              <GripVertical className="w-4 h-4" />
+                            </div>
+                          </td>
+
+                          {/* Status with Quick Change Dropdown */}
+                          <td className="py-3 px-4 align-top">
+                            <div className="relative inline-block">
+                              <select
+                                value={item.status}
+                                onChange={(e) => handleUpdateFollowupStatus(item.id, e.target.value)}
+                                className={`appearance-none pl-6 pr-6 py-1 rounded-full text-[11px] font-extrabold border cursor-pointer focus:outline-none focus:ring-2 focus:ring-purple-400/50 transition shadow-2xs ${
+                                  isFollowing
+                                    ? 'bg-amber-100 text-amber-950 border-amber-300 hover:bg-amber-200/80'
+                                    : isHold
+                                    ? 'bg-orange-100 text-orange-950 border-orange-300 hover:bg-orange-200/80'
+                                    : 'bg-emerald-100 text-emerald-950 border-emerald-300 hover:bg-emerald-200/80'
+                                }`}
+                              >
+                                <option value="following">กำลังตามงาน</option>
+                                <option value="hold">Hold งาน</option>
+                                <option value="completed">ติดตามเรียบร้อย</option>
+                              </select>
+                              <span className="absolute left-2 top-1/2 -translate-y-1/2 pointer-events-none">
+                                {isFollowing && <Clock className="w-3 h-3 text-amber-700" />}
+                                {isHold && <PauseCircle className="w-3 h-3 text-orange-700" />}
+                                {isCompleted && <CheckCircle2 className="w-3 h-3 text-emerald-700" />}
+                              </span>
+                              <span className="absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none text-[8px] text-purple-900 opacity-70">
+                                ▼
+                              </span>
+                            </div>
+                          </td>
+
+                          {/* Title and Notes */}
+                          <td className="py-3 px-4 align-top">
+                            <div className="space-y-1.5">
+                              <div className="font-bold text-purple-950 text-sm flex items-center gap-2">
+                                <span className={isCompleted ? 'line-through text-purple-400' : ''}>
+                                  {item.title}
+                                </span>
+                              </div>
+                              {item.notes ? (
+                                <div className="flex items-start gap-1.5 text-purple-800/85 text-xs bg-purple-50/70 p-2 rounded-xl border border-purple-100/70 max-w-xl">
+                                  <FileText className="w-3.5 h-3.5 text-purple-600 shrink-0 mt-0.5" />
+                                  <span className="leading-relaxed whitespace-pre-line">{item.notes}</span>
+                                </div>
+                              ) : (
+                                <span className="text-[11px] text-purple-400 italic">ไม่มีบันทึกเพิ่มเติม</span>
+                              )}
+                            </div>
+                          </td>
+
+                          {/* Target Person */}
+                          <td className="py-3 px-4 align-top">
+                            <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-white border border-[#E2D2EA] shadow-2xs">
+                              <User className="w-3.5 h-3.5 text-purple-700 shrink-0" />
+                              <span className="font-bold text-purple-950 truncate max-w-[140px]">
+                                {item.targetPerson || '-'}
+                              </span>
+                            </div>
+                          </td>
+
+                          {/* Created Date */}
+                          <td className="py-3 px-4 align-top">
+                            <div className="flex items-center gap-1.5 text-purple-900 font-medium">
+                              <Calendar className="w-3.5 h-3.5 text-purple-600 shrink-0" />
+                              <span>
+                                {item.createdAt
+                                  ? new Date(item.createdAt).toLocaleDateString('th-TH', {
+                                      day: 'numeric',
+                                      month: 'short',
+                                      year: '2-digit'
+                                    })
+                                  : '-'}
+                              </span>
+                            </div>
+                          </td>
+
+                          {/* Actions (Edit & Delete only, Line button removed) */}
+                          <td className="py-3 px-4 align-top text-right">
+                            <div className="flex items-center justify-end gap-1">
+                              <button
+                                onClick={() => handleOpenEditFollowup(item)}
+                                className="p-1.5 text-amber-600 hover:bg-amber-50 rounded-lg border border-transparent hover:border-amber-200 transition cursor-pointer"
+                                title="แก้ไขงานติดตาม"
+                              >
+                                <PenLine className="w-3.5 h-3.5" />
+                              </button>
+
+                              <button
+                                onClick={() => handleDeleteFollowup(item.id)}
+                                className="p-1.5 text-rose-600 hover:bg-rose-50 rounded-lg border border-transparent hover:border-rose-200 transition cursor-pointer"
+                                title="ลบงานติดตาม"
+                              >
+                                <Trash2 className="w-3.5 h-3.5" />
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            </div>
           ) : (
+            /* CARD VIEW MODE WITH DRAG & DROP */
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {filteredFollowupItems.map(item => (
-                <div key={item.id} className="glass-panel p-5 border border-[#E2D2EA] space-y-3 hover:shadow-xs transition">
-                  <div className="flex items-center justify-between gap-2">
-                    <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold border flex items-center gap-1.5 ${
-                      item.status === 'following'
-                        ? 'bg-amber-100 text-amber-900 border-amber-300'
-                        : item.status === 'hold'
-                        ? 'bg-orange-100 text-orange-900 border-orange-300'
-                        : 'bg-emerald-100 text-emerald-900 border-emerald-300'
-                    }`}>
-                      {item.status === 'following' ? (
-                        <>
-                          <Clock className="w-3 h-3 text-amber-600" />
-                          <span>กำลังตามงาน</span>
-                        </>
-                      ) : item.status === 'hold' ? (
-                        <>
-                          <PauseCircle className="w-3 h-3 text-orange-600" />
-                          <span>Hold งาน</span>
-                        </>
-                      ) : (
-                        <>
-                          <CheckCircle2 className="w-3 h-3 text-emerald-600" />
-                          <span>ติดตามเรียบร้อย</span>
-                        </>
+              {filteredFollowupItems.map(item => {
+                const isFollowing = item.status === 'following';
+                const isHold = item.status === 'hold';
+                const isCompleted = item.status === 'completed';
+                const isDragging = draggedFollowupId === item.id;
+                const isDragOver = dragOverFollowupId === item.id && !isDragging;
+
+                return (
+                  <div
+                    key={item.id}
+                    draggable="true"
+                    onDragStart={(e) => handleFollowupDragStart(e, item.id)}
+                    onDragOver={(e) => handleFollowupDragOver(e, item.id)}
+                    onDragLeave={(e) => handleFollowupDragLeave(e, item.id)}
+                    onDrop={(e) => handleFollowupDrop(e, item.id)}
+                    onDragEnd={handleFollowupDragEnd}
+                    className={`glass-panel p-5 border-[#E2D2EA] space-y-3 transition-all duration-150 select-none bg-white/80 ${
+                      isDragging
+                        ? 'opacity-30 scale-[0.98] border-2 border-dashed border-purple-400 bg-purple-100/50 shadow-inner'
+                        : isDragOver
+                        ? 'ring-2 ring-purple-500 bg-purple-100/90 scale-[1.01] shadow-lg z-10'
+                        : 'hover:shadow-md'
+                    }`}
+                  >
+                    <div className="flex items-center justify-between gap-2">
+                      <div className="flex items-center gap-2">
+                        {/* Drag Handle */}
+                        <div
+                          className="cursor-grab active:cursor-grabbing p-1 text-purple-400 hover:text-purple-700 transition rounded hover:bg-purple-100"
+                          title="คลิกลากเพื่อจัดลำดับการ์ด (Drag & Drop)"
+                        >
+                          <GripVertical className="w-4 h-4" />
+                        </div>
+
+                        <div className="relative inline-block">
+                          <select
+                            value={item.status}
+                            onChange={(e) => handleUpdateFollowupStatus(item.id, e.target.value)}
+                            className={`appearance-none pl-6 pr-6 py-1 rounded-full text-[10px] font-extrabold border cursor-pointer focus:outline-none focus:ring-2 focus:ring-purple-400/50 transition shadow-2xs ${
+                              isFollowing
+                                ? 'bg-amber-100 text-amber-950 border-amber-300'
+                                : isHold
+                                ? 'bg-orange-100 text-orange-950 border-orange-300'
+                                : 'bg-emerald-100 text-emerald-950 border-emerald-300'
+                            }`}
+                          >
+                            <option value="following">กำลังตามงาน</option>
+                            <option value="hold">Hold งาน</option>
+                            <option value="completed">ติดตามเรียบร้อย</option>
+                          </select>
+                          <span className="absolute left-2 top-1/2 -translate-y-1/2 pointer-events-none">
+                            {isFollowing && <Clock className="w-3 h-3 text-amber-700" />}
+                            {isHold && <PauseCircle className="w-3 h-3 text-orange-700" />}
+                            {isCompleted && <CheckCircle2 className="w-3 h-3 text-emerald-700" />}
+                          </span>
+                          <span className="absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none text-[8px] text-purple-900 opacity-70">
+                            ▼
+                          </span>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-1">
+                        <button
+                          onClick={() => handleOpenEditFollowup(item)}
+                          className="text-amber-500 hover:bg-amber-50 p-1.5 rounded-lg transition cursor-pointer"
+                          title="แก้ไขงานติดตาม"
+                        >
+                          <PenLine className="w-3.5 h-3.5" />
+                        </button>
+                        <button
+                          onClick={() => handleDeleteFollowup(item.id)}
+                          className="text-rose-500 hover:bg-rose-50 p-1.5 rounded-lg transition cursor-pointer"
+                          title="ลบงานติดตาม"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                    </div>
+
+                    <h4 className={`font-bold text-purple-950 text-base ${isCompleted ? 'line-through text-purple-400' : ''}`}>
+                      {item.title}
+                    </h4>
+
+                    <div className="p-3 bg-purple-50/70 rounded-xl border border-purple-100 text-xs space-y-1.5">
+                      <div className="flex items-center justify-between">
+                        <span className="text-purple-800 font-medium flex items-center gap-1">
+                          <User className="w-3.5 h-3.5 text-purple-600" />
+                          <span>ตามงานกับใคร:</span>
+                        </span>
+                        <span className="font-bold text-purple-950">{item.targetPerson || '-'}</span>
+                      </div>
+                      {item.createdAt && (
+                        <div className="flex items-center justify-between pt-1 border-t border-purple-100/60 text-[11px]">
+                          <span className="text-purple-700 font-medium flex items-center gap-1">
+                            <Calendar className="w-3 h-3 text-purple-500" />
+                            <span>บันทึกเมื่อ:</span>
+                          </span>
+                          <span className="font-mono text-purple-900">
+                            {new Date(item.createdAt).toLocaleDateString('th-TH', {
+                              day: 'numeric',
+                              month: 'short',
+                              year: '2-digit'
+                            })}
+                          </span>
+                        </div>
                       )}
-                    </span>
-
-                    <div className="flex items-center gap-1">
-                      <button
-                        onClick={() => handleOpenEditFollowup(item)}
-                        className="text-amber-500 hover:bg-amber-50 p-1 rounded transition cursor-pointer"
-                        title="แก้ไขงานติดตาม"
-                      >
-                        <PenLine className="w-3.5 h-3.5" />
-                      </button>
-                      <button
-                        onClick={() => handleDeleteFollowup(item.id)}
-                        className="text-rose-500 hover:bg-rose-50 p-1 rounded transition cursor-pointer"
-                        title="ลบงานติดตาม"
-                      >
-                        <Trash2 className="w-3.5 h-3.5" />
-                      </button>
                     </div>
+
+                    {item.notes && (
+                      <div className="p-2.5 bg-purple-50/40 rounded-xl border border-purple-100/50 text-xs text-purple-850">
+                        <span className="font-bold text-purple-950 block text-[11px] mb-0.5">บันทึก:</span>
+                        <p className="whitespace-pre-line text-purple-800/90">{item.notes}</p>
+                      </div>
+                    )}
                   </div>
-
-                  <h4 className="font-bold text-purple-950 text-base">{item.title}</h4>
-
-                  <div className="p-3 bg-purple-50/70 rounded-xl border border-purple-100 text-xs space-y-1.5">
-                    <div className="flex items-center justify-between">
-                      <span className="text-purple-800 font-medium">ตามงานกับใคร:</span>
-                      <span className="font-bold text-purple-950">{item.targetPerson || '-'}</span>
-                    </div>
-                  </div>
-
-                  {item.notes && (
-                    <p className="text-xs text-purple-800/80 font-medium">บันทึก: {item.notes}</p>
-                  )}
-
-                  <div className="pt-2 border-t border-purple-100 flex justify-end">
-                    <button
-                      onClick={() => setLineModalItem({
-                        id: item.id,
-                        title: `[Follow-Up Alert] ตามงาน: ${item.title}`,
-                        platform: item.targetPerson || 'ไม่มีผู้รับผิดชอบ',
-                        publish_date: new Date().toISOString().split('T')[0],
-                        assigned_to: item.targetPerson || 'ทีมงาน',
-                        status: item.status === 'hold' ? 'HOLD' : 'FOLLOW_UP',
-                        media_url: 'https://images.unsplash.com/photo-1620916566398-39f1143ab7be?auto=format&fit=crop&w=600&q=80'
-                      })}
-                      className="px-3.5 py-1.5 bg-[#FFEBF3] hover:bg-pink-200 text-purple-950 font-bold rounded-xl border border-[#E2D2EA] text-xs flex items-center gap-1.5 cursor-pointer shadow-xs"
-                    >
-                      <Send className="w-3.5 h-3.5 text-purple-700" />
-                      <span>ยิงตามงานเข้า LINE</span>
-                    </button>
-                  </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           )}
         </div>
