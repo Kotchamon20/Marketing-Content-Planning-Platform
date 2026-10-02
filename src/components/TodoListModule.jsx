@@ -44,6 +44,71 @@ import {
 } from 'lucide-react';
 import LineFlexModal from './LineFlexModal';
 
+// Task Status Configuration
+const TASK_STATUS_CONFIG = {
+  pending: {
+    id: 'pending',
+    label: 'รอดำเนินการ',
+    badge: 'bg-slate-100 text-slate-700 border-slate-300',
+    dot: 'bg-slate-400'
+  },
+  in_progress: {
+    id: 'in_progress',
+    label: 'กำลังทำ',
+    badge: 'bg-blue-100 text-blue-800 border-blue-300',
+    dot: 'bg-blue-500'
+  },
+  pending_approval: {
+    id: 'pending_approval',
+    label: 'รอ Approved',
+    badge: 'bg-amber-100 text-amber-900 border-amber-300 font-bold',
+    dot: 'bg-amber-500'
+  },
+  completed: {
+    id: 'completed',
+    label: 'เสร็จสิ้น',
+    badge: 'bg-emerald-100 text-emerald-800 border-emerald-300',
+    dot: 'bg-emerald-500'
+  }
+};
+
+// Default Sample Tasks
+const DEFAULT_TASKS = [
+  {
+    id: 'task-1',
+    title: 'จัดทำ Artwork แคมเปญ Flash Sale วันที่ 15',
+    category: 'Promotion Plan',
+    priority: 'high',
+    status: 'in_progress',
+    assignedTo: 'ทีมกราฟิก / สนง.ใหญ่',
+    dueDate: new Date(Date.now() + 86400000 * 2).toISOString().split('T')[0],
+    description: 'ออกแบบ Key Visual ขนาด 1080x1080 และ 1080x1920 สำหรับยิงแอด FB และ IG Story พร้อมปรับ CTA ให้เด่นชัด',
+    completed: false
+  },
+  {
+    id: 'task-2',
+    title: 'ตรวจทานแคปชั่นและวิดีโอรีวิวสาขาบางแสน',
+    category: 'Content Plan',
+    priority: 'urgent',
+    status: 'pending_approval',
+    assignedTo: 'คุณเจนนี่ (Content Creator)',
+    dueDate: new Date(Date.now() + 86400000 * 1).toISOString().split('T')[0],
+    description: 'วิดีโอบรรยากาศร้านพร้อมเปิดตัวเมนูใหม่ ส่งให้ผู้บริหารตรวจ Mood & Tone และกด Approved ก่อนปล่อยลง TikTok/Reels',
+    completed: false
+  },
+  {
+    id: 'task-3',
+    title: 'สรุปงบประมาณการตลาดประจำสัปดาห์',
+    category: 'Marketing Plan',
+    priority: 'medium',
+    status: 'pending',
+    assignedTo: 'ทีมการตลาด',
+    dueDate: new Date(Date.now() + 86400000 * 4).toISOString().split('T')[0],
+    description: 'รวบรวม ROI และ Cost per Click ทุกแคมเปญ เพื่อนำเสนอในที่ประชุมรายสัปดาห์',
+    completed: false
+  }
+];
+
 // Default Groups matching user mockup
 const DEFAULT_CHECKLIST_GROUPS = [
   {
@@ -179,10 +244,22 @@ export default function TodoListModule({
   const [draggedFollowupId, setDraggedFollowupId] = useState(null);
   const [dragOverFollowupId, setDragOverFollowupId] = useState(null);
 
+  // Drag & Drop State for Tasks
+  const [draggedTaskId, setDraggedTaskId] = useState(null);
+  const [dragOverTaskId, setDragOverTaskId] = useState(null);
+
   // 1. Tasks State with localStorage Persistence
   const [tasks, setTasks] = useState(() => {
     const saved = localStorage.getItem('nitan_todo_tasks');
-    return saved ? JSON.parse(saved) : [];
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      } catch (e) {
+        console.warn('Error parsing nitan_todo_tasks:', e);
+      }
+    }
+    return DEFAULT_TASKS;
   });
 
   const [followupItems, setFollowupItems] = useState([]);
@@ -355,9 +432,74 @@ export default function TodoListModule({
     onShowSaveToast?.('อัปเดตสถานะงานเรียบร้อยแล้ว!');
   };
 
+  const handleUpdateTaskStatus = (taskId, newStatus) => {
+    setTasks(prev => prev.map(t => {
+      if (t.id !== taskId) return t;
+      const isCompleted = newStatus === 'completed';
+      return {
+        ...t,
+        status: newStatus,
+        completed: isCompleted
+      };
+    }));
+    onShowSaveToast?.('อัปเดตสถานะงานเรียบร้อยแล้ว!');
+  };
+
   const handleDeleteTask = (taskId) => {
     setTasks(prev => prev.filter(t => t.id !== taskId));
     onShowSaveToast?.('ลบรายการงานเรียบร้อยแล้ว!');
+  };
+
+  // Drag & Drop handlers for 1. To-Do Tasks
+  const handleTaskDragStart = (e, id) => {
+    setDraggedTaskId(id);
+    e.dataTransfer.setData('text/plain', id);
+    e.dataTransfer.effectAllowed = 'move';
+  };
+
+  const handleTaskDragOver = (e, id) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+    if (dragOverTaskId !== id) {
+      setDragOverTaskId(id);
+    }
+  };
+
+  const handleTaskDragLeave = (e, id) => {
+    if (dragOverTaskId === id) {
+      setDragOverTaskId(null);
+    }
+  };
+
+  const handleTaskDrop = (e, targetId) => {
+    e.preventDefault();
+    if (!draggedTaskId || draggedTaskId === targetId) {
+      setDraggedTaskId(null);
+      setDragOverTaskId(null);
+      return;
+    }
+
+    setTasks(prev => {
+      const fromIndex = prev.findIndex(t => t.id === draggedTaskId);
+      const toIndex = prev.findIndex(t => t.id === targetId);
+
+      if (fromIndex !== -1 && toIndex !== -1) {
+        const updated = [...prev];
+        const [moved] = updated.splice(fromIndex, 1);
+        updated.splice(toIndex, 0, moved);
+        return updated;
+      }
+      return prev;
+    });
+
+    onShowSaveToast?.('จัดลำดับงาน To-Do เรียบร้อยแล้ว!');
+    setDraggedTaskId(null);
+    setDragOverTaskId(null);
+  };
+
+  const handleTaskDragEnd = () => {
+    setDraggedTaskId(null);
+    setDragOverTaskId(null);
   };
 
   // --- Handlers for 2. Follow-Up Watchlist ---
@@ -736,10 +878,12 @@ export default function TodoListModule({
 
   // Filtered Logic for 1. Tasks
   const filteredTasks = tasks.filter(t => {
+    const currentStatus = t.status || (t.completed ? 'completed' : 'pending');
     const matchStatus = selectedStatus === 'all' ||
-      (selectedStatus === 'completed' && t.completed) ||
-      (selectedStatus === 'in_progress' && t.status === 'in_progress' && !t.completed) ||
-      (selectedStatus === 'pending' && t.status === 'pending' && !t.completed);
+      (selectedStatus === 'completed' && (currentStatus === 'completed' || t.completed)) ||
+      (selectedStatus === 'pending_approval' && currentStatus === 'pending_approval') ||
+      (selectedStatus === 'in_progress' && currentStatus === 'in_progress' && !t.completed) ||
+      (selectedStatus === 'pending' && currentStatus === 'pending' && !t.completed);
 
     const matchPriority = selectedPriority === 'all' || t.priority === selectedPriority;
     const matchCategory = selectedCategory === 'all' || t.category === selectedCategory;
@@ -907,7 +1051,9 @@ export default function TodoListModule({
             <div>
               <span className="text-xs font-bold text-purple-900 block">งาน To-Do ในระบบ</span>
               <span className="text-xl font-bold text-purple-950 font-mono">{tasks.length} งาน</span>
-              <span className="text-[10px] text-purple-700 font-medium block mt-0.5">เสร็จแล้ว {tasks.filter(t => t.completed).length} งาน</span>
+              <span className="text-[10px] text-purple-700 font-medium block mt-0.5">
+                เสร็จ {tasks.filter(t => t.completed || t.status === 'completed').length} • รอ Approved {tasks.filter(t => t.status === 'pending_approval' && !t.completed).length} • กำลังทำ {tasks.filter(t => t.status === 'in_progress' && !t.completed).length}
+              </span>
             </div>
             <div className="w-10 h-10 rounded-xl bg-[#FFEBF3] text-purple-800 flex items-center justify-center border border-[#E2D2EA]">
               <CheckSquare className="w-5 h-5" />
@@ -1013,57 +1159,91 @@ export default function TodoListModule({
         <div className="space-y-4">
           {/* Controls Bar */}
           <div className="glass-panel p-4 border-[#E2D2EA] flex flex-wrap items-center justify-between gap-3 text-xs">
-            <div className="flex items-center gap-2">
-              <span className="font-bold text-purple-900">กรองสถานะ:</span>
-              {['all', 'pending', 'in_progress', 'completed'].map(st => (
-                <button
-                  key={st}
-                  onClick={() => setSelectedStatus(st)}
-                  className={`px-3 py-1 rounded-xl font-bold transition cursor-pointer ${
-                    selectedStatus === st
-                      ? 'bg-purple-950 text-white shadow-xs'
-                      : 'bg-white text-purple-900 border border-[#E2D2EA] hover:bg-purple-50'
-                  }`}
-                >
-                  {st === 'all' && 'ทั้งหมด'}
-                  {st === 'pending' && 'รอดำเนินการ'}
-                  {st === 'in_progress' && 'กำลังทำ'}
-                  {st === 'completed' && 'เสร็จสิ้น'}
-                </button>
-              ))}
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="font-bold text-purple-900 flex items-center gap-1.5 mr-1">
+                <Filter className="w-3.5 h-3.5 text-purple-700" />
+                <span>กรองสถานะ:</span>
+              </span>
+              {[
+                { id: 'all', label: 'ทั้งหมด' },
+                { id: 'pending', label: 'รอดำเนินการ' },
+                { id: 'in_progress', label: 'กำลังทำ' },
+                { id: 'pending_approval', label: 'รอ Approved' },
+                { id: 'completed', label: 'เสร็จสิ้น' }
+              ].map(st => {
+                const count = st.id === 'all'
+                  ? tasks.length
+                  : st.id === 'completed'
+                  ? tasks.filter(t => t.completed || t.status === 'completed').length
+                  : st.id === 'pending_approval'
+                  ? tasks.filter(t => t.status === 'pending_approval' && !t.completed).length
+                  : st.id === 'in_progress'
+                  ? tasks.filter(t => t.status === 'in_progress' && !t.completed).length
+                  : tasks.filter(t => (t.status === 'pending' || !t.status) && !t.completed).length;
+
+                return (
+                  <button
+                    key={st.id}
+                    onClick={() => setSelectedStatus(st.id)}
+                    className={`px-3 py-1.5 rounded-xl font-bold transition cursor-pointer flex items-center gap-1.5 ${
+                      selectedStatus === st.id
+                        ? 'bg-purple-950 text-white shadow-xs'
+                        : 'bg-white text-purple-900 border border-[#E2D2EA] hover:bg-purple-50'
+                    }`}
+                  >
+                    <span>{st.label}</span>
+                    <span className={`px-1.5 py-0.2 rounded-full text-[10px] font-mono ${
+                      selectedStatus === st.id ? 'bg-white/20 text-white' : 'bg-purple-100 text-purple-900'
+                    }`}>
+                      {count}
+                    </span>
+                  </button>
+                );
+              })}
             </div>
 
-            {/* View Mode Toggle */}
+            {/* View Mode Toggle & Add Button */}
             <div className="flex items-center gap-2">
-              <div className="flex items-center bg-white border border-[#E2D2EA] rounded-xl p-0.5">
+              <div className="flex items-center bg-white border border-[#E2D2EA] rounded-xl p-0.5 shadow-2xs">
                 <button
                   onClick={() => setViewMode('card')}
-                  className={`p-1.5 rounded-lg transition cursor-pointer ${
-                    viewMode === 'card' ? 'bg-purple-950 text-white' : 'text-purple-900 hover:bg-purple-50'
+                  className={`p-1.5 rounded-lg transition cursor-pointer flex items-center gap-1 text-xs font-bold ${
+                    viewMode === 'card' ? 'bg-purple-950 text-white shadow-xs' : 'text-purple-900 hover:bg-purple-50'
                   }`}
                   title="Card View"
                 >
                   <LayoutGrid className="w-4 h-4" />
+                  <span className="hidden sm:inline">การ์ด</span>
                 </button>
                 <button
                   onClick={() => setViewMode('list')}
-                  className={`p-1.5 rounded-lg transition cursor-pointer ${
-                    viewMode === 'list' ? 'bg-purple-950 text-white' : 'text-purple-900 hover:bg-purple-50'
+                  className={`p-1.5 rounded-lg transition cursor-pointer flex items-center gap-1 text-xs font-bold ${
+                    viewMode === 'list' ? 'bg-purple-950 text-white shadow-xs' : 'text-purple-900 hover:bg-purple-50'
                   }`}
                   title="List View"
                 >
                   <List className="w-4 h-4" />
+                  <span className="hidden sm:inline">ตารางรายการ</span>
                 </button>
               </div>
 
               <button
                 onClick={handleOpenAddTask}
-                className="px-3.5 py-2 bg-gradient-to-r from-purple-950 via-pink-900 to-purple-900 text-white font-bold rounded-xl text-xs flex items-center gap-1 cursor-pointer hover:opacity-95 shadow-xs"
+                className="px-3.5 py-2 bg-gradient-to-r from-purple-950 via-pink-900 to-purple-900 text-white font-bold rounded-xl text-xs flex items-center gap-1.5 cursor-pointer hover:opacity-95 shadow-xs"
               >
                 <Plus className="w-3.5 h-3.5 text-pink-300" />
                 <span>+ สร้าง To-Do</span>
               </button>
             </div>
+          </div>
+
+          {/* Drag & Drop Hint Banner */}
+          <div className="flex items-center justify-between px-3 py-1.5 rounded-xl bg-purple-50/70 border border-purple-100 text-[11px] text-purple-800">
+            <span className="flex items-center gap-1.5 font-medium">
+              <GripVertical className="w-3.5 h-3.5 text-purple-600" />
+              <span>สามารถคลิกลาก (Drag & Drop) ที่ไอคอน <span className="font-bold text-purple-950">:::</span> เพื่อจัดลำดับความสำคัญของงานได้ทันที</span>
+            </span>
+            <span className="text-[10px] font-bold text-purple-600">แสดงผล {filteredTasks.length} รายการ</span>
           </div>
 
           {/* Task Items Render */}
@@ -1078,7 +1258,7 @@ export default function TodoListModule({
               </p>
               <button
                 onClick={handleOpenAddTask}
-                className="px-4 py-2 bg-purple-950 text-white font-bold rounded-xl text-xs cursor-pointer inline-flex items-center gap-1"
+                className="px-4 py-2 bg-purple-950 text-white font-bold rounded-xl text-xs cursor-pointer inline-flex items-center gap-1 shadow-xs"
               >
                 <Plus className="w-4 h-4" />
                 <span>+ เพิ่มงาน To-Do แรกของคุณ</span>
@@ -1086,129 +1266,313 @@ export default function TodoListModule({
             </div>
           ) : viewMode === 'card' ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {filteredTasks.map(task => (
-                <div
-                  key={task.id}
-                  className={`p-4 rounded-2xl border transition-all duration-200 bg-white relative flex flex-col justify-between ${
-                    task.completed
-                      ? 'border-emerald-200/80 bg-emerald-50/20'
-                      : 'border-[#E2D2EA] hover:border-purple-300 hover:shadow-md'
-                  }`}
-                >
-                  <div className="space-y-2">
-                    <div className="flex items-start justify-between gap-2">
-                      <div className="flex items-center gap-2">
+              {filteredTasks.map(task => {
+                const currentStatus = task.status || (task.completed ? 'completed' : 'pending');
+                const isApproved = currentStatus === 'pending_approval';
+                const isInProgress = currentStatus === 'in_progress';
+                const isCompleted = currentStatus === 'completed' || task.completed;
+                const isPending = currentStatus === 'pending';
+
+                const isDragging = draggedTaskId === task.id;
+                const isDragOver = dragOverTaskId === task.id;
+
+                return (
+                  <div
+                    key={task.id}
+                    draggable
+                    onDragStart={e => handleTaskDragStart(e, task.id)}
+                    onDragOver={e => handleTaskDragOver(e, task.id)}
+                    onDragLeave={e => handleTaskDragLeave(e, task.id)}
+                    onDrop={e => handleTaskDrop(e, task.id)}
+                    onDragEnd={handleTaskDragEnd}
+                    className={`p-4 rounded-2xl border transition-all duration-200 bg-white relative flex flex-col justify-between cursor-default group ${
+                      isDragging
+                        ? 'opacity-40 scale-95 border-dashed border-purple-500 bg-purple-50/50'
+                        : isDragOver
+                        ? 'ring-2 ring-purple-600 bg-purple-50/70 scale-[1.01] shadow-lg'
+                        : isCompleted
+                        ? 'border-emerald-200/80 bg-emerald-50/20'
+                        : isApproved
+                        ? 'border-amber-300/90 bg-amber-50/15 shadow-xs hover:border-amber-400'
+                        : 'border-[#E2D2EA] hover:border-purple-300 hover:shadow-md'
+                    }`}
+                  >
+                    <div className="space-y-3">
+                      {/* Card Top Row: Grip Handle, Checkbox, Badges, Status Select, Action Buttons */}
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          <button
+                            type="button"
+                            className="cursor-grab active:cursor-grabbing p-0.5 text-purple-300 hover:text-purple-700 transition"
+                            title="ลากเพื่อจัดลำดับงาน"
+                          >
+                            <GripVertical className="w-4 h-4" />
+                          </button>
+
+                          <button
+                            onClick={() => handleToggleTaskCompleted(task.id)}
+                            className={`w-5 h-5 rounded-lg flex items-center justify-center transition border cursor-pointer flex-shrink-0 ${
+                              isCompleted
+                                ? 'bg-emerald-600 border-emerald-600 text-white'
+                                : 'border-[#E2D2EA] hover:border-purple-400 bg-purple-50/30'
+                            }`}
+                            title={isCompleted ? 'คลิกเพื่อยกเลิกเสร็จ' : 'คลิกเพื่อทำเครื่องหมายว่าเสร็จแล้ว'}
+                          >
+                            {isCompleted && <Check className="w-3.5 h-3.5 stroke-[3]" />}
+                          </button>
+
+                          <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-purple-100 text-purple-900 border border-purple-200/60">
+                            {task.category}
+                          </span>
+
+                          {task.priority && (
+                            <span className={`text-[9px] font-bold px-1.5 py-0.2 rounded-md border ${
+                              task.priority === 'urgent'
+                                ? 'bg-rose-100 text-rose-800 border-rose-200'
+                                : task.priority === 'high'
+                                ? 'bg-orange-100 text-orange-800 border-orange-200'
+                                : task.priority === 'medium'
+                                ? 'bg-amber-100 text-amber-800 border-amber-200'
+                                : 'bg-slate-100 text-slate-700 border-slate-200'
+                            }`}>
+                              {task.priority === 'urgent' && '🔴 ด่วนมาก'}
+                              {task.priority === 'high' && '🟠 สำคัญสูง'}
+                              {task.priority === 'medium' && '🟡 ปานกลาง'}
+                              {task.priority === 'low' && '🟢 ทั่วไป'}
+                            </span>
+                          )}
+                        </div>
+
+                        <div className="flex items-center gap-1 text-purple-400 flex-shrink-0">
+                          <button
+                            onClick={() => handleOpenEditTask(task)}
+                            className="p-1 hover:text-purple-700 hover:bg-purple-50 rounded-lg cursor-pointer transition"
+                            title="แก้ไข"
+                          >
+                            <Edit3 className="w-3.5 h-3.5" />
+                          </button>
+                          <button
+                            onClick={() => handleDeleteTask(task.id)}
+                            className="p-1 hover:text-rose-600 hover:bg-rose-50 rounded-lg cursor-pointer transition"
+                            title="ลบ"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      </div>
+
+                      {/* Status Dropdown Pill Selector */}
+                      <div>
+                        <select
+                          value={currentStatus}
+                          onChange={e => handleUpdateTaskStatus(task.id, e.target.value)}
+                          className={`w-full px-2.5 py-1 rounded-xl text-xs font-extrabold border transition cursor-pointer focus:outline-none focus:ring-1 focus:ring-purple-400 ${
+                            isCompleted
+                              ? 'bg-emerald-50 text-emerald-800 border-emerald-300'
+                              : isApproved
+                              ? 'bg-amber-100/80 text-amber-900 border-amber-300 ring-1 ring-amber-300/70'
+                              : isInProgress
+                              ? 'bg-blue-50 text-blue-800 border-blue-300'
+                              : 'bg-slate-100 text-slate-700 border-slate-300'
+                          }`}
+                        >
+                          <option value="pending">⏳ รอดำเนินการ (Pending)</option>
+                          <option value="in_progress">⚡ กำลังทำ (In Progress)</option>
+                          <option value="pending_approval">🕒 รอ Approved (Pending Approval)</option>
+                          <option value="completed">✅ เสร็จสิ้น (Completed)</option>
+                        </select>
+                      </div>
+
+                      {/* Title */}
+                      <h4 className={`text-sm font-bold leading-snug ${
+                        isCompleted ? 'line-through text-purple-900/40' : 'text-purple-950'
+                      }`}>
+                        {task.title}
+                      </h4>
+
+                      {/* Task Description */}
+                      {task.description && (
+                        <div className="p-2.5 rounded-xl bg-purple-50/60 border border-purple-100/80 text-xs text-purple-900/90 flex items-start gap-2">
+                          <FileText className="w-3.5 h-3.5 text-purple-600 flex-shrink-0 mt-0.5" />
+                          <span className="leading-relaxed whitespace-pre-line line-clamp-3">
+                            {task.description}
+                          </span>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Card Footer */}
+                    <div className="mt-4 pt-3 border-t border-purple-100/60 flex items-center justify-between text-[11px] text-purple-800/80 font-medium">
+                      <span className="flex items-center gap-1">
+                        <User className="w-3 h-3 text-purple-600" />
+                        <span>{task.assignedTo || 'ไม่ระบุ'}</span>
+                      </span>
+                      <span className="flex items-center gap-1 font-mono text-purple-900 font-bold">
+                        <Calendar className="w-3 h-3 text-purple-600" />
+                        <span>{task.dueDate || '-'}</span>
+                      </span>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          ) : (
+            /* LIST VIEW: แสดง รายละเอียดงาน และ status พร้อม Drag & Drop */
+            <div className="glass-panel overflow-hidden border-[#E2D2EA] divide-y divide-purple-100 bg-white">
+              {filteredTasks.map(task => {
+                const currentStatus = task.status || (task.completed ? 'completed' : 'pending');
+                const isApproved = currentStatus === 'pending_approval';
+                const isInProgress = currentStatus === 'in_progress';
+                const isCompleted = currentStatus === 'completed' || task.completed;
+                const isPending = currentStatus === 'pending';
+
+                const isDragging = draggedTaskId === task.id;
+                const isDragOver = dragOverTaskId === task.id;
+
+                return (
+                  <div
+                    key={task.id}
+                    draggable
+                    onDragStart={e => handleTaskDragStart(e, task.id)}
+                    onDragOver={e => handleTaskDragOver(e, task.id)}
+                    onDragLeave={e => handleTaskDragLeave(e, task.id)}
+                    onDrop={e => handleTaskDrop(e, task.id)}
+                    onDragEnd={handleTaskDragEnd}
+                    className={`p-4 flex flex-col md:flex-row md:items-center justify-between gap-4 transition-all duration-150 group cursor-default ${
+                      isDragging
+                        ? 'opacity-40 border-dashed border-purple-500 bg-purple-50/50'
+                        : isDragOver
+                        ? 'ring-2 ring-purple-600 bg-purple-100/70 scale-[1.005]'
+                        : isCompleted
+                        ? 'bg-emerald-50/15 hover:bg-emerald-50/30'
+                        : isApproved
+                        ? 'bg-amber-50/25 hover:bg-amber-50/40'
+                        : 'hover:bg-purple-50/40'
+                    }`}
+                  >
+                    {/* Left Column: Grip, Checkbox, Title & Description */}
+                    <div className="flex items-start gap-3 min-w-0 flex-1">
+                      <div className="flex items-center gap-1.5 flex-shrink-0 pt-0.5">
+                        <button
+                          type="button"
+                          className="cursor-grab active:cursor-grabbing p-0.5 text-purple-300 hover:text-purple-700 transition"
+                          title="ลากเพื่อจัดลำดับงาน"
+                        >
+                          <GripVertical className="w-4 h-4" />
+                        </button>
                         <button
                           onClick={() => handleToggleTaskCompleted(task.id)}
                           className={`w-5 h-5 rounded-lg flex items-center justify-center transition border cursor-pointer ${
-                            task.completed
+                            isCompleted
                               ? 'bg-emerald-600 border-emerald-600 text-white'
                               : 'border-[#E2D2EA] hover:border-purple-400 bg-purple-50/30'
                           }`}
+                          title={isCompleted ? 'คลิกเพื่อยกเลิกเสร็จ' : 'คลิกเพื่อทำเครื่องหมายว่าเสร็จแล้ว'}
                         >
-                          {task.completed && <Check className="w-3.5 h-3.5 stroke-[3]" />}
-                        </button>
-                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-purple-100 text-purple-900">
-                          {task.category}
-                        </span>
-                      </div>
-
-                      <div className="flex items-center gap-1 text-purple-400">
-                        <button
-                          onClick={() => handleOpenEditTask(task)}
-                          className="p-1 hover:text-purple-700 hover:bg-purple-50 rounded-lg cursor-pointer"
-                        >
-                          <Edit3 className="w-3.5 h-3.5" />
-                        </button>
-                        <button
-                          onClick={() => handleDeleteTask(task.id)}
-                          className="p-1 hover:text-rose-600 hover:bg-rose-50 rounded-lg cursor-pointer"
-                        >
-                          <Trash2 className="w-3.5 h-3.5" />
+                          {isCompleted && <Check className="w-3.5 h-3.5 stroke-[3]" />}
                         </button>
                       </div>
-                    </div>
 
-                    <h4 className={`text-sm font-bold leading-snug ${
-                      task.completed ? 'line-through text-purple-900/40' : 'text-purple-950'
-                    }`}>
-                      {task.title}
-                    </h4>
+                      <div className="min-w-0 flex-1 space-y-1.5">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <h4 className={`text-xs sm:text-sm font-bold ${
+                            isCompleted ? 'line-through text-purple-900/40' : 'text-purple-950'
+                          }`}>
+                            {task.title}
+                          </h4>
+                          <span className="text-[10px] font-bold px-2 py-0.2 rounded-full bg-purple-100 text-purple-900 border border-purple-200">
+                            {task.category}
+                          </span>
+                          {task.priority && (
+                            <span className={`text-[9px] font-bold px-1.5 py-0.2 rounded-md border ${
+                              task.priority === 'urgent'
+                                ? 'bg-rose-100 text-rose-800 border-rose-200'
+                                : task.priority === 'high'
+                                ? 'bg-orange-100 text-orange-800 border-orange-200'
+                                : task.priority === 'medium'
+                                ? 'bg-amber-100 text-amber-800 border-amber-200'
+                                : 'bg-slate-100 text-slate-700 border-slate-200'
+                            }`}>
+                              {task.priority === 'urgent' && '🔴 ด่วนมาก'}
+                              {task.priority === 'high' && '🟠 สำคัญสูง'}
+                              {task.priority === 'medium' && '🟡 ปานกลาง'}
+                              {task.priority === 'low' && '🟢 ทั่วไป'}
+                            </span>
+                          )}
+                        </div>
 
-                    {task.description && (
-                      <p className="text-xs text-purple-800/80 line-clamp-2">
-                        {task.description}
-                      </p>
-                    )}
-                  </div>
+                        {/* Task Description (รายละเอียดงาน) in List View */}
+                        {task.description && (
+                          <div className="p-2.5 rounded-xl bg-purple-50/60 border border-purple-100/90 text-xs text-purple-900/90 flex items-start gap-2">
+                            <FileText className="w-3.5 h-3.5 text-purple-600 flex-shrink-0 mt-0.5" />
+                            <div className="flex-1">
+                              <span className="font-bold text-[10px] text-purple-800 block mb-0.5">รายละเอียดงาน:</span>
+                              <span className="leading-relaxed whitespace-pre-line">{task.description}</span>
+                            </div>
+                          </div>
+                        )}
 
-                  <div className="mt-4 pt-3 border-t border-purple-100/60 flex items-center justify-between text-[11px] text-purple-800/80 font-medium">
-                    <span className="flex items-center gap-1">
-                      <User className="w-3 h-3 text-purple-600" />
-                      {task.assignedTo || 'ไม่ระบุ'}
-                    </span>
-                    <span className="flex items-center gap-1 font-mono text-purple-900 font-bold">
-                      <Calendar className="w-3 h-3 text-purple-600" />
-                      {task.dueDate || '-'}
-                    </span>
-                  </div>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <div className="glass-panel overflow-hidden border-[#E2D2EA]">
-              <div className="divide-y divide-purple-100">
-                {filteredTasks.map(task => (
-                  <div
-                    key={task.id}
-                    className={`p-3.5 flex items-center justify-between gap-4 transition hover:bg-purple-50/40 ${
-                      task.completed ? 'bg-emerald-50/10' : ''
-                    }`}
-                  >
-                    <div className="flex items-center gap-3 min-w-0">
-                      <button
-                        onClick={() => handleToggleTaskCompleted(task.id)}
-                        className={`w-5 h-5 rounded-lg flex items-center justify-center transition border cursor-pointer flex-shrink-0 ${
-                          task.completed
-                            ? 'bg-emerald-600 border-emerald-600 text-white'
-                            : 'border-[#E2D2EA] hover:border-purple-400 bg-purple-50/30'
-                        }`}
-                      >
-                        {task.completed && <Check className="w-3.5 h-3.5 stroke-[3]" />}
-                      </button>
-                      <div className="min-w-0">
-                        <h4 className={`text-xs font-bold truncate ${
-                          task.completed ? 'line-through text-purple-900/40' : 'text-purple-950'
-                        }`}>
-                          {task.title}
-                        </h4>
-                        <div className="flex items-center gap-2 mt-0.5 text-[10px] text-purple-700">
-                          <span className="font-bold">{task.category}</span>
+                        {/* Meta Sub-info */}
+                        <div className="flex flex-wrap items-center gap-3 text-[11px] text-purple-800/80 pt-0.5">
+                          <span className="flex items-center gap-1 font-medium">
+                            <User className="w-3 h-3 text-purple-600" />
+                            <span>ผู้รับผิดชอบ: <strong className="text-purple-950">{task.assignedTo || 'ไม่ระบุ'}</strong></span>
+                          </span>
                           <span>•</span>
-                          <span>{task.assignedTo}</span>
-                          <span>•</span>
-                          <span className="font-mono">{task.dueDate}</span>
+                          <span className="flex items-center gap-1 font-medium">
+                            <Calendar className="w-3 h-3 text-purple-600" />
+                            <span>กำหนดส่ง: <strong className="font-mono text-purple-950">{task.dueDate || '-'}</strong></span>
+                          </span>
                         </div>
                       </div>
                     </div>
 
-                    <div className="flex items-center gap-2 flex-shrink-0">
-                      <button
-                        onClick={() => handleOpenEditTask(task)}
-                        className="p-1.5 hover:text-purple-700 hover:bg-purple-100 rounded-lg text-purple-400 cursor-pointer"
-                      >
-                        <Edit3 className="w-3.5 h-3.5" />
-                      </button>
-                      <button
-                        onClick={() => handleDeleteTask(task.id)}
-                        className="p-1.5 hover:text-rose-600 hover:bg-rose-50 rounded-lg text-purple-400 cursor-pointer"
-                      >
-                        <Trash2 className="w-3.5 h-3.5" />
-                      </button>
+                    {/* Right Column: Status Switcher & Actions */}
+                    <div className="flex items-center gap-3 flex-shrink-0 pl-8 md:pl-0 pt-2 md:pt-0 border-t md:border-t-0 border-purple-100/50 justify-between md:justify-end">
+                      {/* Status Dropdown */}
+                      <div className="flex items-center gap-1.5">
+                        <span className="text-[11px] font-bold text-purple-900 hidden lg:inline">สถานะ:</span>
+                        <select
+                          value={currentStatus}
+                          onChange={e => handleUpdateTaskStatus(task.id, e.target.value)}
+                          className={`px-3 py-1.5 rounded-xl text-xs font-extrabold border transition cursor-pointer focus:outline-none focus:ring-1 focus:ring-purple-400 ${
+                            isCompleted
+                              ? 'bg-emerald-50 text-emerald-800 border-emerald-300'
+                              : isApproved
+                              ? 'bg-amber-100 text-amber-900 border-amber-400 font-black ring-1 ring-amber-300 shadow-2xs'
+                              : isInProgress
+                              ? 'bg-blue-50 text-blue-800 border-blue-300'
+                              : 'bg-slate-100 text-slate-700 border-slate-300'
+                          }`}
+                        >
+                          <option value="pending">⏳ รอดำเนินการ</option>
+                          <option value="in_progress">⚡ กำลังทำ</option>
+                          <option value="pending_approval">🕒 รอ Approved</option>
+                          <option value="completed">✅ เสร็จสิ้น</option>
+                        </select>
+                      </div>
+
+                      {/* Action buttons */}
+                      <div className="flex items-center gap-1 text-purple-400">
+                        <button
+                          onClick={() => handleOpenEditTask(task)}
+                          className="p-1.5 hover:text-purple-700 hover:bg-purple-100 rounded-lg text-purple-500 cursor-pointer transition"
+                          title="แก้ไขข้อมูลงาน"
+                        >
+                          <Edit3 className="w-4 h-4" />
+                        </button>
+                        <button
+                          onClick={() => handleDeleteTask(task.id)}
+                          className="p-1.5 hover:text-rose-600 hover:bg-rose-50 rounded-lg text-purple-500 cursor-pointer transition"
+                          title="ลบงานนี้"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
                     </div>
                   </div>
-                ))}
-              </div>
+                );
+              })}
             </div>
           )}
         </div>
@@ -1909,7 +2273,7 @@ export default function TodoListModule({
                   className="w-full px-3 py-2 border border-[#E2D2EA] rounded-xl focus:outline-none focus:ring-1 focus:ring-purple-400 bg-white"
                 />
               </div>
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                 <div>
                   <label className="block font-bold mb-1 text-purple-950">หมวดหมู่</label>
                   <select
@@ -1923,15 +2287,29 @@ export default function TodoListModule({
                   </select>
                 </div>
                 <div>
+                  <label className="block font-bold mb-1 text-purple-950">ความสำคัญ (Priority)</label>
+                  <select
+                    value={taskFormData.priority || 'medium'}
+                    onChange={e => setTaskFormData({ ...taskFormData, priority: e.target.value })}
+                    className="w-full px-3 py-2 border border-[#E2D2EA] rounded-xl font-bold bg-white"
+                  >
+                    <option value="urgent">🔴 ด่วนมาก (Urgent)</option>
+                    <option value="high">🟠 สำคัญสูง (High)</option>
+                    <option value="medium">🟡 ปานกลาง (Medium)</option>
+                    <option value="low">🟢 ทั่วไป (Low)</option>
+                  </select>
+                </div>
+                <div>
                   <label className="block font-bold mb-1 text-purple-950">สถานะ (Status)</label>
                   <select
                     value={taskFormData.status}
                     onChange={e => setTaskFormData({ ...taskFormData, status: e.target.value })}
                     className="w-full px-3 py-2 border border-[#E2D2EA] rounded-xl font-bold bg-white"
                   >
-                    <option value="pending">รอดำเนินการ</option>
-                    <option value="in_progress">กำลังทำ</option>
-                    <option value="completed">เสร็จสมบูรณ์</option>
+                    <option value="pending">⏳ รอดำเนินการ (Pending)</option>
+                    <option value="in_progress">⚡ กำลังทำ (In Progress)</option>
+                    <option value="pending_approval">🕒 รอ Approved (Pending Approval)</option>
+                    <option value="completed">✅ เสร็จสมบูรณ์ (Completed)</option>
                   </select>
                 </div>
               </div>
