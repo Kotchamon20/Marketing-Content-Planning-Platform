@@ -18,7 +18,8 @@ import {
   BarChart3,
   Megaphone,
   CheckSquare,
-  Calculator
+  Calculator,
+  Banknote
 } from 'lucide-react';
 
 import LineGroupSettingsModal from './LineGroupSettingsModal';
@@ -50,6 +51,7 @@ export default function NavigationHeader({
     { id: 'product-plan', label: 'Product Plan & Campaign Readiness', icon: Package },
     { id: 'promotion-plan', label: 'แผนการโปรโมท (Promotion Plan)', icon: Megaphone },
     { id: 'todo-list', label: 'To-Do List & ติดตามไฟล์งาน', icon: CheckSquare },
+    { id: 'cash-debt', label: 'รายการหนี้เงินสด', icon: Banknote },
     { id: 'marketing-plan', label: 'Marketing Plan & Brainstorming', icon: Compass },
     { id: 'kpi-analytics', label: 'KPI Analytics', icon: BarChart3 },
   ];

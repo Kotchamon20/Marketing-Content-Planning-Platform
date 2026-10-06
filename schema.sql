@@ -430,3 +430,30 @@ CREATE POLICY "Allow public all access on todo_checklist_groups" ON todo_checkli
 DROP POLICY IF EXISTS "Allow public all access on todo_checklists" ON todo_checklists;
 CREATE POLICY "Allow public all access on todo_checklists" ON todo_checklists FOR ALL USING (true);
 
+-- 21. CASH DEBTS (Module - Cash Debt List / หนี้เงินสดรวม)
+CREATE TABLE IF NOT EXISTS cash_debts (
+    id VARCHAR(100) PRIMARY KEY,
+    name VARCHAR(255) NOT NULL,
+    category VARCHAR(50) DEFAULT 'personal_loan',
+    creditor_name VARCHAR(255),
+    account_number VARCHAR(100),
+    original_principal NUMERIC(12, 2) DEFAULT 0,
+    current_balance NUMERIC(12, 2) DEFAULT 0,
+    interest_rate NUMERIC(6, 2) DEFAULT 0,
+    monthly_payment NUMERIC(12, 2) DEFAULT 0,
+    due_day INTEGER DEFAULT 5,
+    start_date DATE,
+    status VARCHAR(50) DEFAULT 'active',
+    priority VARCHAR(50) DEFAULT 'high',
+    contact_info TEXT,
+    notes TEXT,
+    payment_history JSONB DEFAULT '[]'::jsonb,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+ALTER TABLE cash_debts DISABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Allow public all access on cash_debts" ON cash_debts;
+CREATE POLICY "Allow public all access on cash_debts" ON cash_debts FOR ALL USING (true);
+
+

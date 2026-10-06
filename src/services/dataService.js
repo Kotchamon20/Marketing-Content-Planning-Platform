@@ -1058,3 +1058,81 @@ export async function deleteActualExpenseFromSupabase(id) {
   }
 }
 
+// ------------------------------------------------------------------------------
+// 21. CASH DEBT LIST (cash_debts table)
+// ------------------------------------------------------------------------------
+export async function fetchCashDebtsFromSupabase() {
+  try {
+    const { data, error } = await supabase
+      .from('cash_debts')
+      .select('*')
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      console.warn('Supabase fetchCashDebts error:', error.message);
+      return null;
+    }
+    return data;
+  } catch (err) {
+    console.error('Supabase fetchCashDebts catch:', err);
+    return null;
+  }
+}
+
+export async function upsertCashDebtToSupabase(debt) {
+  try {
+    const payload = {
+      id: debt.id,
+      name: debt.name,
+      category: debt.category || 'personal_loan',
+      creditor_name: debt.creditorName || debt.creditor_name || '',
+      account_number: debt.accountNumber || debt.account_number || '',
+      original_principal: Number(debt.originalPrincipal || debt.original_principal) || 0,
+      current_balance: Number(debt.currentBalance || debt.current_balance) || 0,
+      interest_rate: Number(debt.interestRate || debt.interest_rate) || 0,
+      monthly_payment: Number(debt.monthlyPayment || debt.monthly_payment) || 0,
+      due_day: Number(debt.dueDay || debt.due_day) || 5,
+      start_date: debt.startDate || debt.start_date || null,
+      status: debt.status || 'active',
+      priority: debt.priority || 'high',
+      contact_info: debt.contactInfo || debt.contact_info || '',
+      notes: debt.notes || '',
+      payment_history: debt.paymentHistory || debt.payment_history || [],
+      updated_at: new Date().toISOString()
+    };
+
+    const { data, error } = await supabase
+      .from('cash_debts')
+      .upsert([payload])
+      .select();
+
+    if (error) {
+      console.warn('Supabase upsertCashDebt error:', error.message);
+      return null;
+    }
+    return data;
+  } catch (err) {
+    console.error('Supabase upsertCashDebt catch:', err);
+    return null;
+  }
+}
+
+export async function deleteCashDebtFromSupabase(id) {
+  try {
+    const { error } = await supabase
+      .from('cash_debts')
+      .delete()
+      .eq('id', id);
+
+    if (error) {
+      console.warn('Supabase deleteCashDebt error:', error.message);
+      return false;
+    }
+    return true;
+  } catch (err) {
+    console.error('Supabase deleteCashDebt catch:', err);
+    return false;
+  }
+}
+
+

@@ -8,6 +8,7 @@ import MarketingPlanModule from './components/MarketingPlanModule';
 import ProductPlanModule from './components/ProductPlanModule';
 import PromotionPlanModule, { DocExportPreviewModal } from './components/PromotionPlanModule';
 import TodoListModule from './components/TodoListModule';
+import CashDebtModule from './components/CashDebtModule';
 import KpiAnalyticsModule from './components/KpiAnalyticsModule';
 import NotificationEngineModule from './components/NotificationEngineModule';
 import SchemaViewerModal from './components/SchemaViewerModal';
@@ -625,6 +626,12 @@ export default function App() {
             <TodoListModule
               users={users}
               onTriggerNotification={handleTriggerNotification}
+              onShowSaveToast={showSaveToast}
+            />
+          )}
+
+          {activeTab === 'cash-debt' && (
+            <CashDebtModule
               onShowSaveToast={showSaveToast}
             />
           )}
