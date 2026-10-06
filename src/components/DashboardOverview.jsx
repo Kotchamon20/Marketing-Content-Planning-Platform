@@ -22,8 +22,7 @@ import {
   BellRing,
   CalendarDays,
   User,
-  Check,
-  Banknote
+  Check
 } from 'lucide-react';
 
 export default function DashboardOverview({
@@ -84,18 +83,10 @@ export default function DashboardOverview({
 
             <button
               onClick={() => onNavigateTab('todo-list')}
-              className="px-4 py-2.5 bg-white text-purple-950 hover:bg-purple-50 font-bold rounded-xl text-xs transition shadow-xs border border-[#E2D2EA] flex items-center gap-2 cursor-pointer"
-            >
-              <CheckSquare className="w-4 h-4 text-purple-700" />
-              <span>ดู To-Do List</span>
-            </button>
-
-            <button
-              onClick={() => onNavigateTab('cash-debt')}
               className="px-4 py-2.5 bg-gradient-to-r from-purple-950 via-pink-900 to-purple-900 text-white font-bold rounded-xl text-xs transition shadow-md flex items-center gap-2 cursor-pointer hover:opacity-95"
             >
-              <Banknote className="w-4 h-4 text-pink-300" />
-              <span>ดูรายการหนี้เงินสด</span>
+              <CheckSquare className="w-4 h-4 text-pink-300" />
+              <span>ดู To-Do List & ติดตามงาน</span>
             </button>
           </div>
 
