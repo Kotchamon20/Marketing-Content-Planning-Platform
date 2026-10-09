@@ -252,19 +252,35 @@ CREATE TABLE IF NOT EXISTS kpi_items (
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
--- 16. PROMOTION PLANS (Module 4 - Related Product Promotion Plans)
+-- 16. PROMOTION PLANS (Module 4 - Related Product Promotion Plans & Campaign Doc Briefs)
 CREATE TABLE IF NOT EXISTS promotion_plans (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     title VARCHAR(255) NOT NULL,
     category VARCHAR(100) DEFAULT 'discount',
     product_id VARCHAR(100) DEFAULT 'p-1',
     product_name VARCHAR(255) DEFAULT 'สินค้าทุกรายการ',
+    target_branch VARCHAR(100) DEFAULT 'ทุกสาขา',
     discount_text VARCHAR(100),
     start_date DATE,
     end_date DATE,
+    budget NUMERIC(12, 2) DEFAULT 0,
+    projected_sales NUMERIC(12, 2) DEFAULT 0,
+    channels TEXT[],
+    description TEXT,
+    doc_content TEXT,
     status VARCHAR(20) DEFAULT 'active',
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
+
+-- MIGRATION: Ensure all extended promotion plan columns and doc_content exist on existing databases
+ALTER TABLE promotion_plans ADD COLUMN IF NOT EXISTS target_branch VARCHAR(100) DEFAULT 'ทุกสาขา';
+ALTER TABLE promotion_plans ADD COLUMN IF NOT EXISTS budget NUMERIC(12, 2) DEFAULT 0;
+ALTER TABLE promotion_plans ADD COLUMN IF NOT EXISTS projected_sales NUMERIC(12, 2) DEFAULT 0;
+ALTER TABLE promotion_plans ADD COLUMN IF NOT EXISTS channels TEXT[];
+ALTER TABLE promotion_plans ADD COLUMN IF NOT EXISTS description TEXT;
+ALTER TABLE promotion_plans ADD COLUMN IF NOT EXISTS doc_content TEXT;
+ALTER TABLE promotion_plans ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW();
 
 -- 17. BUDGET ACTUAL EXPENSES (Budget vs Actual Tracking & Expense Ledger)
 CREATE TABLE IF NOT EXISTS budget_actual_expenses (

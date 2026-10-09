@@ -127,46 +127,78 @@ export default function PromotionPlanModule({
     return [];
   });
 
-  // Clean Initial Promotion Plans Data State
-  const [promotionPlans, setPromotionPlans] = useState([]);
+  // Clean Initial Promotion Plans Data State with localStorage Cache
+  const [promotionPlans, setPromotionPlans] = useState(() => {
+    try {
+      const saved = localStorage.getItem('nitan_promotion_plans');
+      if (saved) return JSON.parse(saved);
+    } catch (e) {
+      console.error('Failed to load local promotion plans', e);
+    }
+    return [];
+  });
   const [isLoadingPlans, setIsLoadingPlans] = useState(true);
+  const editorRef = useRef(null);
 
   React.useEffect(() => {
     async function loadPlans() {
       setIsLoadingPlans(true);
-      const data = await fetchPromotionPlansFromSupabase();
-      if (data) {
-        const formattedData = data.map(dbPlan => ({
-          id: dbPlan.id,
-          code: `PROMO-${dbPlan.id.substring(0, 6).toUpperCase()}`,
-          title: dbPlan.title,
-          category: dbPlan.category,
-          targetProductId: dbPlan.product_id,
-          targetProductName: dbPlan.product_name,
-          targetBranch: dbPlan.target_branch,
-          status: dbPlan.status,
-          discountOffer: dbPlan.discount_text,
-          startDate: dbPlan.start_date,
-          endDate: dbPlan.end_date,
-          budget: dbPlan.budget,
-          projectedSales: dbPlan.projected_sales,
-          channels: dbPlan.channels || [],
-          description: dbPlan.description,
-          docContent: dbPlan.doc_content,
-          checklist: [
-            { task: 'จัดเตรียมอาร์ตเวิร์คโปรโมชัน', completed: false },
-            { task: 'เสร็จแล้ว', completed: false }
-          ]
-        }));
-        // Sort by nearest upcoming date by default
-        formattedData.sort((a, b) => {
-          const dateA = a.startDate || a.start_date || '9999-99-99';
-          const dateB = b.startDate || b.start_date || '9999-99-99';
-          return dateA.localeCompare(dateB);
-        });
-        setPromotionPlans(formattedData);
+      try {
+        const data = await fetchPromotionPlansFromSupabase();
+        if (data && Array.isArray(data) && data.length > 0) {
+          const localSaved = (() => {
+            try {
+              const saved = localStorage.getItem('nitan_promotion_plans');
+              return saved ? JSON.parse(saved) : [];
+            } catch {
+              return [];
+            }
+          })();
+
+          const formattedData = data.map(dbPlan => {
+            const matchedLocal = localSaved.find(p => p.id === dbPlan.id);
+            // If local cache has a docContent and Supabase is empty, preserve local docContent
+            const docContent = (dbPlan.doc_content && dbPlan.doc_content.trim())
+              ? dbPlan.doc_content
+              : (matchedLocal?.docContent || '');
+
+            return {
+              id: dbPlan.id,
+              code: `PROMO-${dbPlan.id.substring(0, 6).toUpperCase()}`,
+              title: dbPlan.title,
+              category: dbPlan.category,
+              targetProductId: dbPlan.product_id,
+              targetProductName: dbPlan.product_name,
+              targetBranch: dbPlan.target_branch,
+              status: dbPlan.status,
+              discountOffer: dbPlan.discount_text,
+              startDate: dbPlan.start_date,
+              endDate: dbPlan.end_date,
+              budget: dbPlan.budget,
+              projectedSales: dbPlan.projected_sales,
+              channels: dbPlan.channels || [],
+              description: dbPlan.description,
+              docContent: docContent,
+              checklist: [
+                { task: 'จัดเตรียมอาร์ตเวิร์คโปรโมชัน', completed: false },
+                { task: 'เสร็จแล้ว', completed: false }
+              ]
+            };
+          });
+          // Sort by nearest upcoming date by default
+          formattedData.sort((a, b) => {
+            const dateA = a.startDate || a.start_date || '9999-99-99';
+            const dateB = b.startDate || b.start_date || '9999-99-99';
+            return dateA.localeCompare(dateB);
+          });
+          setPromotionPlans(formattedData);
+          localStorage.setItem('nitan_promotion_plans', JSON.stringify(formattedData));
+        }
+      } catch (err) {
+        console.error('Error fetching promotion plans from Supabase:', err);
+      } finally {
+        setIsLoadingPlans(false);
       }
-      setIsLoadingPlans(false);
     }
     loadPlans();
   }, []);
@@ -375,6 +407,12 @@ export default function PromotionPlanModule({
     e.preventDefault();
     const channelsList = formData.channelsStr.split(',').map(c => c.trim()).filter(Boolean);
 
+    // Retrieve latest content directly from editorRef or formData
+    let latestDocContent = formData.docContent || '';
+    if (editorRef.current && typeof editorRef.current.value === 'string') {
+      latestDocContent = editorRef.current.value;
+    }
+
     let planToSave;
 
     if (editingPlan) {
@@ -392,9 +430,17 @@ export default function PromotionPlanModule({
         projectedSales: Number(formData.projectedSales) || 0,
         description: formData.description,
         channels: channelsList,
-        docContent: formData.docContent
+        docContent: latestDocContent
       };
-      setPromotionPlans(prev => prev.map(p => p.id === editingPlan.id ? planToSave : p));
+      setPromotionPlans(prev => {
+        const updated = prev.map(p => p.id === editingPlan.id ? planToSave : p);
+        localStorage.setItem('nitan_promotion_plans', JSON.stringify(updated));
+        return updated;
+      });
+      // If doc viewer is open, sync it with updated data
+      if (viewDocPlan && viewDocPlan.id === editingPlan.id) {
+        setViewDocPlan(planToSave);
+      }
     } else {
       planToSave = {
         id: `promo-${Date.now()}`,
@@ -412,22 +458,35 @@ export default function PromotionPlanModule({
         projectedSales: Number(formData.projectedSales) || 0,
         channels: channelsList,
         description: formData.description,
-        docContent: formData.docContent,
+        docContent: latestDocContent,
         checklist: [
           { task: 'จัดเตรียมอาร์ตเวิร์คโปรโมชัน', completed: false },
           { task: 'เสร็จแล้ว', completed: false }
         ]
       };
-      setPromotionPlans(prev => [planToSave, ...prev]);
+      setPromotionPlans(prev => {
+        const updated = [planToSave, ...prev];
+        localStorage.setItem('nitan_promotion_plans', JSON.stringify(updated));
+        return updated;
+      });
     }
 
     setShowAddModal(false);
+    onShowSaveToast?.('บันทึกการแก้ไขแผนและเนื้อหา Doc เรียบร้อยแล้ว!');
 
     // Sync to Supabase
-    const savedData = await upsertPromotionPlanToSupabase(planToSave);
-    if (!editingPlan && savedData && savedData[0] && savedData[0].id) {
-      // Update local state with the real UUID generated by Supabase
-      setPromotionPlans(prev => prev.map(p => p.id === planToSave.id ? { ...p, id: savedData[0].id } : p));
+    try {
+      const savedData = await upsertPromotionPlanToSupabase(planToSave);
+      if (!editingPlan && savedData && savedData[0] && savedData[0].id) {
+        // Update local state with the real UUID generated by Supabase
+        setPromotionPlans(prev => {
+          const updated = prev.map(p => p.id === planToSave.id ? { ...p, id: savedData[0].id } : p);
+          localStorage.setItem('nitan_promotion_plans', JSON.stringify(updated));
+          return updated;
+        });
+      }
+    } catch (err) {
+      console.error('Failed to upsert promotion plan in Supabase:', err);
     }
   };
 
@@ -1320,6 +1379,7 @@ export default function PromotionPlanModule({
                     </label>
                     <div className="bg-white border border-[#E2D2EA] rounded-xl overflow-hidden shadow-inner text-purple-950 font-sans flex-1 flex flex-col min-h-0">
                       <JoditEditor
+                        ref={editorRef}
                         value={formData.docContent}
                         config={{
                           readonly: false,
@@ -1404,7 +1464,12 @@ export default function PromotionPlanModule({
                             }
                           }
                         }}
-                        onBlur={(newContent) => setFormData(prev => ({ ...prev, docContent: newContent }))}
+                        onChange={(newContent) => {
+                          setFormData(prev => ({ ...prev, docContent: newContent }));
+                        }}
+                        onBlur={(newContent) => {
+                          setFormData(prev => ({ ...prev, docContent: newContent }));
+                        }}
                       />
                     </div>
                   </div>
