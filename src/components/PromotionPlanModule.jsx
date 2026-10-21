@@ -138,7 +138,27 @@ export default function PromotionPlanModule({
     return [];
   });
   const [isLoadingPlans, setIsLoadingPlans] = useState(true);
+  const [initialDocContent, setInitialDocContent] = useState('');
+  const docContentRef = useRef('');
   const editorRef = useRef(null);
+
+  // Helper to safely save plans to localStorage without crashing on 5MB quota
+  const savePlansToLocal = (plans) => {
+    try {
+      localStorage.setItem('nitan_promotion_plans', JSON.stringify(plans));
+    } catch (err) {
+      console.warn('Could not cache full plans in localStorage (quota exceeded), caching metadata only:', err);
+      try {
+        const lightweightPlans = plans.map(p => ({
+          ...p,
+          docContent: (p.docContent && p.docContent.length > 50000) ? '' : p.docContent
+        }));
+        localStorage.setItem('nitan_promotion_plans', JSON.stringify(lightweightPlans));
+      } catch (e) {
+        console.warn('localStorage completely full:', e);
+      }
+    }
+  };
 
   React.useEffect(() => {
     async function loadPlans() {
@@ -157,8 +177,8 @@ export default function PromotionPlanModule({
 
           const formattedData = data.map(dbPlan => {
             const matchedLocal = localSaved.find(p => p.id === dbPlan.id);
-            // If local cache has a docContent and Supabase is empty, preserve local docContent
-            const docContent = (dbPlan.doc_content && dbPlan.doc_content.trim())
+            // Supabase is authoritative. Only if doc_content is null/undefined in DB, fall back to local cache.
+            const docContent = (dbPlan.doc_content !== null && dbPlan.doc_content !== undefined)
               ? dbPlan.doc_content
               : (matchedLocal?.docContent || '');
 
@@ -192,7 +212,7 @@ export default function PromotionPlanModule({
             return dateA.localeCompare(dateB);
           });
           setPromotionPlans(formattedData);
-          localStorage.setItem('nitan_promotion_plans', JSON.stringify(formattedData));
+          savePlansToLocal(formattedData);
         }
       } catch (err) {
         console.error('Error fetching promotion plans from Supabase:', err);
@@ -244,6 +264,91 @@ export default function PromotionPlanModule({
   const [newBranchName, setNewBranchName] = useState('');
   const [editingBranchId, setEditingBranchId] = useState(null);
   const [editingBranchName, setEditingBranchName] = useState('');
+
+  // Memoized Jodit Editor Config to prevent recreation on keystrokes/re-renders
+  const editorConfig = useMemo(() => ({
+    readonly: false,
+    height: 680,
+    minHeight: 680,
+    askBeforePasteHTML: false,
+    askBeforePasteFromWord: false,
+    defaultActionOnPaste: 'insert_as_html',
+    placeholder: "ใส่เอกสารบรีฟ... วางตารางจาก AI หรือ Word ได้เลย",
+    buttons: [
+      'source', '|',
+      'bold', 'strikethrough', 'underline', 'italic', '|',
+      'ul', 'ol', '|',
+      'outdent', 'indent', '|',
+      'font', 'fontsize', 'brush', 'paragraph', '|',
+      'image', 'video', 'table', 'link', '|',
+      'align', 'undo', 'redo', '|',
+      'hr', 'eraser', 'fullsize'
+    ],
+    uploader: {
+      insertImageAsBase64URI: true
+    },
+    showXPathInStatusbar: false,
+    showWordsCounter: false,
+    showCharsCounter: false,
+    imageProcessor: {
+      replaceDataURIToBlobIdInView: true
+    },
+    events: {
+      beforeUpload: async function (files) {
+        if (files && files.length > 0) {
+          for (let i = 0; i < files.length; i++) {
+            const file = files[i];
+            if (file.type.startsWith('image/')) {
+              try {
+                const compressed = await compressImage(file);
+                this.selection.insertHTML(`<img src="${compressed}" style="max-width: 100%; height: auto;" />`);
+              } catch (err) {
+                console.error('File compression failed:', err);
+              }
+            }
+          }
+          return false;
+        }
+      },
+      drop: async function (event) {
+        const files = event.dataTransfer?.files;
+        if (files && files.length > 0) {
+          const file = files[0];
+          if (file.type.startsWith('image/')) {
+            event.preventDefault();
+            try {
+              const compressed = await compressImage(file);
+              this.selection.insertHTML(`<img src="${compressed}" style="max-width: 100%; height: auto;" />`);
+            } catch (err) {
+              console.error('Image compression failed:', err);
+            }
+            return false;
+          }
+        }
+      },
+      paste: async function (event) {
+        const clipboardData = event.clipboardData || window.clipboardData;
+        if (clipboardData && clipboardData.items) {
+          for (let i = 0; i < clipboardData.items.length; i++) {
+            const item = clipboardData.items[i];
+            if (item.type.indexOf('image') !== -1) {
+              const file = item.getAsFile();
+              if (file) {
+                event.preventDefault();
+                try {
+                  const compressed = await compressImage(file);
+                  this.selection.insertHTML(`<img src="${compressed}" style="max-width: 100%; height: auto;" />`);
+                } catch (err) {
+                  console.error('Image compression failed:', err);
+                }
+                return false;
+              }
+            }
+          }
+        }
+      }
+    }
+  }), []);
 
   // Form State for Add / Edit Plan Modal
   const [formData, setFormData] = useState({
@@ -363,6 +468,8 @@ export default function PromotionPlanModule({
   // Open Add Plan Modal
   const handleOpenAddModal = () => {
     setEditingPlan(null);
+    setInitialDocContent('');
+    docContentRef.current = '';
     setFormData({
       title: '',
       category: categories[0]?.name || 'Product Promotion',
@@ -384,6 +491,9 @@ export default function PromotionPlanModule({
   // Open Edit Plan Modal
   const handleOpenEditModal = (plan) => {
     setEditingPlan(plan);
+    const content = plan.docContent || '';
+    setInitialDocContent(content);
+    docContentRef.current = content;
     setFormData({
       title: plan.title,
       category: plan.category,
@@ -397,7 +507,7 @@ export default function PromotionPlanModule({
       projectedSales: plan.projectedSales ?? '',
       description: plan.description || '',
       channelsStr: plan.channels ? plan.channels.join(', ') : '',
-      docContent: plan.docContent || ''
+      docContent: content
     });
     setShowAddModal(true);
   };
@@ -407,10 +517,14 @@ export default function PromotionPlanModule({
     e.preventDefault();
     const channelsList = formData.channelsStr.split(',').map(c => c.trim()).filter(Boolean);
 
-    // Retrieve latest content directly from editorRef or formData
-    let latestDocContent = formData.docContent || '';
-    if (editorRef.current && typeof editorRef.current.value === 'string') {
-      latestDocContent = editorRef.current.value;
+    // Retrieve latest content directly from editorRef or docContentRef
+    let latestDocContent = docContentRef.current ?? '';
+    if (editorRef.current) {
+      if (typeof editorRef.current.value === 'string') {
+        latestDocContent = editorRef.current.value;
+      } else if (typeof editorRef.current.getEditorValue === 'function') {
+        latestDocContent = editorRef.current.getEditorValue();
+      }
     }
 
     let planToSave;
@@ -434,7 +548,7 @@ export default function PromotionPlanModule({
       };
       setPromotionPlans(prev => {
         const updated = prev.map(p => p.id === editingPlan.id ? planToSave : p);
-        localStorage.setItem('nitan_promotion_plans', JSON.stringify(updated));
+        savePlansToLocal(updated);
         return updated;
       });
       // If doc viewer is open, sync it with updated data
@@ -466,7 +580,7 @@ export default function PromotionPlanModule({
       };
       setPromotionPlans(prev => {
         const updated = [planToSave, ...prev];
-        localStorage.setItem('nitan_promotion_plans', JSON.stringify(updated));
+        savePlansToLocal(updated);
         return updated;
       });
     }
@@ -481,7 +595,7 @@ export default function PromotionPlanModule({
         // Update local state with the real UUID generated by Supabase
         setPromotionPlans(prev => {
           const updated = prev.map(p => p.id === planToSave.id ? { ...p, id: savedData[0].id } : p);
-          localStorage.setItem('nitan_promotion_plans', JSON.stringify(updated));
+          savePlansToLocal(updated);
           return updated;
         });
       }
@@ -1379,96 +1493,15 @@ export default function PromotionPlanModule({
                     </label>
                     <div className="bg-white border border-[#E2D2EA] rounded-xl overflow-hidden shadow-inner text-purple-950 font-sans flex-1 flex flex-col min-h-0">
                       <JoditEditor
+                        key={editingPlan ? editingPlan.id : 'new-plan'}
                         ref={editorRef}
-                        value={formData.docContent}
-                        config={{
-                          readonly: false,
-                          height: 680,
-                          minHeight: 680,
-                          askBeforePasteHTML: false,
-                          askBeforePasteFromWord: false,
-                          defaultActionOnPaste: 'insert_as_html',
-                          placeholder: "ใส่เอกสารบรีฟ... วางตารางจาก AI หรือ Word ได้เลย",
-                          buttons: [
-                            'source', '|',
-                            'bold', 'strikethrough', 'underline', 'italic', '|',
-                            'ul', 'ol', '|',
-                            'outdent', 'indent', '|',
-                            'font', 'fontsize', 'brush', 'paragraph', '|',
-                            'image', 'video', 'table', 'link', '|',
-                            'align', 'undo', 'redo', '|',
-                            'hr', 'eraser', 'fullsize'
-                          ],
-                          uploader: {
-                            insertImageAsBase64URI: true
-                          },
-                          showXPathInStatusbar: false,
-                          showWordsCounter: false,
-                          showCharsCounter: false,
-                          imageProcessor: {
-                            replaceDataURIToBlobIdInView: true
-                          },
-                          events: {
-                            beforeUpload: async function (files) {
-                              if (files && files.length > 0) {
-                                for (let i = 0; i < files.length; i++) {
-                                  const file = files[i];
-                                  if (file.type.startsWith('image/')) {
-                                    try {
-                                      const compressed = await compressImage(file);
-                                      this.selection.insertHTML(`<img src="${compressed}" style="max-width: 100%; height: auto;" />`);
-                                    } catch (err) {
-                                      console.error('File compression failed:', err);
-                                    }
-                                  }
-                                }
-                                return false;
-                              }
-                            },
-                            drop: async function (event) {
-                              const files = event.dataTransfer?.files;
-                              if (files && files.length > 0) {
-                                const file = files[0];
-                                if (file.type.startsWith('image/')) {
-                                  event.preventDefault();
-                                  try {
-                                    const compressed = await compressImage(file);
-                                    this.selection.insertHTML(`<img src="${compressed}" style="max-width: 100%; height: auto;" />`);
-                                  } catch (err) {
-                                    console.error('Image compression failed:', err);
-                                  }
-                                  return false;
-                                }
-                              }
-                            },
-                            paste: async function (event) {
-                              const clipboardData = event.clipboardData || window.clipboardData;
-                              if (clipboardData && clipboardData.items) {
-                                for (let i = 0; i < clipboardData.items.length; i++) {
-                                  const item = clipboardData.items[i];
-                                  if (item.type.indexOf('image') !== -1) {
-                                    const file = item.getAsFile();
-                                    if (file) {
-                                      event.preventDefault();
-                                      try {
-                                        const compressed = await compressImage(file);
-                                        this.selection.insertHTML(`<img src="${compressed}" style="max-width: 100%; height: auto;" />`);
-                                      } catch (err) {
-                                        console.error('Image compression failed:', err);
-                                      }
-                                      return false;
-                                    }
-                                  }
-                                }
-                              }
-                            }
-                          }
-                        }}
+                        value={initialDocContent}
+                        config={editorConfig}
                         onChange={(newContent) => {
-                          setFormData(prev => ({ ...prev, docContent: newContent }));
+                          docContentRef.current = newContent;
                         }}
                         onBlur={(newContent) => {
-                          setFormData(prev => ({ ...prev, docContent: newContent }));
+                          docContentRef.current = newContent;
                         }}
                       />
                     </div>

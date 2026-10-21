@@ -648,7 +648,8 @@ export async function upsertPromotionPlanToSupabase(plan) {
       projected_sales: Number(plan.projectedSales) || 0,
       channels: Array.isArray(plan.channels) ? plan.channels : [],
       description: plan.description || '',
-      doc_content: plan.docContent || ''
+      doc_content: plan.docContent ?? '',
+      updated_at: new Date().toISOString()
     };
 
     if (isUuid(plan.id)) {
