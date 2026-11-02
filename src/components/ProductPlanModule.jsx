@@ -20,7 +20,10 @@ import {
   Edit2,
   Trash2,
   GripVertical,
-  Calendar
+  Calendar,
+  CheckCircle2,
+  Filter,
+  Search
 } from 'lucide-react';
 
 export default function ProductPlanModule({
@@ -41,6 +44,10 @@ export default function ProductPlanModule({
   const [editingProduct, setEditingProduct] = useState(null);
   const [showProductCatalog, setShowProductCatalog] = useState(false);
 
+  // Filter & Search states
+  const [filterJoinedStatus, setFilterJoinedStatus] = useState('all'); // 'all' | 'joined' | 'not_joined'
+  const [searchQuery, setSearchQuery] = useState('');
+
   // Drag and drop state
   const [draggedCampId, setDraggedCampId] = useState(null);
   const [dragOverCampId, setDragOverCampId] = useState(null);
@@ -53,6 +60,7 @@ export default function ProductPlanModule({
   const [budget, setBudget] = useState(50000);
   const [revenueTarget, setRevenueTarget] = useState(800000);
   const [actualRevenue, setActualRevenue] = useState(0);
+  const [joinedCampaign, setJoinedCampaign] = useState(false);
 
   // Inline quick-add product inside campaign modal
   const [showInlineAddProduct, setShowInlineAddProduct] = useState(false);
@@ -99,6 +107,26 @@ export default function ProductPlanModule({
     return Array.from(map.values());
   }, [products]);
 
+  // Campaign counts and joined status calculations
+  const joinedCount = campaigns.filter(c => Boolean(c.joined_campaign)).length;
+  const notJoinedCount = campaigns.length - joinedCount;
+  const joinedPercent = campaigns.length > 0 ? Math.round((joinedCount / campaigns.length) * 100) : 0;
+
+  // Filtered campaigns
+  const filteredCampaigns = campaigns.filter(camp => {
+    if (filterJoinedStatus === 'joined' && !camp.joined_campaign) return false;
+    if (filterJoinedStatus === 'not_joined' && camp.joined_campaign) return false;
+
+    if (searchQuery.trim()) {
+      const q = searchQuery.toLowerCase().trim();
+      const campName = (camp.name || '').toLowerCase();
+      const prod = camp.product_id ? allAvailableProducts.find(p => p.id === camp.product_id) : null;
+      const prodName = (prod?.name || '').toLowerCase();
+      const prodSku = (prod?.sku || '').toLowerCase();
+      return campName.includes(q) || prodName.includes(q) || prodSku.includes(q);
+    }
+    return true;
+  });
 
   const openCreateModal = () => {
     setEditingCampaign(null);
@@ -109,6 +137,7 @@ export default function ProductPlanModule({
     setBudget(50000);
     setRevenueTarget(800000);
     setActualRevenue(0);
+    setJoinedCampaign(false);
     setShowInlineAddProduct(false);
     setShowAddCampaignModal(true);
   };
@@ -122,6 +151,7 @@ export default function ProductPlanModule({
     setBudget(camp.budget ?? 50000);
     setRevenueTarget(camp.revenue_target ?? camp.projectedSales ?? 800000);
     setActualRevenue(camp.actual_revenue ?? 0);
+    setJoinedCampaign(Boolean(camp.joined_campaign));
     setShowInlineAddProduct(false);
     setShowAddCampaignModal(true);
   };
@@ -212,7 +242,8 @@ export default function ProductPlanModule({
         end_date: endDate,
         budget: Number(budget),
         revenue_target: Number(revenueTarget),
-        actual_revenue: Number(actualRevenue)
+        actual_revenue: Number(actualRevenue),
+        joined_campaign: joinedCampaign
       };
       if (onEditCampaign) onEditCampaign(updated);
     } else {
@@ -233,7 +264,8 @@ export default function ProductPlanModule({
         scheduled: false,
         posted: false,
         stage_status: 't_minus_5',
-        status: 'planning'
+        status: 'planning',
+        joined_campaign: joinedCampaign
       };
       if (onAddCampaign) onAddCampaign(newCamp);
     }
@@ -413,54 +445,185 @@ export default function ProductPlanModule({
             <p className="text-xs text-rose-700 font-bold text-center py-4">ยังไม่มีสินค้าในระบบ</p>
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
-              {allAvailableProducts.map(prod => (
-                <div key={prod.id} className="bg-white/80 border border-pink-200 rounded-2xl p-3 flex items-center gap-3 hover:border-pink-300 transition group">
-                  <img
-                    src={prod.image_url || 'https://images.unsplash.com/photo-1522335789203-aabd1fc54bc9?w=300&auto=format&fit=crop&q=60'}
-                    alt={prod.name}
-                    className="w-10 h-10 rounded-xl object-cover border border-pink-200 shrink-0"
-                  />
-                  <div className="flex-1 min-w-0">
-                    <p className="text-xs font-black text-rose-950 truncate">{prod.name}</p>
-                    <p className="text-[10px] text-rose-700 font-bold">{prod.sku} · ฿{Number(prod.price).toLocaleString()}</p>
+              {allAvailableProducts.map(prod => {
+                const linkedCampaigns = campaigns.filter(c => c.product_id === prod.id);
+                const hasJoinedCampaign = linkedCampaigns.some(c => Boolean(c.joined_campaign));
+
+                return (
+                  <div key={prod.id} className="bg-white/80 border border-pink-200 rounded-2xl p-3 flex items-center gap-3 hover:border-pink-300 transition group">
+                    <img
+                      src={prod.image_url || 'https://images.unsplash.com/photo-1522335789203-aabd1fc54bc9?w=300&auto=format&fit=crop&q=60'}
+                      alt={prod.name}
+                      className="w-10 h-10 rounded-xl object-cover border border-pink-200 shrink-0"
+                    />
+                    <div className="flex-1 min-w-0">
+                      <p className="text-xs font-black text-rose-950 truncate">{prod.name}</p>
+                      <p className="text-[10px] text-rose-700 font-bold">{prod.sku} · ฿{Number(prod.price).toLocaleString()}</p>
+                      {linkedCampaigns.length > 0 && (
+                        <div className="mt-1">
+                          {hasJoinedCampaign ? (
+                            <span className="inline-flex items-center gap-1 text-[9px] font-bold px-1.5 py-0.5 rounded-md bg-emerald-100 text-emerald-900 border border-emerald-200">
+                              <CheckCircle2 className="w-2.5 h-2.5 text-emerald-600" />
+                              <span>เข้าร่วมแคมเปญแล้ว</span>
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center gap-1 text-[9px] font-bold px-1.5 py-0.5 rounded-md bg-amber-50 text-amber-900 border border-amber-200">
+                              <Clock className="w-2.5 h-2.5 text-amber-600" />
+                              <span>รอเข้าร่วมแคมเปญ</span>
+                            </span>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                    <div className="flex flex-col gap-1 opacity-0 group-hover:opacity-100 transition shrink-0">
+                      <button
+                        onClick={() => openProductModal(prod)}
+                        className="p-1.5 bg-pink-100 hover:bg-pink-200 rounded-lg cursor-pointer"
+                        title="แก้ไขสินค้า"
+                      >
+                        <Edit2 className="w-3 h-3 text-pink-700" />
+                      </button>
+                      <button
+                        onClick={() => {
+                          if (window.confirm(`ลบสินค้า "${prod.name}" ออกจากระบบ?`)) {
+                            if (onDeleteProduct) onDeleteProduct(prod.id);
+                          }
+                        }}
+                        className="p-1.5 bg-rose-50 hover:bg-rose-100 rounded-lg cursor-pointer"
+                        title="ลบสินค้า"
+                      >
+                        <Trash2 className="w-3 h-3 text-rose-500" />
+                      </button>
+                    </div>
                   </div>
-                  <div className="flex flex-col gap-1 opacity-0 group-hover:opacity-100 transition shrink-0">
-                    <button
-                      onClick={() => openProductModal(prod)}
-                      className="p-1.5 bg-pink-100 hover:bg-pink-200 rounded-lg cursor-pointer"
-                      title="แก้ไขสินค้า"
-                    >
-                      <Edit2 className="w-3 h-3 text-pink-700" />
-                    </button>
-                    <button
-                      onClick={() => {
-                        if (window.confirm(`ลบสินค้า "${prod.name}" ออกจากระบบ?`)) {
-                          if (onDeleteProduct) onDeleteProduct(prod.id);
-                        }
-                      }}
-                      className="p-1.5 bg-rose-50 hover:bg-rose-100 rounded-lg cursor-pointer"
-                      title="ลบสินค้า"
-                    >
-                      <Trash2 className="w-3 h-3 text-rose-500" />
-                    </button>
-                  </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           )}
         </div>
       )}
 
+      {/* Filter & Metric Status Bar */}
+      <div className="glass-panel p-4 flex flex-col md:flex-row md:items-center justify-between gap-3">
+        {/* Status Filter Buttons */}
+        <div className="flex items-center gap-1.5 flex-wrap">
+          <span className="text-xs font-bold text-rose-900 mr-1 flex items-center gap-1">
+            <Filter className="w-3.5 h-3.5 text-pink-600" />
+            สถานะ:
+          </span>
+          <button
+            onClick={() => setFilterJoinedStatus('all')}
+            className={`px-3 py-1.5 rounded-xl text-xs font-bold transition cursor-pointer flex items-center gap-1.5 ${
+              filterJoinedStatus === 'all'
+                ? 'bg-rose-900 text-white shadow-xs'
+                : 'bg-white/80 hover:bg-pink-100/70 text-rose-800 border border-pink-200'
+            }`}
+          >
+            <span>ทั้งหมด</span>
+            <span className={`px-1.5 py-0.2 rounded-full text-[10px] ${
+              filterJoinedStatus === 'all' ? 'bg-rose-800 text-white' : 'bg-pink-100 text-rose-800'
+            }`}>
+              {campaigns.length}
+            </span>
+          </button>
+
+          <button
+            onClick={() => setFilterJoinedStatus('joined')}
+            className={`px-3 py-1.5 rounded-xl text-xs font-bold transition cursor-pointer flex items-center gap-1.5 ${
+              filterJoinedStatus === 'joined'
+                ? 'bg-emerald-600 text-white shadow-xs'
+                : 'bg-white/80 hover:bg-emerald-50 text-emerald-900 border border-emerald-200'
+            }`}
+          >
+            <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" />
+            <span>เข้าร่วมแคมเปญแล้ว</span>
+            <span className={`px-1.5 py-0.2 rounded-full text-[10px] ${
+              filterJoinedStatus === 'joined' ? 'bg-emerald-700 text-white' : 'bg-emerald-100 text-emerald-900'
+            }`}>
+              {joinedCount}
+            </span>
+          </button>
+
+          <button
+            onClick={() => setFilterJoinedStatus('not_joined')}
+            className={`px-3 py-1.5 rounded-xl text-xs font-bold transition cursor-pointer flex items-center gap-1.5 ${
+              filterJoinedStatus === 'not_joined'
+                ? 'bg-amber-600 text-white shadow-xs'
+                : 'bg-white/80 hover:bg-amber-50 text-amber-900 border border-amber-200'
+            }`}
+          >
+            <Clock className="w-3.5 h-3.5 text-amber-500" />
+            <span>ยังไม่เข้าร่วมแคมเปญ</span>
+            <span className={`px-1.5 py-0.2 rounded-full text-[10px] ${
+              filterJoinedStatus === 'not_joined' ? 'bg-amber-700 text-white' : 'bg-amber-100 text-amber-900'
+            }`}>
+              {notJoinedCount}
+            </span>
+          </button>
+        </div>
+
+        {/* Search input & Progress summary */}
+        <div className="flex items-center gap-3">
+          <div className="relative flex-1 md:w-64">
+            <Search className="w-3.5 h-3.5 text-rose-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+            <input
+              type="text"
+              placeholder="ค้นหาแคมเปญ / สินค้า..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full pl-8 pr-7 py-1.5 text-xs bg-white/90 border border-pink-200 rounded-xl text-rose-950 font-bold placeholder:text-rose-300 focus:outline-pink-400 focus:bg-white"
+            />
+            {searchQuery && (
+              <button
+                onClick={() => setSearchQuery('')}
+                className="absolute right-2 top-1/2 -translate-y-1/2 text-rose-400 hover:text-rose-700 p-0.5"
+              >
+                <X className="w-3 h-3" />
+              </button>
+            )}
+          </div>
+
+          {/* Mini progress bar */}
+          <div className="hidden sm:flex items-center gap-2 bg-pink-50/70 border border-pink-200/80 px-3 py-1.5 rounded-xl text-xs font-bold shrink-0">
+            <span className="text-[11px] text-rose-800">เข้าร่วม:</span>
+            <div className="w-16 bg-pink-200/60 rounded-full h-2 overflow-hidden">
+              <div
+                className="bg-emerald-500 h-2 rounded-full transition-all duration-500"
+                style={{ width: `${joinedPercent}%` }}
+              />
+            </div>
+            <span className="text-emerald-700 font-extrabold text-[11px]">{joinedPercent}%</span>
+          </div>
+        </div>
+      </div>
+
       {/* Campaign List Grid — 2 columns */}
       <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
         {campaigns.length === 0 ? (
-          <div className="glass-panel p-8 text-center text-rose-800 font-bold text-sm">
+          <div className="col-span-full glass-panel p-8 text-center text-rose-800 font-bold text-sm">
             <Package className="w-10 h-10 text-pink-400 mx-auto mb-2 opacity-60" />
             <p>ยังไม่มีแคมเปญสินค้าในระบบ</p>
             <p className="text-xs text-rose-600 font-normal mt-1">คลิกปุ่ม "สร้างแคมเปญใหม่" ด้านบนเพื่อเริ่มต้นสร้างแคมเปญ</p>
           </div>
+        ) : filteredCampaigns.length === 0 ? (
+          <div className="col-span-full glass-panel p-8 text-center text-rose-800 font-bold text-sm space-y-2">
+            <Filter className="w-10 h-10 text-pink-400 mx-auto opacity-60" />
+            <p>ไม่พบแคมเปญที่ตรงกับตัวกรองที่เลือก</p>
+            <p className="text-xs text-rose-600 font-normal">
+              {filterJoinedStatus === 'joined' ? 'ยังไม่มีแคมเปญที่มีสถานะ "เข้าร่วมแคมเปญแล้ว"' : filterJoinedStatus === 'not_joined' ? 'ไม่มีแคมเปญที่มีสถานะ "ยังไม่เข้าร่วมแคมเปญ"' : 'ลองค้นหาด้วยคำอื่น หรือคลิกดูทั้งหมด'}
+            </p>
+            <button
+              onClick={() => {
+                setFilterJoinedStatus('all');
+                setSearchQuery('');
+              }}
+              className="mt-2 px-4 py-2 bg-pink-100 hover:bg-pink-200 text-rose-900 rounded-xl text-xs font-bold transition cursor-pointer"
+            >
+              ล้างตัวกรองทั้งหมด
+            </button>
+          </div>
         ) : (
-          campaigns.map((camp) => {
+          filteredCampaigns.map((camp) => {
             const product = camp.product_id ? (allAvailableProducts.find(p => p.id === camp.product_id) || null) : null;
             const roi = camp.budget > 0 ? (((camp.actual_revenue - camp.budget) / camp.budget) * 100).toFixed(0) : 0;
             const isDragging = draggedCampId === camp.id;
@@ -501,7 +664,34 @@ export default function ProductPlanModule({
                     />
                   )}
                   <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-1.5 flex-wrap mb-1">
+                    <div className="flex items-center gap-1.5 flex-wrap mb-1.5">
+                      {/* Prominent Quick-Toggle Badge: เข้าร่วมแคมเปญแล้ว / ยังไม่เข้าร่วม */}
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onToggleStageChecklist(camp.id, 'joined_campaign');
+                        }}
+                        className={`px-2.5 py-0.5 rounded-full text-[11px] font-black border transition cursor-pointer flex items-center gap-1 shadow-2xs ${
+                          camp.joined_campaign
+                            ? 'bg-emerald-100 hover:bg-emerald-200 text-emerald-950 border-emerald-300'
+                            : 'bg-amber-50 hover:bg-amber-100 text-amber-900 border-amber-300'
+                        }`}
+                        title="คลิกเพื่อสลับสถานะ: เข้าร่วมแคมเปญแล้ว หรือ ยังไม่เข้าร่วมแคมเปญ"
+                      >
+                        {camp.joined_campaign ? (
+                          <>
+                            <CheckCircle2 className="w-3 h-3 text-emerald-600 shrink-0" />
+                            <span>เข้าร่วมแคมเปญแล้ว</span>
+                          </>
+                        ) : (
+                          <>
+                            <Clock className="w-3 h-3 text-amber-600 shrink-0" />
+                            <span>ยังไม่เข้าร่วมแคมเปญ</span>
+                          </>
+                        )}
+                      </button>
+
                       {product && (
                         <span className="text-[9px] uppercase font-bold text-rose-800 bg-pink-100 px-2 py-0.5 rounded-full border border-pink-200">
                           {product.sku || 'SKU'}
@@ -524,36 +714,68 @@ export default function ProductPlanModule({
                 {/* Middle: Stage Checklist */}
                 <div className="rounded-2xl bg-white/80 border border-pink-200 p-3 space-y-1.5 mb-3">
                   <div className="text-[10px] font-black text-rose-800 pb-1 border-b border-pink-100 flex justify-between">
-                    <span>สถานะเตรียมงาน (FR-3.2)</span>
+                    <span>สถานะเตรียมงานและความพร้อม (FR-3.2)</span>
                     <span className="text-rose-500 font-bold">คลิกทำเครื่องหมาย</span>
                   </div>
+
+                  {/* 1. เข้าร่วมแคมเปญแล้ว */}
                   <button
-                    onClick={() => onToggleStageChecklist(camp.id, 'image_ready')}
-                    className={`w-full px-2.5 py-2 rounded-xl text-left flex items-center justify-between transition cursor-pointer text-[11px] font-bold ${camp.image_ready ? 'bg-emerald-100 text-emerald-900 border border-emerald-300' : 'bg-pink-50/70 text-rose-900 hover:bg-pink-100'}`}
+                    onClick={() => onToggleStageChecklist(camp.id, 'joined_campaign')}
+                    className={`w-full px-2.5 py-2 rounded-xl text-left flex items-center justify-between transition cursor-pointer text-[11px] font-bold ${
+                      camp.joined_campaign
+                        ? 'bg-emerald-100 text-emerald-950 border border-emerald-300'
+                        : 'bg-pink-50/70 text-rose-900 hover:bg-pink-100'
+                    }`}
                   >
                     <span className="flex items-center gap-1.5">
-                      <ImageIcon className="w-3.5 h-3.5 text-emerald-600" />
-                      <span>1. ภาพพร้อม (Image Ready)</span>
+                      <CheckCircle2 className={`w-3.5 h-3.5 ${camp.joined_campaign ? 'text-emerald-600' : 'text-gray-400'}`} />
+                      <span>1. เข้าร่วมแคมเปญแล้ว (Joined Campaign)</span>
                     </span>
-                    {camp.image_ready ? <CheckSquare className="w-3.5 h-3.5 text-emerald-600" /> : <Square className="w-3.5 h-3.5 text-pink-400" />}
+                    {camp.joined_campaign ? (
+                      <CheckSquare className="w-3.5 h-3.5 text-emerald-600" />
+                    ) : (
+                      <Square className="w-3.5 h-3.5 text-pink-400" />
+                    )}
                   </button>
+
+                  {/* 2. ภาพพร้อม */}
+                  <button
+                    onClick={() => onToggleStageChecklist(camp.id, 'image_ready')}
+                    className={`w-full px-2.5 py-2 rounded-xl text-left flex items-center justify-between transition cursor-pointer text-[11px] font-bold ${
+                      camp.image_ready ? 'bg-teal-100 text-teal-900 border border-teal-300' : 'bg-pink-50/70 text-rose-900 hover:bg-pink-100'
+                    }`}
+                  >
+                    <span className="flex items-center gap-1.5">
+                      <ImageIcon className="w-3.5 h-3.5 text-teal-600" />
+                      <span>2. ภาพพร้อม (Image Ready)</span>
+                    </span>
+                    {camp.image_ready ? <CheckSquare className="w-3.5 h-3.5 text-teal-600" /> : <Square className="w-3.5 h-3.5 text-pink-400" />}
+                  </button>
+
+                  {/* 3. ตั้งเวลาโพสต์แล้ว */}
                   <button
                     onClick={() => onToggleStageChecklist(camp.id, 'scheduled')}
-                    className={`w-full px-2.5 py-2 rounded-xl text-left flex items-center justify-between transition cursor-pointer text-[11px] font-bold ${camp.scheduled ? 'bg-sky-100 text-sky-900 border border-sky-300' : 'bg-pink-50/70 text-rose-900 hover:bg-pink-100'}`}
+                    className={`w-full px-2.5 py-2 rounded-xl text-left flex items-center justify-between transition cursor-pointer text-[11px] font-bold ${
+                      camp.scheduled ? 'bg-sky-100 text-sky-900 border border-sky-300' : 'bg-pink-50/70 text-rose-900 hover:bg-pink-100'
+                    }`}
                   >
                     <span className="flex items-center gap-1.5">
                       <Clock className="w-3.5 h-3.5 text-sky-600" />
-                      <span>2. ตั้งเวลาโพสต์แล้ว (Scheduled)</span>
+                      <span>3. ตั้งเวลาโพสต์แล้ว (Scheduled)</span>
                     </span>
                     {camp.scheduled ? <CheckSquare className="w-3.5 h-3.5 text-sky-600" /> : <Square className="w-3.5 h-3.5 text-pink-400" />}
                   </button>
+
+                  {/* 4. โพสต์จริงแล้ว */}
                   <button
                     onClick={() => onToggleStageChecklist(camp.id, 'posted')}
-                    className={`w-full px-2.5 py-2 rounded-xl text-left flex items-center justify-between transition cursor-pointer text-[11px] font-bold ${camp.posted ? 'bg-purple-100 text-purple-900 border border-purple-300' : 'bg-pink-50/70 text-rose-900 hover:bg-pink-100'}`}
+                    className={`w-full px-2.5 py-2 rounded-xl text-left flex items-center justify-between transition cursor-pointer text-[11px] font-bold ${
+                      camp.posted ? 'bg-purple-100 text-purple-900 border border-purple-300' : 'bg-pink-50/70 text-rose-900 hover:bg-pink-100'
+                    }`}
                   >
                     <span className="flex items-center gap-1.5">
                       <Send className="w-3.5 h-3.5 text-purple-600" />
-                      <span>3. โพสต์จริงแล้ว (Posted)</span>
+                      <span>4. โพสต์จริงแล้ว (Posted)</span>
                     </span>
                     {camp.posted ? <CheckSquare className="w-3.5 h-3.5 text-purple-600" /> : <Square className="w-3.5 h-3.5 text-pink-400" />}
                   </button>
@@ -627,6 +849,44 @@ export default function ProductPlanModule({
                   onChange={(e) => setName(e.target.value)}
                   className="w-full bg-pink-50/60 border border-pink-200 text-rose-950 p-2.5 rounded-xl font-bold focus:outline-pink-400"
                 />
+              </div>
+
+              {/* Campaign Joined Status Selector */}
+              <div className="bg-pink-50/50 border border-pink-200 rounded-2xl p-3 space-y-2">
+                <label className="block text-rose-900 font-extrabold text-xs">
+                  สถานะการเข้าร่วมแคมเปญ (Campaign Participation) *
+                </label>
+                <div className="grid grid-cols-2 gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setJoinedCampaign(true)}
+                    className={`p-2.5 rounded-xl border text-xs font-bold flex items-center justify-center gap-2 transition cursor-pointer ${
+                      joinedCampaign
+                        ? 'bg-emerald-100 border-emerald-400 text-emerald-950 shadow-xs ring-2 ring-emerald-300'
+                        : 'bg-white border-pink-200 text-rose-800 hover:bg-pink-50'
+                    }`}
+                  >
+                    <CheckCircle2 className={`w-4 h-4 ${joinedCampaign ? 'text-emerald-600' : 'text-gray-400'}`} />
+                    <span>เข้าร่วมแคมเปญแล้ว</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setJoinedCampaign(false)}
+                    className={`p-2.5 rounded-xl border text-xs font-bold flex items-center justify-center gap-2 transition cursor-pointer ${
+                      !joinedCampaign
+                        ? 'bg-amber-100 border-amber-400 text-amber-950 shadow-xs ring-2 ring-amber-300'
+                        : 'bg-white border-pink-200 text-rose-800 hover:bg-pink-50'
+                    }`}
+                  >
+                    <Clock className={`w-4 h-4 ${!joinedCampaign ? 'text-amber-600' : 'text-gray-400'}`} />
+                    <span>ยังไม่เข้าร่วมแคมเปญ</span>
+                  </button>
+                </div>
+                <p className="text-[10px] text-rose-600">
+                  {joinedCampaign
+                    ? '✅ แคมเปญนี้ได้รับการอนุมัติ / เข้าร่วมระบบแคมเปญเรียบร้อยแล้ว'
+                    : '⏳ แคมเปญนี้ยังอยู่ในขั้นตอนวางแผน / รอการเข้าร่วมแคมเปญ'}
+                </p>
               </div>
 
               {/* Related Product Selection / Quick Add */}

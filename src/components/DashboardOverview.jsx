@@ -247,13 +247,24 @@ export default function DashboardOverview({
               ) : (
                 campaigns.slice(0, 3).map(camp => (
                   <div key={camp.id} className="p-3 bg-white rounded-xl border border-[#E2D2EA] space-y-1.5 hover:shadow-xs transition">
-                    <div className="flex items-center justify-between">
-                      <span className="font-bold text-purple-950 text-xs">{camp.name}</span>
-                      {camp.stage_status === 't_minus_2' ? (
-                        <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-amber-100 text-amber-900 border border-amber-300">T-2 Alert</span>
-                      ) : (
-                        <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-100 text-emerald-900 border border-emerald-300">Active</span>
-                      )}
+                    <div className="flex items-center justify-between gap-1">
+                      <span className="font-bold text-purple-950 text-xs truncate max-w-[150px]">{camp.name}</span>
+                      <div className="flex items-center gap-1 shrink-0">
+                        {camp.joined_campaign ? (
+                          <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-teal-100 text-teal-900 border border-teal-300">
+                            เข้าร่วมแล้ว
+                          </span>
+                        ) : (
+                          <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-amber-100 text-amber-900 border border-amber-300">
+                            ยังไม่เข้าร่วม
+                          </span>
+                        )}
+                        {camp.stage_status === 't_minus_2' ? (
+                          <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-rose-100 text-rose-900 border border-rose-300">T-2</span>
+                        ) : (
+                          <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-100 text-emerald-900 border border-emerald-300">Active</span>
+                        )}
+                      </div>
                     </div>
                     <div className="flex items-center justify-between text-[11px] text-purple-800 font-medium">
                       <span>ช่วงเวลา: {camp.start_date} - {camp.end_date}</span>

@@ -164,7 +164,8 @@ export default function App() {
           team_id: c.team_id || 'team-1',
           projectedSales: c.revenue_target || c.projectedSales || 0,
           budget: c.budget || 0,
-          stages: c.stages || []
+          stages: c.stages || [],
+          joined_campaign: Boolean(c.joined_campaign)
         })));
       }
 
@@ -406,22 +407,50 @@ export default function App() {
 
   // Handlers for Module 2: Product Plan
   const handleToggleStageChecklist = (campaignId, stageId, itemIndex) => {
+    let toastMessage = 'บันทึกสถานะเตรียมงานลง DB เรียบร้อยแล้ว!';
     setCampaigns(prev => prev.map(c => {
       if (c.id !== campaignId) return c;
-      const updatedStages = c.stages.map(s => {
-        if (s.id !== stageId) return s;
-        const updatedChecklist = [...s.checklist];
-        updatedChecklist[itemIndex] = {
-          ...updatedChecklist[itemIndex],
-          completed: !updatedChecklist[itemIndex].completed
-        };
-        return { ...s, checklist: updatedChecklist };
-      });
-      const updatedCampaign = { ...c, stages: updatedStages };
-      upsertCampaignToSupabase(updatedCampaign);
-      return updatedCampaign;
+
+      // Direct boolean properties on campaign
+      if (['joined_campaign', 'image_ready', 'scheduled', 'posted'].includes(stageId)) {
+        const nextVal = !c[stageId];
+        const updatedCampaign = { ...c, [stageId]: nextVal };
+        upsertCampaignToSupabase(updatedCampaign);
+        if (stageId === 'joined_campaign') {
+          toastMessage = nextVal
+            ? `ปรับสถานะเป็น "เข้าร่วมแคมเปญแล้ว" (${c.name})`
+            : `ปรับสถานะเป็น "ยังไม่เข้าร่วมแคมเปญ" (${c.name})`;
+        } else if (stageId === 'image_ready') {
+          toastMessage = nextVal ? 'ภาพพร้อมเรียบร้อยแล้ว' : 'ปรับสถานะเป็นยังไม่มีภาพ';
+        } else if (stageId === 'scheduled') {
+          toastMessage = nextVal ? 'ตั้งเวลาโพสต์เรียบร้อยแล้ว' : 'ปรับสถานะเป็นยังไม่ตั้งเวลา';
+        } else if (stageId === 'posted') {
+          toastMessage = nextVal ? 'โพสต์จริงเรียบร้อยแล้ว' : 'ปรับสถานะเป็นยังไม่โพสต์';
+        }
+        return updatedCampaign;
+      }
+
+      // Legacy fallback for nested stages
+      if (Array.isArray(c.stages) && c.stages.length > 0) {
+        const updatedStages = c.stages.map(s => {
+          if (s.id !== stageId) return s;
+          const updatedChecklist = [...(s.checklist || [])];
+          if (updatedChecklist[itemIndex]) {
+            updatedChecklist[itemIndex] = {
+              ...updatedChecklist[itemIndex],
+              completed: !updatedChecklist[itemIndex].completed
+            };
+          }
+          return { ...s, checklist: updatedChecklist };
+        });
+        const updatedCampaign = { ...c, stages: updatedStages };
+        upsertCampaignToSupabase(updatedCampaign);
+        return updatedCampaign;
+      }
+
+      return c;
     }));
-    showSaveToast('บันทึกสถานะ Checklist สินค้าลง DB เรียบร้อยแล้ว!');
+    showSaveToast(toastMessage);
   };
 
   const handleAddCampaign = (newCampaign) => {

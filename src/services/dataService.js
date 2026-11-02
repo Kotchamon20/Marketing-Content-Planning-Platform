@@ -240,7 +240,27 @@ export async function fetchCampaignsFromSupabase() {
       console.warn('Supabase fetchCampaigns warning:', error.message);
       return null;
     }
-    return data;
+    return (data || []).map(c => {
+      const hasJoinedTag = typeof c.description === 'string' && c.description.includes('[JOINED:true]');
+      const hasNotJoinedTag = typeof c.description === 'string' && c.description.includes('[JOINED:false]');
+      let isJoined = false;
+      if (c.joined_campaign !== undefined && c.joined_campaign !== null) {
+        isJoined = Boolean(c.joined_campaign);
+      } else if (hasJoinedTag) {
+        isJoined = true;
+      } else if (hasNotJoinedTag) {
+        isJoined = false;
+      } else if (typeof c.name === 'string' && c.name.includes('เข้าร่วมแคมเปญ')) {
+        // If the campaign name indicates participation, default to joined
+        isJoined = true;
+      }
+
+      return {
+        ...c,
+        joined_campaign: isJoined,
+        description: typeof c.description === 'string' ? c.description.replace(/\[JOINED:(true|false)\]/g, '').trim() : ''
+      };
+    });
   } catch (err) {
     console.error('Supabase fetchCampaigns error:', err);
     return null;
@@ -249,9 +269,13 @@ export async function fetchCampaignsFromSupabase() {
 
 export async function upsertCampaignToSupabase(campaign) {
   try {
+    const isJoined = Boolean(campaign.joined_campaign);
+    const rawDesc = typeof campaign.description === 'string' ? campaign.description.replace(/\[JOINED:(true|false)\]/g, '').trim() : '';
+    const descWithTag = `${rawDesc} [JOINED:${isJoined}]`.trim();
+
     const payload = {
       name: campaign.name || campaign.title || 'แคมเปญใหม่',
-      description: campaign.description || '',
+      description: descWithTag,
       product_id: isUuid(campaign.product_id) ? campaign.product_id : undefined,
       start_date: campaign.start_date || new Date().toISOString().split('T')[0],
       end_date: campaign.end_date || new Date(Date.now() + 86400000 * 30).toISOString().split('T')[0],
@@ -260,17 +284,30 @@ export async function upsertCampaignToSupabase(campaign) {
       actual_revenue: Number(campaign.actual_revenue) || 0,
       image_ready: Boolean(campaign.image_ready),
       scheduled: Boolean(campaign.scheduled),
-      posted: Boolean(campaign.posted)
+      posted: Boolean(campaign.posted),
+      joined_campaign: isJoined
     };
 
     if (isUuid(campaign.id)) {
       payload.id = campaign.id;
     }
 
-    const { data, error } = await supabase
+    let { data, error } = await supabase
       .from('campaigns')
       .upsert([payload])
       .select();
+
+    // If database does not yet have joined_campaign column, retry without it (tag in description preserves state)
+    if (error && (error.code === 'PGRST204' || error.message?.includes('joined_campaign'))) {
+      const safePayload = { ...payload };
+      delete safePayload.joined_campaign;
+      const retryRes = await supabase
+        .from('campaigns')
+        .upsert([safePayload])
+        .select();
+      data = retryRes.data;
+      error = retryRes.error;
+    }
 
     if (error) {
       console.warn('Supabase upsertCampaign error:', error.message);

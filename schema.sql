@@ -116,6 +116,7 @@ CREATE TABLE IF NOT EXISTS campaigns (
     actual_revenue DECIMAL(12, 2) DEFAULT 0.00,
     
     -- Preparedness Checklist & Timeline tracking
+    joined_campaign BOOLEAN DEFAULT FALSE,
     image_ready BOOLEAN DEFAULT FALSE,
     scheduled BOOLEAN DEFAULT FALSE,
     posted BOOLEAN DEFAULT FALSE,
@@ -123,6 +124,9 @@ CREATE TABLE IF NOT EXISTS campaigns (
     status campaign_stage DEFAULT 'planning',
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
+
+-- Migration for existing databases:
+ALTER TABLE campaigns ADD COLUMN IF NOT EXISTS joined_campaign BOOLEAN DEFAULT FALSE;
 
 -- 8. CONTENT ITEMS (Module 1)
 CREATE TABLE IF NOT EXISTS content_items (
