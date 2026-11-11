@@ -30,7 +30,13 @@ import {
   ChevronDown,
   ChevronUp,
   Check,
-  Save
+  Save,
+  ArrowUpDown,
+  GripVertical,
+  ChevronLeft,
+  ChevronRight,
+  RotateCcw,
+  ListOrdered
 } from 'lucide-react';
 import { parseFullSheetWithGroqAi } from '../services/groqAiService';
 import { 
@@ -58,6 +64,17 @@ const sanitizeBudgetDataMap = (dataMap) => {
     }
   });
   return cleaned;
+};
+
+// Helper for standard Nitan branch order priority: HQ (1) -> Pratamnak (2) -> Naklua (3) -> Others (10+)
+const getNitanBranchScore = (item) => {
+  if (!item) return 99;
+  const id = (item.id || '').toLowerCase();
+  const n = (item.name || '').toLowerCase();
+  if (id === 'hq' || n.includes('หลัก') || n.includes('สำนักงานใหญ่') || n.includes('headquarter')) return 1;
+  if (id === 'pratamnak' || n.includes('พระตำหนัก')) return 2;
+  if (id === 'naklua' || n.includes('นาเกลือ')) return 3;
+  return 10;
 };
 
 export default function BranchBudgetAllocation() {
@@ -319,7 +336,46 @@ export default function BranchBudgetAllocation() {
         setMonthlyBudgetsData(prev => {
           const merged = { ...prev };
           Object.keys(grouped).forEach(k => {
-            merged[k] = grouped[k];
+            const incomingList = grouped[k] || [];
+            if (prev[k] && prev[k].length > 0) {
+              // Preserve user's saved card order in prev[k]
+              const incomingMap = new Map();
+              incomingList.forEach(b => {
+                if (b.id) incomingMap.set(b.id, b);
+                if (b.name) incomingMap.set(b.name.trim().toLowerCase(), b);
+              });
+
+              const preserved = [];
+              const seen = new Set();
+
+              prev[k].forEach(pb => {
+                const normName = pb.name?.trim().toLowerCase();
+                const matched = (pb.id && incomingMap.get(pb.id)) || (normName && incomingMap.get(normName));
+                if (matched) {
+                  preserved.push({ ...pb, ...matched });
+                } else {
+                  preserved.push(pb);
+                }
+                if (pb.id) seen.add(pb.id);
+                if (normName) seen.add(normName);
+              });
+
+              // Append any branches from Supabase that were not yet in prev[k]
+              incomingList.forEach(ib => {
+                const normName = ib.name?.trim().toLowerCase();
+                if ((!ib.id || !seen.has(ib.id)) && (!normName || !seen.has(normName))) {
+                  preserved.push(ib);
+                  if (ib.id) seen.add(ib.id);
+                  if (normName) seen.add(normName);
+                }
+              });
+
+              merged[k] = preserved;
+            } else {
+              // If no prior local state, sort by standard Nitan order (HQ -> Pratamnak -> Naklua -> Others)
+              const sorted = [...incomingList].sort((a, b) => getNitanBranchScore(a) - getNitanBranchScore(b));
+              merged[k] = sorted;
+            }
           });
           return sanitizeBudgetDataMap(merged);
         });
@@ -358,6 +414,155 @@ export default function BranchBudgetAllocation() {
         [currentMonthKey]: updated
       });
     });
+  };
+
+  // Branch Sorting & Reordering State
+  const [branchSortBy, setBranchSortBy] = useState('custom'); // 'custom' | 'default_nitan' | 'budget_desc' | 'budget_asc' | 'sales_desc' | 'sales_asc' | 'name_asc' | 'name_desc'
+  const [reorderNotice, setReorderNotice] = useState('');
+  const [draggedBranchId, setDraggedBranchId] = useState(null);
+  const [dragOverBranchId, setDragOverBranchId] = useState(null);
+
+  const showReorderFeedback = (msg) => {
+    setReorderNotice(msg);
+    setTimeout(() => {
+      setReorderNotice('');
+    }, 2800);
+  };
+
+  // Sort Branches Handler
+  const handleSortBranches = (sortType) => {
+    setBranchSortBy(sortType);
+    if (!currentBranches || currentBranches.length <= 1) return;
+
+    let sorted = [...currentBranches];
+
+    switch (sortType) {
+      case 'budget_desc':
+        sorted.sort((a, b) => {
+          const budgetA = budgetCalcMode === 'auto'
+            ? (a.previousSales * (mktPercentRate / 100))
+            : (a.manualFullBudget || (a.previousSales * (mktPercentRate / 100)));
+          const budgetB = budgetCalcMode === 'auto'
+            ? (b.previousSales * (mktPercentRate / 100))
+            : (b.manualFullBudget || (b.previousSales * (mktPercentRate / 100)));
+          return budgetB - budgetA;
+        });
+        showReorderFeedback('เรียงลำดับตามงบประมาณ (มาก ➔ น้อย) สำเร็จ');
+        break;
+
+      case 'budget_asc':
+        sorted.sort((a, b) => {
+          const budgetA = budgetCalcMode === 'auto'
+            ? (a.previousSales * (mktPercentRate / 100))
+            : (a.manualFullBudget || (a.previousSales * (mktPercentRate / 100)));
+          const budgetB = budgetCalcMode === 'auto'
+            ? (b.previousSales * (mktPercentRate / 100))
+            : (b.manualFullBudget || (b.previousSales * (mktPercentRate / 100)));
+          return budgetA - budgetB;
+        });
+        showReorderFeedback('เรียงลำดับตามงบประมาณ (น้อย ➔ มาก) สำเร็จ');
+        break;
+
+      case 'sales_desc':
+        sorted.sort((a, b) => (b.previousSales || 0) - (a.previousSales || 0));
+        showReorderFeedback('เรียงลำดับตามยอดขาย (มาก ➔ น้อย) สำเร็จ');
+        break;
+
+      case 'sales_asc':
+        sorted.sort((a, b) => (a.previousSales || 0) - (b.previousSales || 0));
+        showReorderFeedback('เรียงลำดับตามยอดขาย (น้อย ➔ มาก) สำเร็จ');
+        break;
+
+      case 'name_asc':
+        sorted.sort((a, b) => (a.name || '').localeCompare(b.name || '', 'th'));
+        showReorderFeedback('เรียงลำดับตามชื่อสาขา (ก ➔ ฮ) สำเร็จ');
+        break;
+
+      case 'name_desc':
+        sorted.sort((a, b) => (b.name || '').localeCompare(a.name || '', 'th'));
+        showReorderFeedback('เรียงลำดับตามชื่อสาขา (ฮ ➔ ก) สำเร็จ');
+        break;
+
+      case 'default_nitan':
+        sorted.sort((a, b) => getNitanBranchScore(a) - getNitanBranchScore(b));
+        showReorderFeedback('รีเซ็ตเป็นลำดับมาตรฐาน 3 สาขาหลัก Nitan เรียบร้อย');
+        break;
+
+      case 'custom':
+      default:
+        return;
+    }
+
+    updateCurrentBranches(sorted);
+  };
+
+  // Quick Move Branch Left (Earlier) / Right (Later)
+  const handleMoveBranch = (index, direction) => {
+    const targetIndex = direction === 'up' || direction === 'left' ? index - 1 : index + 1;
+    if (targetIndex < 0 || targetIndex >= currentBranches.length) return;
+
+    const updated = [...currentBranches];
+    const [moved] = updated.splice(index, 1);
+    updated.splice(targetIndex, 0, moved);
+
+    setBranchSortBy('custom');
+    updateCurrentBranches(updated);
+    showReorderFeedback(`สลับตำแหน่ง "${moved.name}" เป็นลำดับ #${targetIndex + 1} แล้ว`);
+  };
+
+  // Drag and Drop Handlers for Branch Cards
+  const handleDragStart = (e, branchId) => {
+    // If target was an input, textarea, select, or button, ignore drag
+    if (['INPUT', 'TEXTAREA', 'SELECT', 'BUTTON'].includes(e.target?.tagName)) {
+      e.preventDefault();
+      return;
+    }
+    setDraggedBranchId(branchId);
+    e.dataTransfer.setData('text/plain', branchId);
+    e.dataTransfer.effectAllowed = 'move';
+  };
+
+  const handleDragOver = (e, branchId) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+    if (dragOverBranchId !== branchId) {
+      setDragOverBranchId(branchId);
+    }
+  };
+
+  const handleDragLeave = (e, branchId) => {
+    if (dragOverBranchId === branchId) {
+      setDragOverBranchId(null);
+    }
+  };
+
+  const handleDrop = (e, targetBranchId) => {
+    e.preventDefault();
+    if (!draggedBranchId || draggedBranchId === targetBranchId) {
+      setDraggedBranchId(null);
+      setDragOverBranchId(null);
+      return;
+    }
+
+    const fromIndex = currentBranches.findIndex(b => b.id === draggedBranchId);
+    const toIndex = currentBranches.findIndex(b => b.id === targetBranchId);
+
+    if (fromIndex !== -1 && toIndex !== -1) {
+      const updated = [...currentBranches];
+      const [moved] = updated.splice(fromIndex, 1);
+      updated.splice(toIndex, 0, moved);
+      setBranchSortBy('custom');
+      updateCurrentBranches(updated);
+      showReorderFeedback(`จัดลำดับการ์ด "${moved.name}" เป็นลำดับ #${toIndex + 1} สำเร็จ`);
+    }
+
+    setDraggedBranchId(null);
+    setDragOverBranchId(null);
+  };
+
+  const handleDragEnd = () => {
+    setDraggedBranchId(null);
+    setDragOverBranchId(null);
   };
 
   // Manual Save Handler (User explicitly clicks "💾 บันทึกข้อมูลลง DB")
@@ -861,45 +1066,166 @@ export default function BranchBudgetAllocation() {
           </div>
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-          {currentBranches.map((branch, bIdx) => {
-          const fullBudget = budgetCalcMode === 'auto'
-            ? (branch.previousSales * (mktPercentRate / 100))
-            : (branch.manualFullBudget || (branch.previousSales * (mktPercentRate / 100)));
+        <div className="space-y-4">
+          {/* Branch Sorting & Order Control Bar */}
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 p-4 bg-white/95 rounded-2xl border border-[#E2D2EA] shadow-xs">
+            <div className="flex items-center gap-2.5 flex-wrap">
+              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-xl bg-purple-50 border border-purple-200 text-purple-950 font-bold text-xs shadow-2xs">
+                <Building2 className="w-4 h-4 text-purple-700" />
+                <span>การ์ดสาขาทั้งหมด ({currentBranches.length} สาขา)</span>
+              </div>
 
-          const totalPromoAmount = branch.promotions.reduce((sum, p) => sum + p.amount, 0);
-          const netMediaBudget = Math.max(0, fullBudget - totalPromoAmount);
-          const totalChannelAmount = branch.channelAllocations.reduce((sum, c) => sum + (c.amount || 0), 0);
-          const dailySales = branch.previousSales / 30;
+              {reorderNotice ? (
+                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-50 border border-emerald-300 text-emerald-800 text-xs font-bold animate-in fade-in duration-200">
+                  <Check className="w-3.5 h-3.5 text-emerald-600" />
+                  <span>{reorderNotice}</span>
+                </span>
+              ) : (
+                <span className="text-[11px] text-purple-800/80 font-medium">
+                  💡 <span className="font-bold text-purple-950">วิธีจัดลำดับ:</span> ลากการ์ดสาขาเพื่อสลับตำแหน่ง (Drag & Drop) หรือกดปุ่มลูกศร <span className="font-bold text-purple-950">◀ ▶</span> บนหัวการ์ด
+                </span>
+              )}
+            </div>
 
-          const isMainBranch = bIdx === 0 || branch.name.toLowerCase().includes('หลัก') || branch.name.toLowerCase().includes('สำนักงานใหญ่');
-          const isGoogleExpanded = expandedGoogleBranchId === branch.id;
+            <div className="flex items-center gap-2 flex-wrap">
+              <div className="flex items-center gap-2 bg-purple-50/80 border border-[#E2D2EA] px-3 py-1.5 rounded-xl text-xs font-bold text-purple-950 shadow-2xs">
+                <ArrowUpDown className="w-3.5 h-3.5 text-purple-700" />
+                <span className="shrink-0">เรียงลำดับ:</span>
+                <select
+                  value={branchSortBy}
+                  onChange={(e) => handleSortBranches(e.target.value)}
+                  className="px-2 py-0.5 bg-white border border-purple-200 rounded-lg text-purple-950 font-bold focus:outline-none text-xs cursor-pointer hover:border-purple-400 transition"
+                >
+                  <option value="custom">📌 ลำดับกำหนดเอง (Custom / Drag)</option>
+                  <option value="default_nitan">🏛️ ลำดับ 3 สาขาหลัก Nitan (HQ ➔ พระตำหนัก ➔ นาเกลือ)</option>
+                  <option value="budget_desc">💰 งบประมาณ: มาก ➔ น้อย</option>
+                  <option value="budget_asc">💸 งบประมาณ: น้อย ➔ มาก</option>
+                  <option value="sales_desc">📈 ยอดขาย: มาก ➔ น้อย</option>
+                  <option value="sales_asc">📉 ยอดขาย: น้อย ➔ มาก</option>
+                  <option value="name_asc">🔤 ชื่อสาขา: ก ➔ ฮ (A-Z)</option>
+                  <option value="name_desc">🔤 ชื่อสาขา: ฮ ➔ ก (Z-A)</option>
+                </select>
+              </div>
 
-          return (
-            <div key={branch.id} className="glass-panel overflow-hidden border-[#E2D2EA] flex flex-col justify-between shadow-xs hover:shadow-md transition">
-              <div>
-                {/* Branch Header */}
-                <div className={`p-4 border-b flex items-center justify-between ${branch.colorHeader}`}>
-                  <div className="flex items-center gap-2">
-                    <Building2 className="w-4.5 h-4.5 text-purple-700" />
-                    <div>
-                      <h3 className="font-bold text-sm text-purple-950">{branch.name}</h3>
-                      <span className="text-[10px] text-purple-800 font-medium block">
-                        {branch.subTitle || (isMainBranch ? 'สำนักงานใหญ่' : 'สาขาพัทยา')}
+              <button
+                type="button"
+                onClick={() => handleSortBranches('default_nitan')}
+                className="px-3 py-1.5 bg-purple-100 hover:bg-purple-200 text-purple-900 rounded-xl text-xs font-bold transition flex items-center gap-1.5 cursor-pointer shadow-2xs"
+                title="รีเซ็ตเป็นลำดับมาตรฐาน (NITAN สำนักงานใหญ่, เขาพระตำหนัก, นาเกลือ)"
+              >
+                <RotateCcw className="w-3.5 h-3.5 text-purple-700" />
+                <span>รีเซ็ตลำดับ</span>
+              </button>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+            {currentBranches.map((branch, bIdx) => {
+            const fullBudget = budgetCalcMode === 'auto'
+              ? (branch.previousSales * (mktPercentRate / 100))
+              : (branch.manualFullBudget || (branch.previousSales * (mktPercentRate / 100)));
+
+            const totalPromoAmount = branch.promotions.reduce((sum, p) => sum + p.amount, 0);
+            const netMediaBudget = Math.max(0, fullBudget - totalPromoAmount);
+            const totalChannelAmount = branch.channelAllocations.reduce((sum, c) => sum + (c.amount || 0), 0);
+            const dailySales = branch.previousSales / 30;
+
+            const isMainBranch = branch.id === 'hq' || branch.name.toLowerCase().includes('หลัก') || branch.name.toLowerCase().includes('สำนักงานใหญ่');
+            const isGoogleExpanded = expandedGoogleBranchId === branch.id;
+            const isDragging = draggedBranchId === branch.id;
+            const isDragOver = dragOverBranchId === branch.id;
+
+            return (
+              <div
+                key={branch.id}
+                draggable
+                onDragStart={(e) => handleDragStart(e, branch.id)}
+                onDragOver={(e) => handleDragOver(e, branch.id)}
+                onDragLeave={(e) => handleDragLeave(e, branch.id)}
+                onDrop={(e) => handleDrop(e, branch.id)}
+                onDragEnd={handleDragEnd}
+                className={`glass-panel overflow-hidden border-[#E2D2EA] flex flex-col justify-between shadow-xs hover:shadow-md transition-all duration-150 ${
+                  isDragging
+                    ? 'opacity-40 scale-[0.98] border-dashed border-2 border-purple-500 bg-purple-50/50'
+                    : isDragOver
+                    ? 'ring-2 ring-purple-600 bg-purple-50/70 scale-[1.01] shadow-lg border-purple-400'
+                    : ''
+                }`}
+              >
+                <div>
+                  {/* Branch Header with Reordering Controls */}
+                  <div className={`p-3.5 border-b flex items-center justify-between ${branch.colorHeader} select-none`}>
+                    <div className="flex items-center gap-2 min-w-0">
+                      {/* Drag Handle */}
+                      <div
+                        className="cursor-grab active:cursor-grabbing p-1 text-purple-400 hover:text-purple-800 hover:bg-purple-200/50 rounded-lg transition shrink-0"
+                        title="คลิกและลากการ์ดเพื่อสลับจัดลำดับ"
+                      >
+                        <GripVertical className="w-4 h-4" />
+                      </div>
+
+                      {/* Order Rank Badge */}
+                      <span
+                        className="px-2 py-0.5 rounded-md bg-purple-950 text-white font-mono font-bold text-[10px] shrink-0 shadow-2xs"
+                        title={`ลำดับที่ ${bIdx + 1}`}
+                      >
+                        #{bIdx + 1}
                       </span>
+
+                      <Building2 className="w-4 h-4 text-purple-700 shrink-0" />
+
+                      <div className="min-w-0">
+                        <h3 className="font-bold text-sm text-purple-950 truncate">{branch.name}</h3>
+                        <span className="text-[10px] text-purple-800 font-medium block truncate">
+                          {branch.subTitle || (isMainBranch ? 'สำนักงานใหญ่' : 'สาขาพัทยา')}
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-1 shrink-0 ml-2">
+                      {/* Reorder: Move Left / Earlier */}
+                      <button
+                        type="button"
+                        disabled={bIdx === 0}
+                        onClick={() => handleMoveBranch(bIdx, 'left')}
+                        className={`p-1 rounded-lg border transition cursor-pointer ${
+                          bIdx === 0
+                            ? 'opacity-20 border-transparent cursor-not-allowed'
+                            : 'bg-white/80 hover:bg-white text-purple-900 border-purple-200 shadow-2xs hover:scale-105 active:scale-95'
+                        }`}
+                        title={bIdx === 0 ? 'เป็นการ์ดแรกสุดแล้ว' : `เลื่อน "${branch.name}" ไปทางซ้าย (ลำดับก่อนหน้า)`}
+                      >
+                        <ChevronLeft className="w-3.5 h-3.5" />
+                      </button>
+
+                      {/* Reorder: Move Right / Later */}
+                      <button
+                        type="button"
+                        disabled={bIdx === currentBranches.length - 1}
+                        onClick={() => handleMoveBranch(bIdx, 'right')}
+                        className={`p-1 rounded-lg border transition cursor-pointer ${
+                          bIdx === currentBranches.length - 1
+                            ? 'opacity-20 border-transparent cursor-not-allowed'
+                            : 'bg-white/80 hover:bg-white text-purple-900 border-purple-200 shadow-2xs hover:scale-105 active:scale-95'
+                        }`}
+                        title={bIdx === currentBranches.length - 1 ? 'เป็นการ์ดท้ายสุดแล้ว' : `เลื่อน "${branch.name}" ไปทางขวา (ลำดับถัดไป)`}
+                      >
+                        <ChevronRight className="w-3.5 h-3.5" />
+                      </button>
+
+                      {/* Delete Branch Button */}
+                      <button
+                        type="button"
+                        onClick={() => setDeleteBranchId(branch.id)}
+                        className="p-1 text-rose-500 hover:bg-rose-100/60 rounded-lg transition cursor-pointer ml-1"
+                        title="ลบสาขานี้"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
                     </div>
                   </div>
 
-                  <button
-                    onClick={() => setDeleteBranchId(branch.id)}
-                    className="p-1 text-rose-500 hover:bg-rose-100/60 rounded-lg transition cursor-pointer"
-                    title="ลบสาขานี้"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </button>
-                </div>
-
-                <div className="p-4 space-y-4 text-xs">
+                  <div onDragStart={(e) => e.stopPropagation()} className="p-4 space-y-4 text-xs">
                   
                   {/* Row 1: Sales & Daily Average */}
                   <div className="p-3 bg-purple-50/50 rounded-xl border border-purple-100 space-y-2">
@@ -1189,7 +1515,8 @@ export default function BranchBudgetAllocation() {
             </div>
           );
         })}
-      </div>
+          </div>
+        </div>
       )}
 
       {/* User Custom Note Footer matching user screenshot text */}
