@@ -77,6 +77,91 @@ const getNitanBranchScore = (item) => {
   return 10;
 };
 
+// Standard Default Nitan Branches Generator (Deeply cloned and fresh for each month to prevent shared references)
+const createDefaultNitanBranches = () => [
+  {
+    id: 'hq',
+    name: 'สำนักงานใหญ่ (NITAN)',
+    colorHeader: 'bg-[#FFEBF3] text-purple-950 border-[#E2D2EA]',
+    manualFullBudget: 0,
+    previousSales: 0,
+    promotions: [
+      { id: 'p1', name: 'Influencer', amount: 0 },
+      { id: 'p2', name: 'Workshop/Event', amount: 0 },
+      { id: 'p3', name: 'Line OA', amount: 0 }
+    ],
+    channelAllocations: [
+      { id: 'c1', name: 'Google', percent: 0, amount: 0 },
+      { id: 'c2', name: 'Facebook', percent: 0, amount: 0 },
+      { id: 'c3', name: 'TikTok', percent: 0, amount: 0 },
+      { id: 'c4', name: 'Instagram', percent: 0, amount: 0 },
+      { id: 'c5', name: 'Lazada', percent: 0, amount: 0 },
+      { id: 'c6', name: 'Shopee', percent: 0, amount: 0 },
+      { id: 'c7', name: 'Grab', percent: 0, amount: 0 }
+    ],
+    googleSearchBreakdown: {
+      generalSearch: { percent: 0, amount: 0 },
+      leadsSearch: { percent: 0, amount: 0 },
+      naJomtienSearch: { percent: 0, amount: 0 }
+    },
+    note: ''
+  },
+  {
+    id: 'pratamnak',
+    name: 'สาขาเขาพระตำหนัก',
+    colorHeader: 'bg-[#E6F2FF] text-purple-950 border-[#E2D2EA]',
+    manualFullBudget: 0,
+    previousSales: 0,
+    promotions: [
+      { id: 'p1', name: 'Influencer', amount: 0 },
+      { id: 'p2', name: 'Workshop/Event', amount: 0 },
+      { id: 'p3', name: 'Line OA', amount: 0 }
+    ],
+    channelAllocations: [
+      { id: 'c1', name: 'Google', percent: 0, amount: 0 },
+      { id: 'c2', name: 'Facebook', percent: 0, amount: 0 },
+      { id: 'c3', name: 'TikTok', percent: 0, amount: 0 },
+      { id: 'c4', name: 'Instagram', percent: 0, amount: 0 },
+      { id: 'c5', name: 'Lazada', percent: 0, amount: 0 },
+      { id: 'c6', name: 'Shopee', percent: 0, amount: 0 },
+      { id: 'c7', name: 'Grab', percent: 0, amount: 0 }
+    ],
+    googleSearchBreakdown: {
+      generalSearch: { percent: 0, amount: 0 },
+      leadsSearch: { percent: 0, amount: 0 },
+      naJomtienSearch: { percent: 0, amount: 0 }
+    },
+    note: ''
+  },
+  {
+    id: 'naklua',
+    name: 'สาขานาเกลือ',
+    colorHeader: 'bg-[#FEF9C3] text-purple-950 border-[#E2D2EA]',
+    manualFullBudget: 0,
+    previousSales: 0,
+    promotions: [
+      { id: 'p1', name: 'Influencer', amount: 0 },
+      { id: 'p2', name: 'Workshop/Event', amount: 0 },
+      { id: 'p3', name: 'Line OA', amount: 0 }
+    ],
+    channelAllocations: [
+      { id: 'c1', name: 'Google', percent: 0, amount: 0 },
+      { id: 'c2', name: 'Facebook', percent: 0, amount: 0 },
+      { id: 'c3', name: 'TikTok', percent: 0, amount: 0 },
+      { id: 'c4', name: 'Instagram', percent: 0, amount: 0 },
+      { id: 'c5', name: 'Lazada', percent: 0, amount: 0 },
+      { id: 'c6', name: 'Shopee', percent: 0, amount: 0 },
+      { id: 'c7', name: 'Grab', percent: 0, amount: 0 }
+    ],
+    googleSearchBreakdown: {
+      generalSearch: { percent: 0, amount: 0 },
+      leadsSearch: { percent: 0, amount: 0 },
+      naJomtienSearch: { percent: 0, amount: 0 }
+    },
+    note: ''
+  }
+];
+
 export default function BranchBudgetAllocation() {
   const [mktPercentRate, setMktPercentRate] = useState(2.0); // Default MKT 2%
 
@@ -111,13 +196,6 @@ export default function BranchBudgetAllocation() {
   const [saveStatus, setSaveStatus] = useState('saved'); // 'saved' | 'saving'
   const [lastSavedTime, setLastSavedTime] = useState(() => {
     return new Date().toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' });
-  });
-
-  // Google Search Sub-Campaign Breakdown State (Default to 0 for un-entered months)
-  const [googleSearchBreakdown, setGoogleSearchBreakdown] = useState({
-    generalSearch: { percent: 0, amount: 0 },
-    leadsSearch: { percent: 0, amount: 0 },
-    naJomtienSearch: { percent: 0, amount: 0 }
   });
 
   // Toggle state to expand/collapse Google Ads Breakdown box inside cards
@@ -194,107 +272,42 @@ export default function BranchBudgetAllocation() {
   });
 
   const currentMonthKey = `${selectedYear}-${selectedMonth}`;
-  const isUserEditingRef = React.useRef(false);
+  const pendingSyncMonthsRef = React.useRef(new Set());
+  const hasInitializedMonthRef = React.useRef(false);
 
+  // 3 Standard Default Nitan Branches Template
+  const DEFAULT_NITAN_BRANCHES = React.useMemo(() => createDefaultNitanBranches(), []);
+
+  // Save to LocalStorage and Debounced Sync to Supabase per edited month
   React.useEffect(() => {
     localStorage.setItem('nitan_monthly_budgets_data', JSON.stringify(monthlyBudgetsData));
 
-    // ONLY sync to Supabase & set saving status if user actually edited data
-    if (!isUserEditingRef.current) {
+    if (pendingSyncMonthsRef.current.size === 0) {
       setSaveStatus('saved');
-      return;
-    }
-
-    const filledBranchesToSync = (monthlyBudgetsData[currentMonthKey] || []).filter(
-      b => b.previousSales > 0 || b.manualFullBudget > 0 || b.channelAllocations?.some(c => c.amount > 0 || c.percent > 0)
-    );
-
-    if (filledBranchesToSync.length === 0) {
-      setSaveStatus('saved');
-      isUserEditingRef.current = false;
       return;
     }
 
     setSaveStatus('saving');
 
     const syncTimer = setTimeout(() => {
-      filledBranchesToSync.forEach(b => {
-        upsertBranchBudgetToSupabase(b, currentMonthKey);
+      const monthsToSync = Array.from(pendingSyncMonthsRef.current);
+      pendingSyncMonthsRef.current.clear();
+
+      monthsToSync.forEach(mKey => {
+        const branchesToSync = (monthlyBudgetsData[mKey] || []).filter(
+          b => b.previousSales > 0 || b.manualFullBudget > 0 || b.channelAllocations?.some(c => c.amount > 0 || c.percent > 0)
+        );
+        branchesToSync.forEach(b => {
+          upsertBranchBudgetToSupabase(b, mKey);
+        });
       });
+
       setSaveStatus('saved');
       setLastSavedTime(new Date().toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit', second: '2-digit' }));
-      isUserEditingRef.current = false;
     }, 400);
 
     return () => clearTimeout(syncTimer);
-  }, [monthlyBudgetsData, googleSearchBreakdown, currentMonthKey]);
-
-  // 3 Standard Default Nitan Branches (Default 0 for all un-entered months)
-  const DEFAULT_NITAN_BRANCHES = React.useMemo(() => [
-    {
-      id: 'hq',
-      name: 'สำนักงานใหญ่ (NITAN)',
-      colorHeader: 'bg-[#FFEBF3] text-purple-950 border-[#E2D2EA]',
-      manualFullBudget: 0,
-      previousSales: 0,
-      promotions: [
-        { id: 'p1', name: 'Influencer', amount: 0 },
-        { id: 'p2', name: 'Workshop/Event', amount: 0 },
-        { id: 'p3', name: 'Line OA', amount: 0 }
-      ],
-      channelAllocations: [
-        { id: 'c1', name: 'Google', percent: 0, amount: 0 },
-        { id: 'c2', name: 'Facebook', percent: 0, amount: 0 },
-        { id: 'c3', name: 'TikTok', percent: 0, amount: 0 },
-        { id: 'c4', name: 'Instagram', percent: 0, amount: 0 },
-        { id: 'c5', name: 'Lazada', percent: 0, amount: 0 },
-        { id: 'c6', name: 'Shopee', percent: 0, amount: 0 },
-        { id: 'c7', name: 'Grab', percent: 0, amount: 0 }
-      ]
-    },
-    {
-      id: 'pratamnak',
-      name: 'สาขาเขาพระตำหนัก',
-      colorHeader: 'bg-[#E6F2FF] text-purple-950 border-[#E2D2EA]',
-      manualFullBudget: 0,
-      previousSales: 0,
-      promotions: [
-        { id: 'p1', name: 'Influencer', amount: 0 },
-        { id: 'p2', name: 'Workshop/Event', amount: 0 },
-        { id: 'p3', name: 'Line OA', amount: 0 }
-      ],
-      channelAllocations: [
-        { id: 'c1', name: 'Google', percent: 0, amount: 0 },
-        { id: 'c2', name: 'Facebook', percent: 0, amount: 0 },
-        { id: 'c3', name: 'TikTok', percent: 0, amount: 0 },
-        { id: 'c4', name: 'Instagram', percent: 0, amount: 0 },
-        { id: 'c5', name: 'Lazada', percent: 0, amount: 0 },
-        { id: 'c6', name: 'Shopee', percent: 0, amount: 0 },
-        { id: 'c7', name: 'Grab', percent: 0, amount: 0 }
-      ]
-    },
-    {
-      id: 'naklua',
-      name: 'สาขานาเกลือ',
-      colorHeader: 'bg-[#FEF9C3] text-purple-950 border-[#E2D2EA]',
-      manualFullBudget: 0,
-      previousSales: 0,
-      promotions: [
-        { id: 'p1', name: 'Influencer', amount: 0 },
-        { id: 'p2', name: 'Workshop/Event', amount: 0 },
-        { id: 'p3', name: 'Line OA', amount: 0 }
-      ],
-      channelAllocations: [
-        { id: 'c1', name: 'Google', percent: 0, amount: 0 },
-        { id: 'c2', name: 'Facebook', percent: 0, amount: 0 },
-        { id: 'c3', name: 'TikTok', percent: 0, amount: 0 },
-        { id: 'c4', name: 'Instagram', percent: 0, amount: 0 },
-        { id: 'c5', name: 'Lazada', percent: 0, amount: 0 },
-        { id: 'c6', name: 'Shopee', percent: 0, amount: 0 },
-        { id: 'c7', name: 'Grab', percent: 0, amount: 0 }
-      ]
-    }
-  ], []);
+  }, [monthlyBudgetsData]);
 
   // Fetch initial data from Supabase on mount to sync with Main Database
   React.useEffect(() => {
@@ -327,8 +340,31 @@ export default function BranchBudgetAllocation() {
              colorHeader: defaultBranch.colorHeader,
              previousSales: Number(item.previous_sales) || 0,
              manualFullBudget: Number(item.full_budget) || 0,
-             promotions: item.offline_promotions || [],
-             channelAllocations: item.channel_allocations || [],
+             promotions: item.offline_promotions && item.offline_promotions.length > 0
+               ? item.offline_promotions
+               : [
+                   { id: 'p1', name: 'Influencer', amount: 0 },
+                   { id: 'p2', name: 'Workshop/Event', amount: 0 },
+                   { id: 'p3', name: 'Line OA', amount: 0 }
+                 ],
+             channelAllocations: item.channel_allocations && item.channel_allocations.length > 0
+               ? item.channel_allocations
+               : [
+                   { id: 'c1', name: 'Google', percent: 0, amount: 0 },
+                   { id: 'c2', name: 'Facebook', percent: 0, amount: 0 },
+                   { id: 'c3', name: 'TikTok', percent: 0, amount: 0 },
+                   { id: 'c4', name: 'Instagram', percent: 0, amount: 0 },
+                   { id: 'c5', name: 'Lazada', percent: 0, amount: 0 },
+                   { id: 'c6', name: 'Shopee', percent: 0, amount: 0 },
+                   { id: 'c7', name: 'Grab', percent: 0, amount: 0 }
+                 ],
+             googleSearchBreakdown: item.google_search_breakdown && Object.keys(item.google_search_breakdown).length > 0
+               ? item.google_search_breakdown
+               : {
+                   generalSearch: { percent: 0, amount: 0 },
+                   leadsSearch: { percent: 0, amount: 0 },
+                   naJomtienSearch: { percent: 0, amount: 0 }
+                 },
              note: item.note || ''
            });
         });
@@ -336,6 +372,11 @@ export default function BranchBudgetAllocation() {
         setMonthlyBudgetsData(prev => {
           const merged = { ...prev };
           Object.keys(grouped).forEach(k => {
+            // Do not overwrite month if user has unsaved edits in this session
+            if (pendingSyncMonthsRef.current.has(k)) {
+              return;
+            }
+
             const incomingList = grouped[k] || [];
             if (prev[k] && prev[k].length > 0) {
               // Preserve user's saved card order in prev[k]
@@ -380,35 +421,69 @@ export default function BranchBudgetAllocation() {
           return sanitizeBudgetDataMap(merged);
         });
 
-        const keys = Object.keys(grouped).filter(k => Array.isArray(grouped[k]) && grouped[k].length > 0);
-        if (keys.length > 0) {
-          keys.sort().reverse();
-          const [latestY, latestM] = keys[0].split('-');
-          setSelectedMonth(latestM);
-          setSelectedYear(latestY);
+        // Only select latest month once on initial load if localStorage had no data
+        if (!hasInitializedMonthRef.current) {
+          hasInitializedMonthRef.current = true;
+          const saved = localStorage.getItem('nitan_monthly_budgets_data');
+          let hasLocalSaved = false;
+          if (saved) {
+            try {
+              const p = JSON.parse(saved);
+              hasLocalSaved = Object.keys(p).some(k => Array.isArray(p[k]) && p[k].length > 0);
+            } catch (e) {}
+          }
+          if (!hasLocalSaved) {
+            const keys = Object.keys(grouped).filter(k => Array.isArray(grouped[k]) && grouped[k].length > 0);
+            if (keys.length > 0) {
+              keys.sort().reverse();
+              const [latestY, latestM] = keys[0].split('-');
+              setSelectedMonth(latestM);
+              setSelectedYear(latestY);
+            }
+          }
         }
       }
     };
     loadFromSupabase();
   }, [DEFAULT_NITAN_BRANCHES]);
 
+  // Month Switcher Handler (Safely flushes pending changes of current month first)
+  const handleSelectMonth = (m, y) => {
+    if (m === selectedMonth && y === selectedYear) return;
+
+    if (pendingSyncMonthsRef.current.has(currentMonthKey)) {
+      const branchesToSync = (monthlyBudgetsData[currentMonthKey] || []).filter(
+        b => b.previousSales > 0 || b.manualFullBudget > 0 || b.channelAllocations?.some(c => c.amount > 0 || c.percent > 0)
+      );
+      if (branchesToSync.length > 0) {
+        branchesToSync.forEach(b => {
+          upsertBranchBudgetToSupabase(b, currentMonthKey);
+        });
+      }
+      pendingSyncMonthsRef.current.delete(currentMonthKey);
+    }
+
+    setSelectedMonth(m);
+    setSelectedYear(y);
+    setBranchSortBy('custom');
+  };
+
   // Check if current month has budget data created by user
   const hasMonthData = Boolean(monthlyBudgetsData[currentMonthKey] && monthlyBudgetsData[currentMonthKey].length > 0);
   const currentBranches = hasMonthData ? monthlyBudgetsData[currentMonthKey] : [];
 
   const handleInitializeMonthBudget = () => {
-    isUserEditingRef.current = true;
-    setMonthlyBudgetsData(prev => ({
-      ...prev,
-      [currentMonthKey]: DEFAULT_NITAN_BRANCHES
-    }));
+    updateCurrentBranches(createDefaultNitanBranches());
   };
 
   const updateCurrentBranches = (newBranchesOrFn) => {
-    isUserEditingRef.current = true;
+    pendingSyncMonthsRef.current.add(currentMonthKey);
     setMonthlyBudgetsData(prev => {
-      const activeList = (prev[currentMonthKey] && prev[currentMonthKey].length > 0) ? prev[currentMonthKey] : DEFAULT_NITAN_BRANCHES;
-      const updated = typeof newBranchesOrFn === 'function' ? newBranchesOrFn(activeList) : newBranchesOrFn;
+      const activeList = (prev[currentMonthKey] && prev[currentMonthKey].length > 0)
+        ? prev[currentMonthKey]
+        : createDefaultNitanBranches();
+      const clonedActive = JSON.parse(JSON.stringify(activeList));
+      const updated = typeof newBranchesOrFn === 'function' ? newBranchesOrFn(clonedActive) : newBranchesOrFn;
       return sanitizeBudgetDataMap({
         ...prev,
         [currentMonthKey]: updated
@@ -578,6 +653,7 @@ export default function BranchBudgetAllocation() {
       });
     }
 
+    pendingSyncMonthsRef.current.delete(currentMonthKey);
     setSaveStatus('saved');
     setLastSavedTime(new Date().toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit', second: '2-digit' }));
     confetti({ particleCount: 50, spread: 60, origin: { y: 0.8 } });
@@ -656,25 +732,46 @@ export default function BranchBudgetAllocation() {
   };
 
   const handleUpdateBranchNote = (branchId, noteText) => {
-    isUserEditingRef.current = true;
     updateCurrentBranches(prev => prev.map(b => b.id === branchId ? { ...b, note: noteText } : b));
   };
 
-  const handleUpdateGoogleSubPercent = (key, percentVal, googleDailyBudget) => {
+  const handleUpdateGoogleSubPercent = (branchId, key, percentVal, googleDailyBudget) => {
     const pct = Number(percentVal) || 0;
     const calcAmt = Number(((googleDailyBudget * pct) / 100).toFixed(2));
-    setGoogleSearchBreakdown(prev => ({
-      ...prev,
-      [key]: { percent: pct, amount: calcAmt }
+    updateCurrentBranches(prev => prev.map(b => {
+      if (b.id !== branchId) return b;
+      const currentBreakdown = b.googleSearchBreakdown || {
+        generalSearch: { percent: 0, amount: 0 },
+        leadsSearch: { percent: 0, amount: 0 },
+        naJomtienSearch: { percent: 0, amount: 0 }
+      };
+      return {
+        ...b,
+        googleSearchBreakdown: {
+          ...currentBreakdown,
+          [key]: { percent: pct, amount: calcAmt }
+        }
+      };
     }));
   };
 
-  const handleUpdateGoogleSubAmount = (key, amountVal, googleDailyBudget) => {
+  const handleUpdateGoogleSubAmount = (branchId, key, amountVal, googleDailyBudget) => {
     const amt = Number(amountVal) || 0;
     const calcPct = googleDailyBudget > 0 ? Number(((amt / googleDailyBudget) * 100).toFixed(1)) : 0;
-    setGoogleSearchBreakdown(prev => ({
-      ...prev,
-      [key]: { percent: calcPct, amount: amt }
+    updateCurrentBranches(prev => prev.map(b => {
+      if (b.id !== branchId) return b;
+      const currentBreakdown = b.googleSearchBreakdown || {
+        generalSearch: { percent: 0, amount: 0 },
+        leadsSearch: { percent: 0, amount: 0 },
+        naJomtienSearch: { percent: 0, amount: 0 }
+      };
+      return {
+        ...b,
+        googleSearchBreakdown: {
+          ...currentBreakdown,
+          [key]: { percent: calcPct, amount: amt }
+        }
+      };
     }));
   };
 
@@ -682,10 +779,10 @@ export default function BranchBudgetAllocation() {
   const availableExistingBranches = React.useMemo(() => {
     const currentIds = new Set((monthlyBudgetsData[currentMonthKey] || []).map(b => b.id));
     const currentNames = new Set((monthlyBudgetsData[currentMonthKey] || []).map(b => b.name?.trim().toLowerCase()));
-    return DEFAULT_NITAN_BRANCHES.filter(b =>
+    return createDefaultNitanBranches().filter(b =>
       !currentIds.has(b.id) && !currentNames.has(b.name?.trim().toLowerCase())
     );
-  }, [DEFAULT_NITAN_BRANCHES, monthlyBudgetsData, currentMonthKey]);
+  }, [monthlyBudgetsData, currentMonthKey]);
 
   // Add Branch Handler (Custom Modal)
   const handleConfirmAddBranch = (e) => {
@@ -693,7 +790,8 @@ export default function BranchBudgetAllocation() {
 
     if (addBranchMode === 'existing') {
       // Add from existing default branches
-      const existing = DEFAULT_NITAN_BRANCHES.find(b => b.id === selectedExistingBranchId);
+      const standardList = createDefaultNitanBranches();
+      const existing = standardList.find(b => b.id === selectedExistingBranchId);
       if (!existing) return;
       const budget = Number(newBranchBudget) || 0;
       const sales = budget > 0
@@ -704,7 +802,13 @@ export default function BranchBudgetAllocation() {
         manualFullBudget: budget,
         previousSales: sales,
         promotions: existing.promotions.map(p => ({ ...p, amount: 0 })),
-        channelAllocations: existing.channelAllocations.map(c => ({ ...c, percent: 0, amount: 0 }))
+        channelAllocations: existing.channelAllocations.map(c => ({ ...c, percent: 0, amount: 0 })),
+        googleSearchBreakdown: {
+          generalSearch: { percent: 0, amount: 0 },
+          leadsSearch: { percent: 0, amount: 0 },
+          naJomtienSearch: { percent: 0, amount: 0 }
+        },
+        note: ''
       };
       updateCurrentBranches(prev => [...prev, branchToAdd]);
     } else {
@@ -733,7 +837,13 @@ export default function BranchBudgetAllocation() {
           { id: 'c5', name: 'Lazada', percent: 0, amount: 0 },
           { id: 'c6', name: 'Shopee', percent: 0, amount: 0 },
           { id: 'c7', name: 'Grab', percent: 0, amount: 0 }
-        ]
+        ],
+        googleSearchBreakdown: {
+          generalSearch: { percent: 0, amount: 0 },
+          leadsSearch: { percent: 0, amount: 0 },
+          naJomtienSearch: { percent: 0, amount: 0 }
+        },
+        note: ''
       };
       updateCurrentBranches(prev => [...prev, newBranch]);
     }
@@ -811,7 +921,12 @@ export default function BranchBudgetAllocation() {
           { id: 'c5', name: 'Lazada', percent: 0, amount: b.lazadaAmount || 0 },
           { id: 'c6', name: 'Shopee', percent: b.shopeePct || 10, amount: b.shopeeAmount || 11500 },
           { id: 'c7', name: 'Grab', percent: b.grabPct || 10, amount: b.grabAmount || 11500 }
-        ]
+        ],
+        googleSearchBreakdown: {
+          generalSearch: { percent: 0, amount: 0 },
+          leadsSearch: { percent: 0, amount: 0 },
+          naJomtienSearch: { percent: 0, amount: 0 }
+        }
       };
     });
 
@@ -828,10 +943,6 @@ export default function BranchBudgetAllocation() {
       : (b.manualFullBudget || (b.previousSales * (mktPercentRate / 100)));
     return sum + fullB;
   }, 0);
-
-  const totalGoogleSearchSubAmount = Number(googleSearchBreakdown.generalSearch?.amount || 0) + 
-                                     Number(googleSearchBreakdown.leadsSearch?.amount || 0) + 
-                                     Number(googleSearchBreakdown.naJomtienSearch?.amount || 0);
 
   const currentMonthObj = monthsList.find(m => m.value === selectedMonth) || monthsList[new Date().getMonth()] || monthsList[0];
 
@@ -878,7 +989,7 @@ export default function BranchBudgetAllocation() {
                 <span>ประจำเดือน:</span>
                 <select
                   value={selectedMonth}
-                  onChange={(e) => setSelectedMonth(e.target.value)}
+                  onChange={(e) => handleSelectMonth(e.target.value, selectedYear)}
                   className="px-2 py-1 bg-purple-50 border border-purple-200 rounded-lg font-bold text-purple-950 focus:outline-none text-xs cursor-pointer hover:bg-purple-100 transition-colors"
                 >
                   {monthsList.map(m => (
@@ -888,7 +999,7 @@ export default function BranchBudgetAllocation() {
 
                 <select
                   value={selectedYear}
-                  onChange={(e) => setSelectedYear(e.target.value)}
+                  onChange={(e) => handleSelectMonth(selectedMonth, e.target.value)}
                   className="px-2 py-1 bg-purple-50 border border-purple-200 rounded-lg font-bold text-purple-950 focus:outline-none text-xs cursor-pointer hover:bg-purple-100 transition-colors"
                 >
                   <option value="2026">2026 (2569)</option>
@@ -980,8 +1091,7 @@ export default function BranchBudgetAllocation() {
                 <button
                   key={tab.month}
                   onClick={() => {
-                    setSelectedMonth(tab.month);
-                    setSelectedYear(tab.year);
+                    handleSelectMonth(tab.month, tab.year);
                   }}
                   className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer whitespace-nowrap ${
                     isActive
@@ -1129,6 +1239,15 @@ export default function BranchBudgetAllocation() {
             const netMediaBudget = Math.max(0, fullBudget - totalPromoAmount);
             const totalChannelAmount = branch.channelAllocations.reduce((sum, c) => sum + (c.amount || 0), 0);
             const dailySales = branch.previousSales / 30;
+
+            const branchGoogleBreakdown = branch.googleSearchBreakdown || {
+              generalSearch: { percent: 0, amount: 0 },
+              leadsSearch: { percent: 0, amount: 0 },
+              naJomtienSearch: { percent: 0, amount: 0 }
+            };
+            const totalBranchGoogleSearchSubAmount = Number(branchGoogleBreakdown.generalSearch?.amount || 0) +
+                                                     Number(branchGoogleBreakdown.leadsSearch?.amount || 0) +
+                                                     Number(branchGoogleBreakdown.naJomtienSearch?.amount || 0);
 
             const isMainBranch = branch.id === 'hq' || branch.name.toLowerCase().includes('หลัก') || branch.name.toLowerCase().includes('สำนักงานใหญ่');
             const isGoogleExpanded = expandedGoogleBranchId === branch.id;
@@ -1391,7 +1510,7 @@ export default function BranchBudgetAllocation() {
                                   <span>แยกสัดส่วนงบย่อย Google Search (กรอกเป็น % หรือ ฿/วัน ได้ทุกอัน):</span>
                                 </span>
                                 <span className="text-[10px] font-mono font-bold text-purple-950">
-                                  รวม ฿{totalGoogleSearchSubAmount.toFixed(2)}/วัน
+                                  รวม ฿{totalBranchGoogleSearchSubAmount.toFixed(2)}/วัน
                                 </span>
                               </div>
 
@@ -1404,8 +1523,8 @@ export default function BranchBudgetAllocation() {
                                       type="number"
                                       step="0.1"
                                       placeholder="%"
-                                      value={googleSearchBreakdown.generalSearch?.percent || ''}
-                                      onChange={(e) => handleUpdateGoogleSubPercent('generalSearch', e.target.value, dailyChannelAmount > 0 ? dailyChannelAmount : 1135)}
+                                      value={branchGoogleBreakdown.generalSearch?.percent ?? ''}
+                                      onChange={(e) => handleUpdateGoogleSubPercent(branch.id, 'generalSearch', e.target.value, dailyChannelAmount > 0 ? dailyChannelAmount : 1135)}
                                       className="w-12 px-1 py-0.5 bg-white border border-[#E2D2EA] rounded text-right font-mono font-bold text-purple-950 text-xs"
                                     />
                                     <span className="text-[10px] text-purple-800 font-bold">%</span>
@@ -1415,8 +1534,8 @@ export default function BranchBudgetAllocation() {
                                       type="number"
                                       step="0.01"
                                       placeholder="บาท"
-                                      value={googleSearchBreakdown.generalSearch?.amount || ''}
-                                      onChange={(e) => handleUpdateGoogleSubAmount('generalSearch', e.target.value, dailyChannelAmount > 0 ? dailyChannelAmount : 1135)}
+                                      value={branchGoogleBreakdown.generalSearch?.amount ?? ''}
+                                      onChange={(e) => handleUpdateGoogleSubAmount(branch.id, 'generalSearch', e.target.value, dailyChannelAmount > 0 ? dailyChannelAmount : 1135)}
                                       className="w-20 px-1.5 py-0.5 bg-white border border-[#E2D2EA] rounded text-right font-mono font-bold text-purple-950 text-xs"
                                     />
                                     <span className="text-[10px] text-purple-700">/วัน</span>
@@ -1431,8 +1550,8 @@ export default function BranchBudgetAllocation() {
                                       type="number"
                                       step="0.1"
                                       placeholder="%"
-                                      value={googleSearchBreakdown.leadsSearch?.percent || ''}
-                                      onChange={(e) => handleUpdateGoogleSubPercent('leadsSearch', e.target.value, dailyChannelAmount > 0 ? dailyChannelAmount : 1135)}
+                                      value={branchGoogleBreakdown.leadsSearch?.percent ?? ''}
+                                      onChange={(e) => handleUpdateGoogleSubPercent(branch.id, 'leadsSearch', e.target.value, dailyChannelAmount > 0 ? dailyChannelAmount : 1135)}
                                       className="w-12 px-1 py-0.5 bg-white border border-[#E2D2EA] rounded text-right font-mono font-bold text-purple-950 text-xs"
                                     />
                                     <span className="text-[10px] text-purple-800 font-bold">%</span>
@@ -1442,8 +1561,8 @@ export default function BranchBudgetAllocation() {
                                       type="number"
                                       step="0.01"
                                       placeholder="บาท"
-                                      value={googleSearchBreakdown.leadsSearch?.amount || ''}
-                                      onChange={(e) => handleUpdateGoogleSubAmount('leadsSearch', e.target.value, dailyChannelAmount > 0 ? dailyChannelAmount : 1135)}
+                                      value={branchGoogleBreakdown.leadsSearch?.amount ?? ''}
+                                      onChange={(e) => handleUpdateGoogleSubAmount(branch.id, 'leadsSearch', e.target.value, dailyChannelAmount > 0 ? dailyChannelAmount : 1135)}
                                       className="w-20 px-1.5 py-0.5 bg-white border border-[#E2D2EA] rounded text-right font-mono font-bold text-purple-950 text-xs"
                                     />
                                     <span className="text-[10px] text-purple-700">/วัน</span>
@@ -1458,8 +1577,8 @@ export default function BranchBudgetAllocation() {
                                       type="number"
                                       step="0.1"
                                       placeholder="%"
-                                      value={googleSearchBreakdown.naJomtienSearch?.percent || ''}
-                                      onChange={(e) => handleUpdateGoogleSubPercent('naJomtienSearch', e.target.value, dailyChannelAmount > 0 ? dailyChannelAmount : 1135)}
+                                      value={branchGoogleBreakdown.naJomtienSearch?.percent ?? ''}
+                                      onChange={(e) => handleUpdateGoogleSubPercent(branch.id, 'naJomtienSearch', e.target.value, dailyChannelAmount > 0 ? dailyChannelAmount : 1135)}
                                       className="w-12 px-1 py-0.5 bg-white border border-[#E2D2EA] rounded text-right font-mono font-bold text-purple-950 text-xs"
                                     />
                                     <span className="text-[10px] text-purple-800 font-bold">%</span>
@@ -1469,8 +1588,8 @@ export default function BranchBudgetAllocation() {
                                       type="number"
                                       step="0.01"
                                       placeholder="บาท"
-                                      value={googleSearchBreakdown.naJomtienSearch?.amount || ''}
-                                      onChange={(e) => handleUpdateGoogleSubAmount('naJomtienSearch', e.target.value, dailyChannelAmount > 0 ? dailyChannelAmount : 1135)}
+                                      value={branchGoogleBreakdown.naJomtienSearch?.amount ?? ''}
+                                      onChange={(e) => handleUpdateGoogleSubAmount(branch.id, 'naJomtienSearch', e.target.value, dailyChannelAmount > 0 ? dailyChannelAmount : 1135)}
                                       className="w-20 px-1.5 py-0.5 bg-white border border-[#E2D2EA] rounded text-right font-mono font-bold text-purple-950 text-xs"
                                     />
                                     <span className="text-[10px] text-purple-700">/วัน</span>
